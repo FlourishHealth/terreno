@@ -184,6 +184,30 @@ Backend previews prune not-Ready tagged revisions from traffic
 preview always describes the Infra Manager preview (state, `errorCode`,
 `errorLogs`) before delete, including when `previews create` fails.
 
+### GitHub Deployment records
+
+Deploy scripts wrap the publish step in `with_github_deployment`
+(`scripts/ci/github-deployment-lib.sh`): the deployment is created as
+`in_progress` with the CircleCI job as `log_url`, then set to `success`
+(with the environment URL) or `failure`. PR previews are transient; the rest
+are production environments. Environment names match the retired GitHub
+workflows, so history stays continuous:
+
+| Job | Environment | URL |
+| --- | --- | --- |
+| `deploy-demo` / `deploy-demo-preview` | `demo` / `demo-preview-pr-N` | `terreno-demo.netlify.app` / `pr-N--terreno-demo.netlify.app` |
+| `deploy-frontend` / `deploy-frontend-preview` | `example-frontend` / `example-frontend-preview-pr-N` | `terreno-frontend.netlify.app` / `pr-N--terreno-frontend.netlify.app` |
+| `deploy-docs` / `deploy-docs-preview` | `docs` / `docs-preview-pr-N` | `terreno-docs.netlify.app` / `docs-pr-N--terreno-docs.netlify.app` |
+| `gcp-cd-prod` backend / `gcp-cd-preview` | `example-backend-production` / `example-backend-preview-pr-N` | Cloud Run URL / `pr-N---` tag URL |
+| `gcp-cd-prod` MCP | `mcp-production` | Cloud Run `terreno-mcp` URL |
+
+Recording is best-effort: an unset `GITHUB_DEPLOYMENTS_TOKEN` or a GitHub API
+error prints a warning and never fails the deploy. Terraform applies are not
+recorded. PR close deactivates the preview environments
+(`preview-cleanup.yml`). The token lives in its own context so the GitHub
+write scope is limited to deployments. Same-repo PR pipelines can read every
+context their jobs attach, so keep this token scoped to deployments.
+
 Each deploy job has a `serial-group`: production jobs queue per target, and
 previews queue per branch, so two master merges never apply terraform or roll
 Cloud Run at the same time. Turn off Netlify's GitHub auto-build so only
@@ -204,6 +228,7 @@ restrict `terreno-release` and `terreno-npm` to tag/manual release pipelines.
 | `terreno-release` | `REPO_ADMIN_TOKEN`, `ZOOM_WEBHOOK_URL`, `ZOOM_WEBHOOK_TOKEN` | stable version bump + release notification |
 | `terreno-agentic` | `CURSOR_API_KEY`, optional `CURSOR_MODEL` | `architectural-pr-review` |
 | `terreno-github-api` | PAT (`pull-requests`, `contents`, …) | `dco`, `architectural-pr-review` |
+| `terreno-github-deployments` | `GITHUB_DEPLOYMENTS_TOKEN`: fine-grained PAT on `TerrenoLabs/terreno` with **Deployments: read/write** and **Pull requests: read** only | GitHub Deployment records + preview PR lookup in every Netlify/GCP deploy job |
 
 Until contexts exist, e2e jobs may use **project env vars for `E2E_*` secrets only**
 (or the in-job `ci-e2e-*-secret` fallbacks). **Do not** put `GITHUB_TOKEN` (or any
@@ -338,7 +363,9 @@ and deactivates the PR's old GitHub Deployments. The manual GHA publisher
 (`publish-on-tag.yml`) uses the same script to start `{"run-demo-deploy":true}`
 on `master`. Both need the GitHub secret `CIRCLECI_TOKEN` (a CircleCI personal
 or project API token) and the repository variable
-`CIRCLECI_PIPELINE_DEFINITION_ID` (Project Settings → Pipelines). Path-filtered
+`CIRCLECI_PIPELINE_DEFINITION_ID` (Project Settings → Pipelines). Set the
+optional variable `CIRCLECI_PROJECT_SLUG` if re-linking the project changes
+its slug. Path-filtered
 preview **deploys** run on open PRs from this repository; fork PRs are skipped.
 If `CIRCLE_PULL_REQUEST` is unset (GitHub App `push` pipelines), the job looks
 up the open PR for `CIRCLE_BRANCH` via the GitHub API.

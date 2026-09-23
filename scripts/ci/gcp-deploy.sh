@@ -23,6 +23,11 @@ export GCP_MCP_REGION="${GCP_MCP_REGION:-us-east1}"
 export GCP_MCP_SERVICE="${GCP_MCP_SERVICE:-terreno-mcp}"
 export TF_DEPLOYMENT="${TF_DEPLOYMENT:-terreno-prod}"
 
+# shellcheck source=scripts/ci/github-deployment-lib.sh
+source scripts/ci/github-deployment-lib.sh
+
+backend_prod_url="https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+
 gcp_auth() {
   scripts/ci/gcp-auth.sh
 }
@@ -206,14 +211,20 @@ case "$action" in
   backend-prod)
     export GCP_SERVICE_ACCOUNT="${GCP_CD_DEPLOYER_SA_PROD:-}"
     gcp_auth
-    deploy_backend prod
+    with_github_deployment example-backend-production "Backend production deploy" "$backend_prod_url" \
+      deploy_backend prod
     ;;
   backend-preview)
     scripts/ci/validate-env.sh PR_NUMBER
     export GCP_SERVICE_ACCOUNT="${GCP_CD_DEPLOYER_SA_PROD:-}"
     gcp_auth
-    deploy_tasks "pr-${PR_NUMBER}"
-    deploy_backend "pr-${PR_NUMBER}"
+    deploy_backend_preview() {
+      deploy_tasks "pr-${PR_NUMBER}"
+      deploy_backend "pr-${PR_NUMBER}"
+    }
+    with_github_deployment "example-backend-preview-pr-${PR_NUMBER}" "Backend preview pr-${PR_NUMBER}" \
+      "https://pr-${PR_NUMBER}---${backend_prod_url#https://}" \
+      deploy_backend_preview
     ;;
   tasks-prod)
     export GCP_SERVICE_ACCOUNT="${GCP_CD_DEPLOYER_SA_PROD:-}"
@@ -223,23 +234,30 @@ case "$action" in
   mcp-prod)
     export GCP_SERVICE_ACCOUNT="${GCP_CD_DEPLOYER_SA_PROD:-}"
     gcp_auth
-    configure_registry "$GCP_MCP_REGION"
-    scripts/ci/validate-env.sh MCP_SENTRY_DSN
-    image="${GCP_MCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_MCP_SERVICE}/${GCP_MCP_SERVICE}:${CIRCLE_SHA1}"
-    docker build --file mcp-server/Dockerfile --tag "$image" .
-    docker push "$image"
-    gcloud run deploy "$GCP_MCP_SERVICE" \
+    deploy_mcp() {
+      configure_registry "$GCP_MCP_REGION"
+      scripts/ci/validate-env.sh MCP_SENTRY_DSN
+      image="${GCP_MCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GCP_MCP_SERVICE}/${GCP_MCP_SERVICE}:${CIRCLE_SHA1}"
+      docker build --file mcp-server/Dockerfile --tag "$image" .
+      docker push "$image"
+      gcloud run deploy "$GCP_MCP_SERVICE" \
+        "--project=$GCP_PROJECT_ID" \
+        "--region=$GCP_MCP_REGION" \
+        "--image=$image" \
+        --cpu=1 \
+        --memory=512Mi \
+        --min-instances=0 \
+        --max-instances=10 \
+        --concurrency=80 \
+        --timeout=300 \
+        --allow-unauthenticated \
+        "--set-env-vars=SENTRY_DSN=${MCP_SENTRY_DSN}"
+    }
+    mcp_url="$(gcloud run services describe "$GCP_MCP_SERVICE" \
       "--project=$GCP_PROJECT_ID" \
       "--region=$GCP_MCP_REGION" \
-      "--image=$image" \
-      --cpu=1 \
-      --memory=512Mi \
-      --min-instances=0 \
-      --max-instances=10 \
-      --concurrency=80 \
-      --timeout=300 \
-      --allow-unauthenticated \
-      "--set-env-vars=SENTRY_DSN=${MCP_SENTRY_DSN}"
+      --format='value(status.url)' 2>/dev/null || true)"
+    with_github_deployment mcp-production "MCP production deploy" "$mcp_url" deploy_mcp
     ;;
   cleanup-preview)
     scripts/ci/validate-env.sh PR_NUMBER

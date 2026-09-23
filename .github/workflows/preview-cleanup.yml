@@ -38,6 +38,7 @@ jobs:
         env:
           CIRCLECI_TOKEN: ${{ secrets.CIRCLECI_TOKEN }}
           CIRCLECI_PIPELINE_DEFINITION_ID: ${{ vars.CIRCLECI_PIPELINE_DEFINITION_ID }}
+          CIRCLECI_PROJECT_SLUG: ${{ vars.CIRCLECI_PROJECT_SLUG }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: scripts/ci/trigger-circleci-pipeline.sh "{\"run-preview-cleanup\":\"${PR_NUMBER}\"}"
 
@@ -50,6 +51,7 @@ jobs:
               `demo-preview-pr-${pr}`,
               `example-frontend-preview-pr-${pr}`,
               `example-backend-preview-pr-${pr}`,
+              `docs-preview-pr-${pr}`,
               // Legacy environment names from before pr-N naming convention
               `frontend-example-preview-pr-${pr}`,
               'demo-preview',

@@ -25,11 +25,14 @@ if [ -n "$owner" ] && [ -n "$repo" ] && [ -n "$branch" ]; then
   api_base="${GITHUB_API_URL:-https://api.github.com}"
   encoded="$(node -e "process.stdout.write(encodeURIComponent(process.env.CIRCLE_BRANCH ?? \"\"))")"
   url="${api_base}/repos/${owner}/${repo}/pulls?head=${owner}:${encoded}&state=open"
+  # Deploy jobs carry the terreno-github-deployments token; authenticate to avoid rate limits.
+  lookup_token="${GITHUB_TOKEN:-${GITHUB_DEPLOYMENTS_TOKEN:-}}"
   auth_args=()
-  if [ -n "${GITHUB_TOKEN:-}" ]; then
-    auth_args=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+  if [ -n "$lookup_token" ]; then
+    auth_args=(-H "Authorization: Bearer ${lookup_token}")
   fi
-  body="$(curl -fsS --max-time 10 "${auth_args[@]}" -H "Accept: application/vnd.github+json" "$url" || true)"
+  # ${arr[@]+...} keeps bash 3.2 (macOS) from treating an empty array as unset under set -u.
+  body="$(curl -fsS --max-time 10 ${auth_args[@]+"${auth_args[@]}"} -H "Accept: application/vnd.github+json" "$url" || true)"
   number="$(node -e '
 const fs = require("fs");
 const raw = fs.readFileSync(0, "utf8").trim();

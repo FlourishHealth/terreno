@@ -15,12 +15,18 @@ cd "$repo_root"
 case "$target" in
   demo)
     site_id="${NETLIFY_DEMO_SITE_ID:-}"
+    site_name="terreno-demo"
+    deployment_env="demo"
     ;;
   frontend)
     site_id="${NETLIFY_FRONTEND_EXAMPLE_SITE_ID:-}"
+    site_name="terreno-frontend"
+    deployment_env="example-frontend"
     ;;
   docs)
     site_id="${NETLIFY_DOCS_SITE_ID:-}"
+    site_name="terreno-docs"
+    deployment_env="docs"
     ;;
   *)
     echo "Unknown Netlify target: $target" >&2
@@ -87,8 +93,17 @@ fi
 args=(deploy --dir "$publish_dir" --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN")
 if [ "$mode" = "production" ]; then
   args+=(--prod)
+  deployment_url="https://${site_name}.netlify.app"
+  deployment_description="${target} production deploy"
 else
   args+=(--alias "$alias_name")
+  # Aliases are pr-N (docs: docs-pr-N); GitHub environments are <env>-preview-pr-N.
+  deployment_env="${deployment_env}-preview-pr-${alias_name##*pr-}"
+  deployment_url="https://${alias_name}--${site_name}.netlify.app"
+  deployment_description="${target} preview ${alias_name}"
 fi
 
-bunx --bun netlify-cli@latest "${args[@]}"
+# shellcheck source=scripts/ci/github-deployment-lib.sh
+source scripts/ci/github-deployment-lib.sh
+with_github_deployment "$deployment_env" "$deployment_description" "$deployment_url" \
+  bunx --bun netlify-cli@latest "${args[@]}"

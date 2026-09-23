@@ -2259,7 +2259,7 @@ workflows:
         - equal: [master, << pipeline.git.branch >>]
     jobs:
       - deploy-demo:
-          context: [terreno-netlify]
+          context: [terreno-netlify, terreno-github-deployments]
           serial-group: << pipeline.project.slug >>/netlify-demo-production
           filters:
             branches:
@@ -2274,7 +2274,7 @@ workflows:
         - equal: [master, << pipeline.git.branch >>]
     jobs:
       - deploy-frontend:
-          context: [terreno-netlify]
+          context: [terreno-netlify, terreno-github-deployments]
           serial-group: << pipeline.project.slug >>/netlify-frontend-production
           filters:
             branches:
@@ -2289,7 +2289,7 @@ workflows:
         - equal: [master, << pipeline.git.branch >>]
     jobs:
       - deploy-docs:
-          context: [terreno-netlify]
+          context: [terreno-netlify, terreno-github-deployments]
           serial-group: << pipeline.project.slug >>/netlify-docs-production
           filters:
             branches:
@@ -2308,7 +2308,7 @@ workflows:
             - << pipeline.parameters.force-cd >>
     jobs:
       - gcp-cd-prod:
-          context: [terreno-gcp]
+          context: [terreno-gcp, terreno-github-deployments]
           serial-group: << pipeline.project.slug >>/gcp-production
           filters:
             branches:
@@ -2320,7 +2320,7 @@ workflows:
     when: << pipeline.parameters.run-deploy-demo >>
     jobs:
       - deploy-demo-preview:
-          context: [terreno-netlify]
+          context: [terreno-netlify, terreno-github-deployments]
           serial-group: << pipeline.project.slug >>/netlify-demo-preview-<< pipeline.git.branch >>
           filters:
             branches:
@@ -2332,7 +2332,7 @@ workflows:
     when: << pipeline.parameters.run-deploy-frontend >>
     jobs:
       - deploy-frontend-preview:
-          context: [terreno-netlify]
+          context: [terreno-netlify, terreno-github-deployments]
           serial-group: << pipeline.project.slug >>/netlify-frontend-preview-<< pipeline.git.branch >>
           filters:
             branches:
@@ -2344,7 +2344,7 @@ workflows:
     when: << pipeline.parameters.run-deploy-docs >>
     jobs:
       - deploy-docs-preview:
-          context: [terreno-netlify]
+          context: [terreno-netlify, terreno-github-deployments]
           serial-group: << pipeline.project.slug >>/netlify-docs-preview-<< pipeline.git.branch >>
           filters:
             branches:
@@ -2359,7 +2359,7 @@ workflows:
         - << pipeline.parameters.run-cd-backend >>
     jobs:
       - gcp-cd-preview:
-          context: [terreno-gcp]
+          context: [terreno-gcp, terreno-github-deployments]
           serial-group: << pipeline.project.slug >>/gcp-preview-<< pipeline.git.branch >>
           filters:
             branches:
@@ -2371,7 +2371,7 @@ workflows:
     when: << pipeline.parameters.force-demo-deploy >>
     jobs:
       - deploy-demo:
-          context: [terreno-netlify]
+          context: [terreno-netlify, terreno-github-deployments]
           serial-group: << pipeline.project.slug >>/netlify-demo-production
 
   deploy-preview-manual:
@@ -2380,7 +2380,7 @@ workflows:
         equal: ["", << pipeline.parameters.deploy-preview-pr >>]
     jobs:
       - deploy-preview-manual:
-          context: [terreno-gcp, terreno-netlify]
+          context: [terreno-gcp, terreno-netlify, terreno-github-deployments]
           serial-group: << pipeline.project.slug >>/gcp-preview-manual
 
   preview-cleanup-manual:
@@ -2418,7 +2418,7 @@ workflows:
             tags:
               only: /^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$/
       - deploy-demo:
-          context: [terreno-netlify]
+          context: [terreno-netlify, terreno-github-deployments]
           serial-group: << pipeline.project.slug >>/netlify-demo-production
           requires:
             - publish-release
