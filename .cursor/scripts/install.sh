@@ -43,4 +43,21 @@ fi
 # 4. Ensure the local replica-set data directory exists.
 mkdir -p "$HOME/.local/mongo-data"
 
+# 5. Install the Chromium browser (+ system deps) used for frontend UI
+#    verification, and expose it at a stable, version-independent path.
+export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
+if sudo -n true 2>/dev/null; then
+  bunx playwright install --with-deps chromium
+else
+  bunx playwright install chromium
+fi
+CHROME_BIN="$(node -e 'const {chromium}=require("'"$REPO_ROOT"'/node_modules/playwright/index.js"); process.stdout.write(chromium.executablePath());')"
+if [ -n "$CHROME_BIN" ] && [ -x "$CHROME_BIN" ]; then
+  mkdir -p "$HOME/.local/chrome-bin"
+  ln -sf "$CHROME_BIN" "$HOME/.local/chrome-bin/chrome"
+  "$HOME/.local/chrome-bin/chrome" --headless --no-sandbox --version | head -1
+else
+  echo "WARNING: could not resolve a Chromium executable path" >&2
+fi
+
 echo "install.sh complete"

@@ -2,6 +2,7 @@
   "name": "Terreno monorepo",
   "install": "bash .cursor/scripts/install.sh",
   "start": "bash .cursor/scripts/start.sh",
+  "chromeExecutablePath": "/home/ubuntu/.local/chrome-bin/chrome",
   "terminals": [
     {
       "name": "backend",
