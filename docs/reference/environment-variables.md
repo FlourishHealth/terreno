@@ -66,9 +66,12 @@ Comprehensive guide to environment variables used across Terreno packages and ex
 | `ENABLE_SWAGGER` | `@terreno/api` | ❌ | `false` | No | server |
 | `APP_ENV` | example-backend | ❌ | `development` | No | server |
 | `BACKEND_URL` | scripts, deploy | ❌ | — | No | server |
-| `FRONTEND_URL` | example-backend CORS | ❌ | auto | No | server |
+| `FRONTEND_URL` | example-backend CORS and `authOptions.publicAppUrl` | ❌ | `http://localhost:8082` | No | server |
 | `API_URL` | microservice split | ❌ | — | No | server |
 | `DISABLE_LOG_ALL_REQUESTS` | `@terreno/api` logging | ❌ | — | No | server |
+| `TERRENO_BROWSER_LOGS` | `@terreno/api` dev log ingestion | ❌ | enabled only in development; loopback or authenticated requests only | No | server |
+| `ALLOW_MIGRATIONS` | `@terreno/api` `terreno-migrate` | ❌ | unset | No | server |
+| `MIGRATIONS_DIR` | example-backend Dockerfile / `resolveMigrationDir` | ❌ | `<cwd>/migrations` when `dir` is `$bunfs` | No | server |
 
 ## Client / build-time
 
@@ -96,6 +99,19 @@ Resolution order for API base URL (`rtk/src/constants.ts`):
 1. `EXPO_PUBLIC_API_URL` (production and dev)
 2. `extra.BASE_URL` (production only, when env unset)
 3. Dev fallbacks: `hostUri`, experience URL, `localhost`
+
+## Development tooling
+
+| Variable | Read by | Required | Default | Secret | Scope |
+|----------|---------|----------|---------|--------|-------|
+| `TERRENO_PROJECT_ROOT` | `terreno-mcp-local`, `terreno` CLI | ❌ | nearest Terreno project root | No | tooling |
+| `TERRENO_METRO_URL` | `terreno-mcp-local` | ❌ | frontend script port or `http://localhost:8082` | No | tooling |
+| `TERRENO_MCP_EVAL` | `terreno-mcp-local` | ❌ | disabled | No | tooling |
+| `TERRENO_WEB_URL` | `terreno` CLI | ❌ | `http://localhost:8082` | No | tooling |
+| `BUN_CHROME_PATH` | Bun WebView | ❌ | browser auto-discovery | No | tooling |
+| `TERRENO_OPENAPI` | `terreno` CLI | ❌ | — | No | tooling |
+| `TERRENO_API_URL` | `terreno` CLI | ❌ | OpenAPI `servers[0].url` | No | tooling |
+| `TERRENO_TOKEN` | `terreno` CLI | ❌ | — | Yes | tooling |
 
 ## AI
 
@@ -136,19 +152,44 @@ Resolution order for API base URL (`rtk/src/constants.ts`):
 | `COMMS_DEFAULT_FROM` | example-backend / `@terreno/comms` | ❌ | — | No | server |
 | `COMMS_DEFAULT_FROM_NAME` | example-backend | ❌ | — | No | server |
 | `SENDGRID_API_KEY` | `@terreno/comms/adapters/sendgrid` | ❌ | — | Yes | server |
+| `SENDGRID_WEBHOOK_VERIFICATION_KEY` | `@terreno/comms/adapters/sendgrid` | ❌ | — | Yes | server |
 | `SENDGRID_SANDBOX_MODE` | example-backend | ❌ | — | No | server |
+| `TWILIO_ACCOUNT_SID` | `@terreno/comms/adapters/twilioSms`, `@terreno/comms/adapters/twilioVerify` | ❌ | — | Yes | server |
+| `TWILIO_AUTH_TOKEN` | `@terreno/comms/adapters/twilioSms`, `@terreno/comms/adapters/twilioVerify` | ❌ | — | Yes | server |
+| `TWILIO_MESSAGING_SERVICE_SID` | `@terreno/comms/adapters/twilioSms` | ❌ | — | No | server |
+| `TWILIO_FROM_NUMBER` | `@terreno/comms/adapters/twilioSms` | ❌ | — | No | server |
+| `TWILIO_VERIFY_SERVICE_SID` | `@terreno/comms/adapters/twilioVerify` | ❌ | — | No | server |
 | `EXPO_ACCESS_TOKEN` | `@terreno/comms/adapters/expoPush` | ❌ | — | Yes | server |
+| `PUBLIC_API_URL` | `@terreno/comms` Twilio webhooks | ❌ | — | No | server |
+| `COMMS_WEBHOOK_PUBLIC_URL` | `@terreno/comms` Twilio webhooks | ❌ | — | No | server |
 
 Set `COMMS_ENABLED=false` to omit the example backend's communications plugin and routes.
 When `SENDGRID_API_KEY` is set, the example backend registers `SendGridMailProvider`
 (optional peer `@sendgrid/mail`). Without a key, non-production environments keep the
 console mail provider; production leaves mail unconfigured until a provider is wired.
 `SENDGRID_SANDBOX_MODE=true` forces SendGrid sandbox mode for non-test runtimes.
+`SENDGRID_WEBHOOK_VERIFICATION_KEY` (or constructor `webhookVerificationKey`) is the
+SendGrid Event Webhook ECDSA public key. Missing it skips `POST /comms/webhooks/sendgrid`.
+`PUBLIC_API_URL` or `COMMS_WEBHOOK_PUBLIC_URL` is the public HTTPS origin used to sign
+Twilio callbacks (no trailing slash). Missing it skips Twilio webhook routes.
 Sender identity must be verified in SendGrid before real delivery works.
+When `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` are set with
+`TWILIO_MESSAGING_SERVICE_SID` or `TWILIO_FROM_NUMBER`, the example backend registers
+`TwilioSmsProvider` (optional peer `twilio`). A sender var without those credentials
+throws at startup. Shared account credentials without a sender do not enable SMS — they
+can still enable Verify when `TWILIO_VERIFY_SERVICE_SID` is set. Without an SMS sender,
+non-production keeps the console SMS provider; production omits SMS until a sender is wired.
+When `TWILIO_VERIFY_SERVICE_SID` is set with `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN`,
+the example backend registers `TwilioVerifyProvider`. A verify service SID without those
+credentials throws at startup. Without `TWILIO_VERIFY_SERVICE_SID`, non-production keeps
+the console verification provider; production omits verification until a provider is wired.
 `EXPO_ACCESS_TOKEN` is optional; the example backend always registers
 `ExpoPushProvider` when comms is enabled, with a statically imported `Expo`
 client so the compiled Cloud Run binary includes `expo-server-sdk`. Without a
-token, Expo still accepts sends at a lower rate limit. Non-production also mounts `POST /comms/dev/testPush`
+token, Expo still accepts sends at a lower rate limit. The example backend also
+depends on `twilio` and injects a statically imported client into
+`TwilioSmsProvider` / `TwilioVerifyProvider` when those env vars are complete,
+so the compiled binary includes the SDK. Non-production also mounts `POST /comms/dev/testPush`
 for authenticated test sends.
 
 ## Observability
@@ -170,8 +211,10 @@ for authenticated test sends.
 
 | Variable | Read by | Required | Default | Secret | Scope |
 |----------|---------|----------|---------|--------|-------|
-| `VALKEY_URL` | `@terreno/api` | ❌ | — | Yes | server |
-| `REDIS_URL` | various | ❌ | — | Yes | server |
+| `VALKEY_URL` | `@terreno/api` realtime adapter **and** `rateLimit.store: "redis"` | ❌ | — | Yes | server |
+| `REDIS_URL` | `@terreno/api` fallback after `VALKEY_URL` (realtime + Redis rate-limit store) | ❌ | — | Yes | server |
+
+There is **no** `RATE_LIMIT_ENABLED` (or similar) read by `@terreno/api`. Apps that want an env toggle pass `rateLimit: process.env.RATE_LIMIT_ENABLED === "true" ? {store: "memory"} : undefined` themselves. See [Rate limiting](../how-to/rate-limiting.md).
 
 ## Webhooks & notifications
 
@@ -183,7 +226,12 @@ for authenticated test sends.
 | `GOOGLE_CHAT_WEBHOOK_URL` | scripts | ❌ | — | Yes | server |
 | `ZOOM_CHAT_WEBHOOKS` | `@terreno/api` | ❌ | — | Yes | server |
 | `ZOOM_WEBHOOK_URL` | scripts | ❌ | — | Yes | server |
-| `WEBHOOK_SECRET` | webhooks | ❌ | — | Yes | server |
+| `WEBHOOK_SECRET` | example-backend HMAC demo | ❌ | — | Yes | server |
+
+`WEBHOOK_SECRET` is read only by the example HMAC route (`POST /webhooks/example`).
+`@terreno/api` `WebhooksApp` does not read it. Twilio/SendGrid inbound paths use adapter
+secrets and `PUBLIC_API_URL` / `COMMS_WEBHOOK_PUBLIC_URL` as above. See
+[Receive inbound webhooks](../how-to/inbound-webhooks.md).
 
 ## Admin SPA
 
@@ -205,6 +253,24 @@ for authenticated test sends.
 | `TERRENO_MCP_EVAL` | MCP eval | ❌ | — | No | tooling |
 | `TERRENO_PROJECT_ROOT` | MCP local | ❌ | — | No | tooling |
 
+## Background jobs
+
+| Variable | Read by | Required | Default | Secret | Scope |
+|----------|---------|----------|---------|--------|-------|
+| `JOBS_START_WORKER` | example-backend (`jobsStartWorker.ts`) | ❌ | `true` (unset) | No | server |
+
+`@terreno/jobs` itself does **not** read environment variables — pass `JobsApp` and runner
+options explicitly. `JOBS_START_WORKER` only gates whether the example API process calls
+`jobsApp.startWorker()` after listen. Set `false` when running the standalone
+`bun run jobs:worker` process against the same MongoDB.
+
+`JOB_TRACE_LOGS` is an optional app convention for verbose worker logging (see
+[API logging & tracing](api.md#logging--tracing)); not read by the jobs package.
+
+Legacy names `GCP_TASKS_NOTIFICATIONS_QUEUE` and `GCP_TASK_PROCESSOR_QUEUE` appear in
+example-backend **test** setup only. They are not read by `@terreno/jobs`. Use
+`GcpCloudTasksRunner` constructor config instead. See [Jobs reference](jobs.md).
+
 ## Example backend (app-specific)
 
 | Variable | Read by | Required | Default | Secret | Scope |
@@ -212,6 +278,14 @@ for authenticated test sends.
 | `OTEL_SERVICE_NAME` | OpenTelemetry (example-backend) | ❌ | `example-backend` | No | server |
 | `PR_NUMBER` | PR preview deploy | ❌ | — | No | server |
 | `PR_SERVICE_URL` | PR preview deploy | ❌ | — | No | server |
+| `JOBS_RUNNER` | example-backend | ❌ | `mongo` | No | server |
+| `JOBS_START_WORKER` | example-backend | ❌ | `true` with Mongo | No | server |
+| `GCP_TASKS_PROJECT` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
+| `GCP_TASKS_LOCATION` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
+| `GCP_TASKS_QUEUE` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
+| `GCP_TASKS_PUBLIC_URL` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
+| `GCP_TASKS_OIDC_AUDIENCE` | example-backend Cloud Tasks runner | ❌ | `{publicUrl}/jobs/execute`; deployed Cloud Run uses the canonical tasks-service root URL so tagged PR callbacks pass platform IAM | No | server |
+| `GCP_TASKS_SERVICE_ACCOUNT_EMAIL` | example-backend Cloud Tasks runner | ✅ when `JOBS_RUNNER=gcp-cloud-tasks` | — | No | server |
 | `DEFAULT_PAGE_SIZE` | Configuration model | ❌ | `20` | No | server |
 | `CRON_SECRET_KEY` | tests | ❌ | — | Yes | tooling |
 | `WIDGET_CLIENT_SECRET` | widgets | ❌ | — | Yes | server |
@@ -245,3 +319,5 @@ for authenticated test sends.
 - [Deployment baseline](../explanation/deployment-baseline.md)
 - [Build for web](../how-to/build-for-web.md)
 - [Configure Better Auth](../how-to/configure-better-auth.md)
+- [Rate limiting](../how-to/rate-limiting.md)
+- [Durable background jobs](../how-to/background-jobs.md)

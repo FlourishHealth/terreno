@@ -220,6 +220,29 @@ describe("generateSyncDbSdk", () => {
     }
   });
 
+  it("applies retries: true and numeric overrides", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "syncdb-codegen-"));
+    const out = join(dir, "syncDbSdk.ts");
+    try {
+      const enabled = await generateSyncDbSdk({
+        config: {overrides: {todos: {retries: true}}},
+        format: false,
+        out,
+        schema: fixturePath,
+      });
+      expect(enabled).toContain("retries: true");
+      const numbered = await generateSyncDbSdk({
+        config: {overrides: {todos: {retries: 4}}},
+        format: false,
+        out,
+        schema: fixturePath,
+      });
+      expect(numbered).toContain("retries: 4");
+    } finally {
+      await rm(dir, {force: true, recursive: true});
+    }
+  });
+
   it("formats the generated file when format is true", async () => {
     const dir = await mkdtemp(join(tmpdir(), "syncdb-codegen-"));
     const out = join(dir, "syncDbSdk.ts");
@@ -236,7 +259,7 @@ describe("generateSyncDbSdk", () => {
     }
   });
 
-  it("rejects collection names that are not TypeScript identifiers", async () => {
+  it("rejects unsafe sync collection names", async () => {
     const spec = await loadSpec(fixturePath);
     const discovered = discoverCollections({spec});
     const first = discovered[0];
@@ -252,7 +275,17 @@ describe("generateSyncDbSdk", () => {
           },
         ],
       })
-    ).toThrow(/not a TypeScript identifier/);
+    ).toThrow(/not a valid sync collection name/);
+  });
+
+  it("rejects invalid retries overrides", async () => {
+    const spec = await loadSpec(fixturePath);
+    const first = discoverCollections({spec})[0];
+    expect(() =>
+      emitSdk({
+        collections: [{...first, retries: Number.NaN}],
+      })
+    ).toThrow(/Invalid retries/);
   });
 });
 

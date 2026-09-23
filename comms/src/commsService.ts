@@ -100,6 +100,7 @@ export class CommsService {
       await row.save();
     } catch (error: unknown) {
       logger.warn(`[comms] Failed to apply delivery event: ${String(error)}`);
+      throw error;
     }
   }
 
@@ -631,6 +632,7 @@ export class CommsService {
       isRetry: sendOptions?.isRetry === true,
       message: this.applyMailDefaults(message),
       provider: provider.id,
+      userId: sendOptions?.userId ? String(sendOptions.userId) : undefined,
     };
     const before = await this.applyBeforeSend(context, hookErrors);
     const activeMessage = this.applyMailDefaults(before.message as MailMessage);
@@ -650,6 +652,7 @@ export class CommsService {
         subject: activeMessage.subject,
         templateId: activeMessage.templateId,
         to: activeMessage.to,
+        userId: context.userId,
       });
       return this.withLoggedId(result, logged);
     }
@@ -666,6 +669,7 @@ export class CommsService {
         subject: activeMessage.subject,
         templateId: activeMessage.templateId,
         to: activeMessage.to,
+        userId: context.userId,
       },
       provider: provider.id,
       retry: (): Promise<SendResult> => this.sendMailOnce(provider, activeMessage),
@@ -681,6 +685,7 @@ export class CommsService {
       isRetry: sendOptions?.isRetry === true,
       message,
       provider: provider.id,
+      userId: sendOptions?.userId ? String(sendOptions.userId) : undefined,
     };
     const before = await this.applyBeforeSend(context, hookErrors);
     const activeMessage = before.message as SmsMessage;
@@ -698,6 +703,7 @@ export class CommsService {
         retriedFromId: sendOptions?.retriedFromId,
         status: "cancelled",
         to: activeMessage.to,
+        userId: context.userId,
       });
       return this.withLoggedId(result, logged);
     }
@@ -712,6 +718,7 @@ export class CommsService {
         metadata: this.mergeSendMetadata(first, sendOptions),
         retriedFromId: sendOptions?.retriedFromId,
         to: activeMessage.to,
+        userId: context.userId,
       },
       provider: provider.id,
       retry: (): Promise<SendResult> => this.sendSmsOnce(provider, activeMessage),
@@ -997,6 +1004,7 @@ export class CommsService {
         : undefined,
       isRetry: true,
       retriedFromId: String(original._id),
+      userId: original.userId,
     };
     const payload = original.payload as Record<string, unknown>;
     let sendResult: SendResult | SendResult[] | undefined;

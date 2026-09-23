@@ -23,7 +23,7 @@ Local-first data layer for Terreno frontends. A TinyBase `MergeableStore` on dev
 ## Key exports
 
 - `createSyncDb`, `SyncDb`, `SyncDbConfig`, `MutateArgs`
-- `betterAuthAdapter`, `AuthProvider`
+- `betterAuthAdapter`, `bridgeBetterAuthReactClient`, `AuthProvider`
 - `listConflicts`, `wipeLocalData`, `generateMutationId`
 - React (`@terreno/syncdb/react`): `SyncDbProvider`, `useEntity`, `useQuery`, `useEntityIds`, `useMutate`, `useSyncStatus`, `useConflicts`, `useSyncDebugLog`, `createCollectionHooks`
 - CLI: `terreno-syncdb-codegen` (generates `SYNC_COLLECTIONS` + friendly hooks from OpenAPI)
@@ -108,6 +108,7 @@ const todoRouter = modelRouter("/todos", Todo, {
   queryFilter: OwnerQueryFilter,
   sync: {
     scope: {type: "owner"}, // stream = todos|owner:{ownerId}
+    // adminBroadcast: true, // also emit sync:delta to todos|admin (default false)
   },
 });
 ```
@@ -126,7 +127,7 @@ new TerrenoApp({userModel: User})
 
 - **`SyncApp`** — HTTP sync routes (`/sync/snapshot`, `/sync/mutate`, `/sync/mutate/batch`, `/sync/key`, `/sync/streams`, `/sync/entities`).
 - **`RealtimeApp`** — Socket.io server with change-stream-driven `sync:delta` emission. Requires a **MongoDB replica set** (change streams). `modelRouter` `realtime` (RTK `sync` events) is deprecated and removed in Terreno 58; do not add it to new models.
-- **`ensureSyncIndexes`** — `TerrenoApp.start()` awaits index builds for snapshot queries and sync bookkeeping (`SyncMutation.mutationId` unique, `SyncCounter.stream` unique, etc.). Registration queues this work without contacting MongoDB, so models can load before the database connects. Hosts that build Express without `TerrenoApp.start()` should await `ensureSyncIndexes()` after connecting.
+- **`ensureSyncIndexes`** — `TerrenoApp.start()` binds the HTTP port first (or attaches to `httpServer` if the process already listened), then awaits index builds for snapshot queries and sync bookkeeping (`SyncMutation.mutationId` unique, `SyncCounter.stream` unique, etc.). Registration queues this work without contacting MongoDB, so models can load before the database connects. Hosts that build Express without `TerrenoApp.start()` should await `ensureSyncIndexes()` after connecting.
 
 Socket auth requires at least one configured authentication method. It enables legacy JWT
 validation when `tokenSecret` or `TOKEN_SECRET` is available. Better Auth can be used without
@@ -142,20 +143,29 @@ is the fallback.
 ## createSyncDb configuration
 
 ```typescript
-import {betterAuthAdapter, createSyncDb} from "@terreno/syncdb";
+import {betterAuthAdapter, bridgeBetterAuthReactClient, createSyncDb} from "@terreno/syncdb";
 
 export const syncDb = createSyncDb({
   name: "myapp",
   collections: ["todos"],
-  authProvider: betterAuthAdapter(authClient),
+  authProvider: betterAuthAdapter(bridgeBetterAuthReactClient(authClient)),
   baseUrl: "http://localhost:4000",
 });
 ```
+
+Wrap a Better Auth **react** client in `bridgeBetterAuthReactClient`. Its `useSession` is a React
+hook rather than the `.subscribe` surface the adapter watches, so without the bridge the adapter
+falls back to polling `getSession()` and produces constant `/api/auth/get-session` traffic. The
+bridge exposes the client's `$store.atoms.session` atom and degrades to the polling fallback when
+that atom is absent. Clients that already expose `getSession` plus a subscribable `useSession` can
+be passed to `betterAuthAdapter` directly.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `name` | `string` | — (required) | Persisted database name |
 | `collections` | `string[]` | — (required) | Collection names to sync (local tables + subscriptions) |
+| `windowCollections` | `string[]` | `[]` | Collections that join `{collection}\|admin`, skip snapshots/reconcile, and hydrate only known REST membership ids |
+| `organizationIdProvider` | `() => string \| undefined` | — | Read at send time: sets `X-Organization-Id` on HTTP sync calls and `organizationId` on socket mutate payloads |
 | `authProvider` | `AuthProvider` | — (required) | `{getToken, getUserId, onAuthChange, refresh?}` |
 | `baseUrl` | `string` | — | Server origin; required unless both `transport` and `httpChannel` are injected |
 | `transport` | `SyncTransport` | socket transport from `baseUrl` | Override for tests or custom wiring |
@@ -189,7 +199,8 @@ export const syncDb = createSyncDb({
 | `goOnline()` | End simulated outage; reconnect triggers reconcile + outbox replay. |
 | `mutate({collection, operation, id?, data?})` | Optimistic local write + durable outbox enqueue + fire-and-forget replay. Returns `{mutationId, id}`. |
 | `reconcile()` | HTTP snapshot catch-up for every known stream; runs tombstone compaction on success. Also runs automatically on (re)connect, on a rate-limited seq-jump hint, and on the periodic timer; each `sync:subscribed` confirmation additionally pages just the streams it names. |
-| `forceResync()` | Purge every known stream locally and re-bootstrap from cursor 0 (outbox/conflicts untouched). Returns `{ok, reason?, streams, purged, repaired}`. |
+| `hydrateWindow({collection, ids, restRows?})` | Admin window upsert: REST rows (optional) land immediately; every requested id is also fetched from `GET /sync/entities` before this resolves so seq/deleted metadata is canonical for immediate update/delete. A `{collection}|admin` delta that lands while the fetch is in flight wins, so hydration never rewinds a row to an older seq. Unknown ids are ignored. |
+| `forceResync()` | Purge every known stream locally and re-bootstrap from cursor 0 (outbox/conflicts untouched). Returns `{ok, reason?, streams, purged, repaired}`. After discovery and each stream bootstrap it waits for in-flight `start`/`stop`/auth-change work, then abandons with `reason: "superseded"` when that work switched users or generations. |
 | `replayOutbox()` | Drain queued mutations for the current user now. |
 | `resolveConflict({mutationId, strategy})` | Apply `"useServer"` or `"keepMine"` to a recorded conflict. |
 | `retryFailed({entityId})` | Re-enable an entity's queued successors after a terminal validation failure. |
@@ -199,6 +210,27 @@ export const syncDb = createSyncDb({
 | `store` | Read surface over the local MergeableStore (`SyncStore`). |
 | `outbox` | Durable mutation outbox (`Outbox`). |
 | `debug` | `SyncDebugLog` when `debug` is enabled; otherwise `undefined`. |
+
+### Local MCP debugging
+
+When `debug` is enabled, `createSyncDb` registers the client by `name` on the
+development runtime bridge used by `terreno-mcp-local`. Production clients stay
+unregistered when debug logging is off.
+
+| Tool | Operations |
+| --- | --- |
+| `get_syncdb_state` | Read status, entities/tombstones, decoded outbox, conflicts, cursors, known streams, repair markers, values, and debug events |
+| `syncdb_snapshot` | `capture`, `list`, `get`, `compare`, `delete` |
+| `syncdb_action` | `mutate`, `setLocalEntity`, `deleteLocalEntity`, `flush`, `reconcile`, `forceResync`, `resolveConflict`, `retryFailed`, `goOffline`, `goOnline`, `clearDebug`, `mergeSnapshot` |
+
+Read and snapshot tools redact sensitive field names. `syncdb_action` requires
+the local MCP process to start with `TERRENO_MCP_EVAL=1`. `flush` means “drain
+the durable outbox now.” `mergeSnapshot` CRDT-merges TinyBase mergeable content
+from a snapshot retained in the same MCP process. Later HLCs win, including
+deletes; it does not replace the live store. To force specific rows from a
+capture, use `setLocalEntity` from `syncdb_snapshot` `get`.
+
+See [Debug a Terreno app with MCP](../how-to/debug-with-mcp.md).
 
 ## React hooks
 
@@ -340,7 +372,7 @@ In React, prefer `useConflicts()`.
 | Strategy | Behavior |
 |----------|----------|
 | `"useServer"` | Overwrite local entity with canonical server data/seq; clear pending state; discard conflicted outbox row. Writes a **tombstone** when the server side is deleted. |
-| `"keepMine"` | Re-enqueue the mutation under a **fresh** `mutationId` with `baseVersion` set to the server's seq; local optimistic data is kept. |
+| `"keepMine"` | Re-enqueue the mutation under a **fresh** `mutationId` with `baseVersion` set to the server's seq; local optimistic data is kept. All durable mutation metadata, including `mutationMode: "adminWindow"`, is preserved so retried admin-window writes receive the same RBAC, protected-field, hook, and audit handling. |
 
 Resolve via `client.resolveConflict({mutationId, strategy})` or `useConflicts().resolve(...)`.
 
@@ -382,6 +414,7 @@ sync: {scope: {type: "owner"}}                        // todos|owner:{ownerId}
 sync: {scope: {type: "owner", field: "userId"}}       // todos|owner:{userId}
 sync: {scope: {type: "tenant", field: "organizationId"}} // todos|tenant:{orgId}
 sync: {scope: {type: "broadcast"}}                    // todos|all
+sync: {scope: {type: "owner"}, adminBroadcast: true}  // owner stream + todos|admin
 sync: {
   scope: (doc) => String(doc.workspaceId),
   snapshotFilter: (user) => ({workspaceId: {$in: [...]}}), // required for custom
@@ -390,6 +423,16 @@ sync: {
 
 - **Owner** streams use the authenticated socket's user id (client cannot pick another user's stream).
 - **Tenant/custom** scopes resolve memberships via `SyncApp` `getUserScopes`.
+- **`adminBroadcast`** (default `false`) is an additive fan-in flag on the existing collection `sync` config. When `true`, `sync:delta` emitters also publish to `{collection}|admin`. Do not change the app collection `scope` to broadcast for admin; app clients keep owner/tenant streams. Join `{collection}|admin` with `sync:subscribe {mode: "window"}`. The gate matches the admin UI shell: with `SyncApp({accessControl})`, the caller needs `admin:access`; without RBAC, `user.admin` / `Permissions.IsAdmin` is enough. When `AdminApp` is mounted it also registers that model's list/read permissions and `queryFilter`, so window subscribe, `GET /sync/entities`, and `|admin` live deltas cannot return rows `/admin` REST would hide (product `IsOwner` still treats `user.admin` as owner). Others get `sync:error`. The server confirms `sync:subscribed {mode: "window"}` and does not dump snapshot pages. Clients listed in `createSyncDb({windowCollections})` skip `GET /sync/snapshot` for those collections (startup, subscribe catch-up, and the reconcile timer). Hydrate known ids with `hydrateWindow` (REST rows + `GET /sync/entities`). For that HTTP lookup, an allowed admin-window caller on an `adminBroadcast` collection is not limited to owner/tenant stream membership. Deltas on `{collection}|admin` update or tombstone **ids already in the local window only**; unknown ids are ignored until Refresh or load-more hydrates them (Refresh = current REST query + `hydrateWindow`).
+- `AdminApp({organizations: true})` forces `adminBroadcast: false` for models
+  with `organizationId`. The current admin-window socket protocol has no
+  selected-organization field, so those models use REST with
+  `X-Organization-Id` instead of weakening `OrgQueryFilter` or streaming
+  cross-organization rows.
+- Use a dedicated `createSyncDb` client/store for an admin window when the same app
+  also subscribes to that collection through an owner or tenant stream. One socket
+  subscription has one mode per collection, and a separate store prevents
+  admin-hydrated rows from appearing in the product UI.
 - **`snapshotFilter`** restricts `GET /sync/snapshot` server-side. Auto-derived for owner/tenant; required for custom resolver scopes.
 
 ## Sync protocol
@@ -400,9 +443,9 @@ sync: {
 |----------|---------|
 | `GET /sync/snapshot?collection=&stream=&cursor=&limit=` | Bootstrap + catch-up per stream |
 | `GET /sync/streams` | Current stream membership for the user |
-| `GET /sync/entities` | Point lookup for entity repair |
-| `POST /sync/mutate` | Single mutation (HTTP fallback) |
-| `POST /sync/mutate/batch` | Batched mutations (max 100, strict order, stop at first non-ack) |
+| `GET /sync/entities` | Point lookup for entity repair and admin window hydrate. Admin-window callers (`admin:access` with RBAC, else `user.admin`) on `adminBroadcast` collections receive requested ids across product streams. When AdminApp registered a scope, list/read/`queryFilter` still apply; unknown or out-of-scope ids are omitted |
+| `POST /sync/mutate` | Single mutation (HTTP fallback). Optional `mutationMode: "adminWindow"` validates `adminBroadcast`, admin-window access, and a registered AdminApp write scope, then runs the shared sync executor with **AdminApp** pre/post hooks (not product `modelRouter` hooks), plus the same permission (including org membership), stripping, and audit semantics as `/admin` REST. HTTP mutate binds `X-Organization-Id` into org context |
+| `POST /sync/mutate/batch` | Batched mutations (max 100, strict order, stop at first non-ack). Each mutation may carry `mutationMode: "adminWindow"` under the same AdminApp executor hook path as single mutate |
 | `GET /sync/key` | Per-user encryption key material (web) |
 
 Conflict responses on mutate: **409** with `{nack}` body (`code: "conflict"`).
@@ -411,11 +454,11 @@ Conflict responses on mutate: **409** with `{nack}` body (`code: "conflict"`).
 
 | Event | Direction | Payload |
 |-------|-----------|---------|
-| `sync:subscribe` / `sync:unsubscribe` | client → server | `{collections: string[]}` |
-| `sync:subscribed` | server → client | `{collection, streams}` — sent after the stream rooms are joined; the client pages each confirmed stream from its cursor so a write landing between the startup snapshot and the join is not missed |
+| `sync:subscribe` / `sync:unsubscribe` | client → server | `{collections: string[], mode?: "window"}` |
+| `sync:subscribed` | server → client | `{collection, streams, mode?: "window"}` — sent after the stream rooms are joined; full-mode clients page each confirmed stream from its cursor. `mode: "window"` joins `{collection}\|admin` only and must not trigger snapshot paging |
 | `sync:error` | server → client | `{collection, message}` |
 | `sync:delta` | server → client | `{collection, id, method, data?, seq, stream, deleted?, frontierSeq?}` |
-| `sync:mutate` | client → server | `{mutationId, collection, operation, id?, data?, baseVersion?}` |
+| `sync:mutate` | client → server | `{mutationId, collection, operation, id?, data?, baseVersion?, mutationMode?}` — validated `mutationMode: "adminWindow"` uses AdminApp executor hooks server-side |
 | `sync:ack` | server → client | `{mutationId, id, seq}` |
 | `sync:nack` | server → client | `{mutationId, code, serverDoc?, serverSeq?, serverDeleted?, message?, retryAfterMs?}` |
 | `sync:mutateBatch` | client → server | `{mutations: SyncMutateRequest[], batchId?}` |
@@ -485,4 +528,8 @@ Backend sync requires a MongoDB replica set (`MONGO_URI` with `replicaSet=`) for
 - **No `bulkWrite` / `updateMany` / `deleteMany`** on synced models — use per-document loops.
 - **Do not write reserved tables** (`_outbox`, `_cursors`, `_conflicts`) directly — use `client.mutate`, hooks, and `resolveConflict`.
 - **User switch wipes local data** — confirmed different-user login clears the previous user's store; bare logout/401 does not (INV-2).
-- **Keep `@terreno/rtk` for non-synced routes** — generated OpenAPI hooks remain the right tool for custom REST endpoints, admin, and auth configuration. See [How to migrate from RTK to syncdb](../how-to/migrate-rtk-to-syncdb.md).
+- **Keep `@terreno/rtk` for non-synced routes** — generated OpenAPI hooks remain
+  the right tool for custom REST endpoints, auth, feature flags, and ObjectId
+  admin compatibility CRUD. Eligible admin String-`_id` collection CRUD uses
+  windowed syncdb; framework admin RPC uses its host-bound fetch client. See
+  [How to migrate from RTK to syncdb](../how-to/migrate-rtk-to-syncdb.md).

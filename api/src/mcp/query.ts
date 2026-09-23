@@ -3,20 +3,20 @@ import {isFieldExcluded} from "./schemaGenerator";
 import type {MCPConfig, MCPToolArgs} from "./types";
 
 /** Args consumed by pagination/population, never treated as filters. */
-export const RESERVED_LIST_ARGS = new Set(["limit", "page", "populate", "sort"]);
+const RESERVED_LIST_ARGS = new Set(["limit", "page", "populate", "sort"]);
 
 /**
  * Top-level logical operators an MCP client may send. Mirrors the REST list endpoint,
  * which allows `$and` / `$or` and validates every nested key against `queryFields`.
  */
-export const ALLOWED_LOGICAL_OPERATORS = new Set(["$and", "$or"]);
+const ALLOWED_LOGICAL_OPERATORS = new Set(["$and", "$or"]);
 
 /**
  * Comparison operators allowed inside a field's value, e.g. `{completed: {$ne: true}}`.
  * Deliberately excludes evaluation operators that can run arbitrary code or ignore
  * indexes ($where, $expr, $function, $accumulator, $jsonSchema, $text).
  */
-export const ALLOWED_FIELD_OPERATORS = new Set([
+const ALLOWED_FIELD_OPERATORS = new Set([
   "$all",
   "$eq",
   "$exists",
@@ -132,16 +132,14 @@ export interface BuildListQueryResult {
  * Anything else is rejected rather than silently dropped so the calling LLM can correct
  * itself instead of receiving results for a query it did not ask for.
  */
-export const buildListQuery = ({
+export const buildListQuery = <T>({
   args,
   config,
   options,
 }: {
   args: MCPToolArgs;
   config: MCPConfig;
-  // noExplicitAny: ModelRouterOptions is generic over the consumer's document type
-  // biome-ignore lint/suspicious/noExplicitAny: ModelRouterOptions is generic over the consumer's document type
-  options: ModelRouterOptions<any>;
+  options: ModelRouterOptions<T>;
 }): BuildListQueryResult => {
   const query: Record<string, unknown> = {...(options.defaultQueryParams ?? {})};
   const excludeFields = config.excludeFields ?? [];

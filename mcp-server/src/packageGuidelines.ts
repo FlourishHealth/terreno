@@ -3,22 +3,30 @@ import {join} from "node:path";
 
 import {getDocsRoot} from "./docsRoot.js";
 
-export const GUIDELINE_PACKAGE_IDS = [
+const GUIDELINE_PACKAGE_IDS = [
   "api",
   "ui",
   "rtk",
+  "syncdb",
   "admin-backend",
   "admin-frontend",
 ] as const;
 
 export type GuidelinePackageId = (typeof GUIDELINE_PACKAGE_IDS)[number];
 
-export const normalizeGuidelinePackageId = (pkg: string): GuidelinePackageId | null => {
+const normalizeGuidelinePackageId = (pkg: string): GuidelinePackageId | null => {
   const n = pkg
     .trim()
     .replace(/^@terreno\//i, "")
     .toLowerCase();
-  if (n === "api" || n === "ui" || n === "rtk" || n === "admin-backend" || n === "admin-frontend") {
+  if (
+    n === "api" ||
+    n === "ui" ||
+    n === "rtk" ||
+    n === "syncdb" ||
+    n === "admin-backend" ||
+    n === "admin-frontend"
+  ) {
     return n;
   }
   return null;
@@ -74,4 +82,6 @@ export const composePackageGuidelinesForRules = (
 export const filterGuidelineIdsForRootRules = (
   ids: readonly GuidelinePackageId[]
 ): GuidelinePackageId[] =>
-  ids.filter((id): id is GuidelinePackageId => id === "api" || id === "ui" || id === "rtk");
+  ids.filter(
+    (id): id is GuidelinePackageId => id === "api" || id === "ui" || id === "rtk" || id === "syncdb"
+  );

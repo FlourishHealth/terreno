@@ -27,11 +27,11 @@ Analyzes code diffs after each merge to identify:
 **Trigger:** Push to master  
 **Purpose:** Keeps AI assistant rules synchronized with codebase changes
 
-Maintains the single source of truth in `.rulesync/rules/` and ensures:
-- `.cursorrules` (Cursor IDE)
-- `.windsurfrules` (Windsurf IDE)
-- `AGENTS.md` (Claude Code, Copilot)
-- `.github/copilot-instructions.md` (GitHub Copilot)
+Maintains centralized agent guidance and generates the matching configuration for:
+- Cursor
+- Claude Code
+- GitHub Copilot
+- Codex CLI, Copilot CLI, Antigravity CLI, and Devin
 
 **Workflow:**
 1. Detects package changes, new APIs, or convention updates
@@ -42,6 +42,19 @@ Maintains the single source of truth in `.rulesync/rules/` and ensures:
 **Key insight:** Rule files are code — they must be kept in sync with implementation.
 
 ### Code Quality Workflows
+
+#### Agent quality and static-analysis hooks
+**Trigger:** Agent file edit, agent stop, Git pre-commit, and pull request  
+**Purpose:** Prevents lint, typecheck, unused-code, and dependency-graph regressions
+
+Rulesync generates native hooks from `.rulesync/hooks.json`. Biome checks changed files
+after edits and staged files before commits. At agent stop,
+`.rulesync/hooks/quality-check.sh` runs lint, TypeScript compilation, Knip, and
+dependency-cruiser. It keeps stdout machine-readable for each host and prevents
+retry-triggered Stop hooks from rerunning the commands.
+
+Existing findings are ratcheted so the checks reject new debt without requiring unrelated
+cleanup. See [Static analysis](static-analysis.md).
 
 #### Daily JSDoc Improver
 **Trigger:** Daily schedule + push to master  
@@ -177,7 +190,8 @@ Ensures preview environments don't accumulate and waste resources.
 
 ### Single Source of Truth
 - **Documentation:** Code is truth, docs must reflect it
-- **Rules:** `.rulesync/rules/` is truth, generated files derive from it
+- **Agent configuration:** `.rulesync/rules/`, `.rulesync/skills/`, and
+  `.rulesync/hooks.json` are truth; generated files derive from them
 - **Tests:** Implementation is truth, tests verify it
 
 ### Fail Fast

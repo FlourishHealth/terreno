@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 /** List-query param for the admin table search box. */
 export const ADMIN_LIST_SEARCH_PARAM = "q";
 
+/** @internal */
 export const escapeRegexLiteral = (value: string): string => {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };

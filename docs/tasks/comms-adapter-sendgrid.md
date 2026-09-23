@@ -25,15 +25,19 @@ IP: [comms-adapter-sendgrid](../implementationPlans/comms-adapter-sendgrid.md)
   - Depends on: 1.1
   - Acceptance: boot without key skips registration; compile passes without the SDK installed
 
-## Phase 2 — Delivery events + opt-outs (gated on inbound-webhooks)
+## Phase 2 — Delivery events + opt-outs (owned by inbound-webhooks)
+
+HTTP routes and mapping land in [inbound-webhooks](../implementationPlans/inbound-webhooks.md)
+Task 3.3. The tables in the SendGrid IP remain the contract. Do not Pick these on this
+adapter branch.
 
 - [ ] **Task 2.1**: Event Webhook route
   - Description: ECDSA signature verification via inbound-webhooks; event mapping per the IP table → `DeliveryEvent`; `x-message-id` prefix correlation
   - Files: `comms/src/adapters/sendgrid.ts`, webhook registration
-  - Depends on: inbound-webhooks IP
+  - Depends on: inbound-webhooks Task 3.3
   - Acceptance: signed fixtures per event type update `CommsMessage.status` (+ `errorCode` for bounce/dropped); unsigned rejected 401
 - [ ] **Task 2.2**: Opt-out events
   - Description: `spamreport`/`unsubscribe`/`group_unsubscribe` → `OptOutEvent` → consumer `onOptOut`
   - Files: `comms/src/adapters/sendgrid.ts` + tests
-  - Depends on: 2.1
+  - Depends on: inbound-webhooks Task 3.3
   - Acceptance: spamreport fixture fires `onOptOut`; subsequent `dropped` classified `permanent`

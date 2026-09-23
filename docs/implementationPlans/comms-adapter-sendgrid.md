@@ -102,9 +102,10 @@ None new. Phase 2 adds one webhook route via the inbound-webhooks framework.
    `x-message-id` capture + Email Activity deep link, mocked-client tests;
    example-backend env-gated registration; docs (including the sender-verification
    prerequisite checklist).
-2. **Delivery events + opt-outs** *(gated on inbound-webhooks IP)*: Event Webhook route
-   with ECDSA signature verification; event mapping per the table →
-   `DeliveryEvent`/`OptOutEvent` → `CommsMessage.status` + consumer hooks.
+2. **Delivery events + opt-outs** *(owned and shipped by
+   [inbound-webhooks](inbound-webhooks.md) Task 3.3)*: Event Webhook route with ECDSA
+   signature verification; event mapping per the table → `DeliveryEvent`/`OptOutEvent` →
+   `CommsMessage.status` + consumer hooks. Do not Pick those tasks on this adapter IP.
 
 ## Feature Flags & Migrations
 

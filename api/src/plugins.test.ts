@@ -19,6 +19,7 @@ import {
   baseUserPlugin,
   createdUpdatedPlugin,
   DateOnly,
+  emailVerificationPlugin,
   excludeArchivedPlugin,
   findExactlyOne,
   findOneOrNone,
@@ -94,6 +95,19 @@ describe("baseUserPlugin", () => {
   });
 });
 
+describe("emailVerificationPlugin", () => {
+  it("adds emailVerified defaulting to false", () => {
+    const testSchema = new Schema({});
+    emailVerificationPlugin(testSchema);
+
+    const emailVerifiedPath = testSchema.path("emailVerified");
+    expect(emailVerifiedPath).toBeDefined();
+    expect((emailVerifiedPath as unknown as {options: {default: boolean}}).options.default).toBe(
+      false
+    );
+  });
+});
+
 describe("firebaseJWTPlugin", () => {
   it("adds firebaseId field to the schema", () => {
     const testSchema = new Schema({});
@@ -157,6 +171,11 @@ describe("isDeleted", () => {
     // Providing deleted in query should return deleted document:
     stuff = await StuffModel.findOne({deleted: true});
     expect(stuff?.name).toBe("Things");
+  });
+
+  it('filters out deleted documents from "countDocuments" unless deleted is explicit', async () => {
+    expect(await StuffModel.countDocuments({})).toBe(1);
+    expect(await StuffModel.countDocuments({deleted: true})).toBe(1);
   });
 });
 

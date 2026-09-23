@@ -28,6 +28,10 @@ on:
       - ".github/workflows/docs-deploy.yml"
       - "netlify.toml"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check-changes:
     name: Check for relevant changes
@@ -55,9 +59,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.3
 
-      # Cache Bun's download cache only (see setup-bun-workspace). Do not restore
-      # node_modules: a stale tree across lockfile changes can leave extra
-      # packages that a frozen install will not prune (typedoc TypeScript resolution).
+      # Frozen bun install, no package cache. Do not restore node_modules: a
+      # stale tree across lockfile changes can leave extra packages that a
+      # frozen install will not prune (typedoc TypeScript resolution).
       - name: Setup Bun workspace
         uses: ./.github/actions/setup-bun-workspace
 

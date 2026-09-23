@@ -20,7 +20,7 @@ interface TestServer {
   /** Sockets that have connected, most recent last. */
   sockets: ServerSocket[];
   /** sync:subscribe payloads received, in order. */
-  subscribes: {collections: string[]}[];
+  subscribes: {collections: string[]; mode?: string}[];
   /** Handler answering sync:mutate; replace per test. */
   mutateHandler: (request: SyncMutateRequest, socket: ServerSocket) => void;
   /** Handler answering sync:mutateBatch; replace per test (no-op = unsupported). */
@@ -53,7 +53,7 @@ const startServer = async (): Promise<TestServer> => {
   };
   io.on("connection", (socket) => {
     server.sockets.push(socket);
-    socket.on("sync:subscribe", (payload: {collections: string[]}) => {
+    socket.on("sync:subscribe", (payload: {collections: string[]; mode?: string}) => {
       server.subscribes.push(payload);
     });
     socket.on("sync:mutate", (request: SyncMutateRequest) => {
@@ -140,6 +140,14 @@ describe("createSocketTransport", () => {
     await connecting.connect();
     await connecting.connect();
     expect(server.sockets).toHaveLength(1);
+  });
+
+  it("subscribe emits window mode for window collections", async () => {
+    const subscriber = makeTransport();
+    subscriber.subscribe(["todos"], {mode: "window"});
+    await subscriber.connect();
+    await waitUntil(() => server.subscribes.length === 1);
+    expect(server.subscribes).toEqual([{collections: ["todos"], mode: "window"}]);
   });
 
   it("subscribe emits sync:subscribe when connected and replays it on connect", async () => {
@@ -339,6 +347,41 @@ describe("createSocketTransport", () => {
     server.sockets[0]?.emit("sync:delta", {...delta, id: "t2"});
     await new Promise((resolve) => setTimeout(resolve, 30));
     expect(seen).toHaveLength(1);
+  });
+
+  it("coalesces deltas delivered across tasks until the next animation frame", async () => {
+    const originalRequestAnimationFrame = globalThis.requestAnimationFrame;
+    let flushFrame: FrameRequestCallback | undefined;
+    globalThis.requestAnimationFrame = (callback: FrameRequestCallback): number => {
+      flushFrame = callback;
+      return 1;
+    };
+    try {
+      const receiver = makeTransport();
+      const batches: SyncDelta[][] = [];
+      receiver.onDeltaBatch?.((deltas) => batches.push(deltas));
+      await receiver.connect();
+
+      const first: SyncDelta = {
+        collection: "todos",
+        data: {title: "first"},
+        id: "t1",
+        method: "create",
+        seq: 1,
+        stream: "todos|owner:u1",
+      };
+      const second: SyncDelta = {...first, data: {title: "second"}, id: "t2", seq: 2};
+      server.sockets[0]?.emit("sync:delta", first);
+      await waitUntil(() => flushFrame !== undefined);
+      server.sockets[0]?.emit("sync:delta", second);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      expect(batches).toEqual([]);
+      flushFrame?.(0);
+      expect(batches).toEqual([[first, second]]);
+    } finally {
+      globalThis.requestAnimationFrame = originalRequestAnimationFrame;
+    }
   });
 
   it("sendMutationBatch resolves results from the Socket.io ack callback (FIX 5)", async () => {

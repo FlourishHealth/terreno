@@ -1,21 +1,32 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: types are generated from backend OpenAPI schemas
 import {emptySplitApi as api} from "./betterAuthApi";
 export const addTagTypes = [
-  "ai",
   "gpthistories",
   "gpt",
-  "admin-users",
+  "ai",
   "settings",
-  "loadtest",
+  "notifications",
   "todos",
+  "loadtest",
   "exampleprojects",
+  "admin-users",
   "users",
   "comms",
   "admin",
   "featureflags",
-  "adminauditlogs",
+  "jobs",
+  "mcpservicetokens",
+  "auditevents",
   "consentforms",
   "consentresponses",
+  "announcements",
+  "announcementacknowledgements",
+  "announcementimpressions",
+  "announcementclickevents",
+  "adminMigrations",
+  "notificationpreferences",
+  "organizations",
+  "mcp",
 ] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
@@ -23,6 +34,50 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
+      adminMigrationsRun: build.mutation<AdminMigrationsRunRes, AdminMigrationsRunArgs>({
+        invalidatesTags: ["adminMigrations"],
+        query: (queryArg) => ({
+          method: "POST",
+          params: {
+            wetRun: queryArg,
+          },
+          url: `/admin/migrations/run`,
+        }),
+      }),
+      adminMigrationsStatus: build.query<AdminMigrationsStatusRes, AdminMigrationsStatusArgs>({
+        providesTags: ["adminMigrations"],
+        query: () => ({url: `/admin/migrations/status`}),
+      }),
+      aiModels: build.query<AiModelsRes, AiModelsArgs>({
+        providesTags: ["ai"],
+        query: () => ({url: `/ai/models`}),
+      }),
+      commsTestPush: build.mutation<CommsTestPushRes, CommsTestPushArgs>({
+        invalidatesTags: ["comms"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/comms/dev/testPush`,
+        }),
+      }),
+      createMcpServiceToken: build.mutation<CreateMcpServiceTokenRes, CreateMcpServiceTokenArgs>({
+        invalidatesTags: ["mcp"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/mcp/service-tokens`,
+        }),
+      }),
+      deleteAdminAnnouncementsById: build.mutation<
+        DeleteAdminAnnouncementsByIdRes,
+        DeleteAdminAnnouncementsByIdArgs
+      >({
+        invalidatesTags: ["announcements"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/admin/announcements/${queryArg}`,
+        }),
+      }),
       deleteAdminConsentFormsById: build.mutation<
         DeleteAdminConsentFormsByIdRes,
         DeleteAdminConsentFormsByIdArgs
@@ -43,11 +98,38 @@ const injectedRtkApi = api
           url: `/admin/feature-flags/${queryArg}`,
         }),
       }),
+      deleteAdminMcpServiceTokensById: build.mutation<
+        DeleteAdminMcpServiceTokensByIdRes,
+        DeleteAdminMcpServiceTokensByIdArgs
+      >({
+        invalidatesTags: ["mcpservicetokens"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/admin/mcp-service-tokens/${queryArg}`,
+        }),
+      }),
+      deleteAdminTodosById: build.mutation<DeleteAdminTodosByIdRes, DeleteAdminTodosByIdArgs>({
+        invalidatesTags: ["todos"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/admin/todos/${queryArg}`,
+        }),
+      }),
       deleteAdminUsersById: build.mutation<DeleteAdminUsersByIdRes, DeleteAdminUsersByIdArgs>({
         invalidatesTags: ["users"],
         query: (queryArg) => ({
           method: "DELETE",
           url: `/admin/users/${queryArg}`,
+        }),
+      }),
+      deleteAnnouncementsById: build.mutation<
+        DeleteAnnouncementsByIdRes,
+        DeleteAnnouncementsByIdArgs
+      >({
+        invalidatesTags: ["announcements"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/announcements/${queryArg}`,
         }),
       }),
       deleteCommsPushTokensById: build.mutation<
@@ -79,16 +161,46 @@ const injectedRtkApi = api
           }),
         }
       ),
+      deleteNotificationPreferencesById: build.mutation<
+        DeleteNotificationPreferencesByIdRes,
+        DeleteNotificationPreferencesByIdArgs
+      >({
+        invalidatesTags: ["notificationpreferences"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/notification-preferences/${queryArg}`,
+        }),
+      }),
+      deleteNotificationsById: build.mutation<
+        DeleteNotificationsByIdRes,
+        DeleteNotificationsByIdArgs
+      >({
+        invalidatesTags: ["notifications"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/notifications/${queryArg}`,
+        }),
+      }),
+      deleteOrgsById: build.mutation<DeleteOrgsByIdRes, DeleteOrgsByIdArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({method: "DELETE", url: `/orgs/${queryArg}`}),
+      }),
+      deleteOrgsByIdMembersAndMemberId: build.mutation<
+        DeleteOrgsByIdMembersAndMemberIdRes,
+        DeleteOrgsByIdMembersAndMemberIdArgs
+      >({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/orgs/${queryArg.id}/members/${queryArg.memberId}`,
+        }),
+      }),
       deleteProjectsById: build.mutation<DeleteProjectsByIdRes, DeleteProjectsByIdArgs>({
         invalidatesTags: ["exampleprojects"],
         query: (queryArg) => ({
           method: "DELETE",
           url: `/projects/${queryArg}`,
         }),
-      }),
-      deleteSettingsGcs: build.mutation<DeleteSettingsGcsRes, DeleteSettingsGcsArgs>({
-        invalidatesTags: ["settings"],
-        query: () => ({method: "DELETE", url: `/settings/gcs`}),
       }),
       deleteTodosById: build.mutation<DeleteTodosByIdRes, DeleteTodosByIdArgs>({
         invalidatesTags: ["todos"],
@@ -98,29 +210,147 @@ const injectedRtkApi = api
         invalidatesTags: ["users"],
         query: (queryArg) => ({method: "DELETE", url: `/users/${queryArg}`}),
       }),
-      getAdminAuditLogs: build.query<GetAdminAuditLogsRes, GetAdminAuditLogsArgs>({
-        providesTags: ["adminauditlogs"],
+      getAdminAnnouncementAcknowledgements: build.query<
+        GetAdminAnnouncementAcknowledgementsRes,
+        GetAdminAnnouncementAcknowledgementsArgs
+      >({
+        providesTags: ["announcementacknowledgements"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            acknowledgedAt: queryArg.acknowledgedAt,
+            announcementId: queryArg.announcementId,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            q: queryArg.q,
+            sort: queryArg.sort,
+            userId: queryArg.userId,
+            version: queryArg.version,
+          },
+          url: `/admin/announcement-acknowledgements/`,
+        }),
+      }),
+      getAdminAnnouncementAcknowledgementsById: build.query<
+        GetAdminAnnouncementAcknowledgementsByIdRes,
+        GetAdminAnnouncementAcknowledgementsByIdArgs
+      >({
+        providesTags: ["announcementacknowledgements"],
+        query: (queryArg) => ({
+          url: `/admin/announcement-acknowledgements/${queryArg}`,
+        }),
+      }),
+      getAdminAnnouncementClickEvents: build.query<
+        GetAdminAnnouncementClickEventsRes,
+        GetAdminAnnouncementClickEventsArgs
+      >({
+        providesTags: ["announcementclickevents"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            action: queryArg.action,
+            announcementId: queryArg.announcementId,
+            clickedAt: queryArg.clickedAt,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            platform: queryArg.platform,
+            q: queryArg.q,
+            sort: queryArg.sort,
+            userId: queryArg.userId,
+            version: queryArg.version,
+          },
+          url: `/admin/announcement-click-events/`,
+        }),
+      }),
+      getAdminAnnouncementClickEventsById: build.query<
+        GetAdminAnnouncementClickEventsByIdRes,
+        GetAdminAnnouncementClickEventsByIdArgs
+      >({
+        providesTags: ["announcementclickevents"],
+        query: (queryArg) => ({
+          url: `/admin/announcement-click-events/${queryArg}`,
+        }),
+      }),
+      getAdminAnnouncementImpressions: build.query<
+        GetAdminAnnouncementImpressionsRes,
+        GetAdminAnnouncementImpressionsArgs
+      >({
+        providesTags: ["announcementimpressions"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            announcementId: queryArg.announcementId,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            platform: queryArg.platform,
+            q: queryArg.q,
+            sort: queryArg.sort,
+            userId: queryArg.userId,
+            version: queryArg.version,
+            viewedAt: queryArg.viewedAt,
+          },
+          url: `/admin/announcement-impressions/`,
+        }),
+      }),
+      getAdminAnnouncementImpressionsById: build.query<
+        GetAdminAnnouncementImpressionsByIdRes,
+        GetAdminAnnouncementImpressionsByIdArgs
+      >({
+        providesTags: ["announcementimpressions"],
+        query: (queryArg) => ({
+          url: `/admin/announcement-impressions/${queryArg}`,
+        }),
+      }),
+      getAdminAnnouncements: build.query<GetAdminAnnouncementsRes, GetAdminAnnouncementsArgs>({
+        providesTags: ["announcements"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            acknowledgementPolicy: queryArg.acknowledgementPolicy,
+            expiresAt: queryArg.expiresAt,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            priority: queryArg.priority,
+            publishedAt: queryArg.publishedAt,
+            q: queryArg.q,
+            sort: queryArg.sort,
+            status: queryArg.status,
+            title: queryArg.title,
+            version: queryArg.version,
+          },
+          url: `/admin/announcements/`,
+        }),
+      }),
+      getAdminAnnouncementsById: build.query<
+        GetAdminAnnouncementsByIdRes,
+        GetAdminAnnouncementsByIdArgs
+      >({
+        providesTags: ["announcements"],
+        query: (queryArg) => ({url: `/admin/announcements/${queryArg}`}),
+      }),
+      getAdminAuditEvents: build.query<GetAdminAuditEventsRes, GetAdminAuditEventsArgs>({
+        providesTags: ["auditevents"],
         query: (queryArg) => ({
           params: {
             _id: queryArg._id,
             actorId: queryArg.actorId,
-            createdAt: queryArg.createdAt,
+            created: queryArg.created,
             limit: queryArg.limit,
             modelName: queryArg.modelName,
             page: queryArg.page,
             q: queryArg.q,
-            recordId: queryArg.recordId,
             recordLabel: queryArg.recordLabel,
             sort: queryArg.sort,
             verb: queryArg.verb,
           },
-          url: `/admin/audit-logs/`,
+          url: `/admin/audit-events/`,
         }),
       }),
-      getAdminAuditLogsById: build.query<GetAdminAuditLogsByIdRes, GetAdminAuditLogsByIdArgs>({
-        providesTags: ["adminauditlogs"],
-        query: (queryArg) => ({url: `/admin/audit-logs/${queryArg}`}),
-      }),
+      getAdminAuditEventsById: build.query<GetAdminAuditEventsByIdRes, GetAdminAuditEventsByIdArgs>(
+        {
+          providesTags: ["auditevents"],
+          query: (queryArg) => ({url: `/admin/audit-events/${queryArg}`}),
+        }
+      ),
       getAdminConfig: build.query<GetAdminConfigRes, GetAdminConfigArgs>({
         providesTags: ["admin"],
         query: () => ({url: `/admin/config`}),
@@ -205,6 +435,36 @@ const injectedRtkApi = api
         providesTags: ["featureflags"],
         query: (queryArg) => ({url: `/admin/feature-flags/${queryArg}`}),
       }),
+      getAdminMcpServiceTokens: build.query<
+        GetAdminMcpServiceTokensRes,
+        GetAdminMcpServiceTokensArgs
+      >({
+        providesTags: ["mcpservicetokens"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            created: queryArg.created,
+            expiresAt: queryArg.expiresAt,
+            lastUsedAt: queryArg.lastUsedAt,
+            limit: queryArg.limit,
+            name: queryArg.name,
+            page: queryArg.page,
+            q: queryArg.q,
+            revokedAt: queryArg.revokedAt,
+            sort: queryArg.sort,
+            tokenPrefix: queryArg.tokenPrefix,
+            userId: queryArg.userId,
+          },
+          url: `/admin/mcp-service-tokens/`,
+        }),
+      }),
+      getAdminMcpServiceTokensById: build.query<
+        GetAdminMcpServiceTokensByIdRes,
+        GetAdminMcpServiceTokensByIdArgs
+      >({
+        providesTags: ["mcpservicetokens"],
+        query: (queryArg) => ({url: `/admin/mcp-service-tokens/${queryArg}`}),
+      }),
       getAdminTodos: build.query<GetAdminTodosRes, GetAdminTodosArgs>({
         providesTags: ["todos"],
         query: (queryArg) => ({
@@ -238,6 +498,7 @@ const injectedRtkApi = api
             admin: queryArg.admin,
             created: queryArg.created,
             email: queryArg.email,
+            emailVerified: queryArg.emailVerified,
             limit: queryArg.limit,
             name: queryArg.name,
             page: queryArg.page,
@@ -251,9 +512,41 @@ const injectedRtkApi = api
         providesTags: ["users"],
         query: (queryArg) => ({url: `/admin/users/${queryArg}`}),
       }),
-      getAiModels: build.query<GetAiModelsRes, GetAiModelsArgs>({
-        providesTags: ["ai"],
-        query: () => ({url: `/ai/models`}),
+      getAnnouncements: build.query<GetAnnouncementsRes, GetAnnouncementsArgs>({
+        providesTags: ["announcements"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            priority: queryArg.priority,
+            sort: queryArg.sort,
+            status: queryArg.status,
+            title: queryArg.title,
+          },
+          url: `/announcements/`,
+        }),
+      }),
+      getAnnouncementsById: build.query<GetAnnouncementsByIdRes, GetAnnouncementsByIdArgs>({
+        providesTags: ["announcements"],
+        query: (queryArg) => ({url: `/announcements/${queryArg}`}),
+      }),
+      getAnnouncementsConfig: build.query<GetAnnouncementsConfigRes, GetAnnouncementsConfigArgs>({
+        providesTags: ["announcements"],
+        query: () => ({url: `/announcements/config`}),
+      }),
+      getAnnouncementsOverview: build.query<
+        GetAnnouncementsOverviewRes,
+        GetAnnouncementsOverviewArgs
+      >({
+        providesTags: ["announcements"],
+        query: (queryArg) => ({
+          params: {
+            limit: queryArg.limit,
+            page: queryArg.page,
+          },
+          url: `/announcements/overview`,
+        }),
       }),
       getCommsMessages: build.query<GetCommsMessagesRes, GetCommsMessagesArgs>({
         providesTags: ["admin", "comms"],
@@ -261,14 +554,25 @@ const injectedRtkApi = api
           params: {
             channel: queryArg.channel,
             endDate: queryArg.endDate,
+            errorClass: queryArg.errorClass,
+            errorCode: queryArg.errorCode,
             limit: queryArg.limit,
             page: queryArg.page,
+            provider: queryArg.provider,
+            q: queryArg.q,
+            retriedFromId: queryArg.retriedFromId,
             startDate: queryArg.startDate,
             status: queryArg.status,
+            templateId: queryArg.templateId,
+            to: queryArg.to,
             userId: queryArg.userId,
           },
           url: `/comms/messages`,
         }),
+      }),
+      getCommsMessagesById: build.query<GetCommsMessagesByIdRes, GetCommsMessagesByIdArgs>({
+        providesTags: ["admin", "comms"],
+        query: (queryArg) => ({url: `/comms/messages/${queryArg}`}),
       }),
       getCommsPushTokens: build.query<GetCommsPushTokensRes, GetCommsPushTokensArgs>({
         providesTags: ["comms"],
@@ -285,6 +589,28 @@ const injectedRtkApi = api
       getCommsPushTokensById: build.query<GetCommsPushTokensByIdRes, GetCommsPushTokensByIdArgs>({
         providesTags: ["comms"],
         query: (queryArg) => ({url: `/comms/pushTokens/${queryArg}`}),
+      }),
+      getCommsStats: build.query<GetCommsStatsRes, GetCommsStatsArgs>({
+        providesTags: ["admin", "comms"],
+        query: (queryArg) => ({
+          params: {
+            channel: queryArg.channel,
+            endDate: queryArg.endDate,
+            errorClass: queryArg.errorClass,
+            errorCode: queryArg.errorCode,
+            limit: queryArg.limit,
+            page: queryArg.page,
+            provider: queryArg.provider,
+            q: queryArg.q,
+            retriedFromId: queryArg.retriedFromId,
+            startDate: queryArg.startDate,
+            status: queryArg.status,
+            templateId: queryArg.templateId,
+            to: queryArg.to,
+            userId: queryArg.userId,
+          },
+          url: `/comms/stats`,
+        }),
       }),
       getFeatureFlagsFlags: build.query<GetFeatureFlagsFlagsRes, GetFeatureFlagsFlagsArgs>({
         providesTags: ["featureflags"],
@@ -327,6 +653,93 @@ const injectedRtkApi = api
         providesTags: ["gpt"],
         query: () => ({url: `/gpt/tools`}),
       }),
+      getJobs: build.query<GetJobsRes, GetJobsArgs>({
+        providesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          params: {
+            end: queryArg.end,
+            limit: queryArg.limit,
+            name: queryArg.name,
+            page: queryArg.page,
+            q: queryArg.q,
+            scheduleId: queryArg.scheduleId,
+            start: queryArg.start,
+            status: queryArg.status,
+          },
+          url: `/jobs`,
+        }),
+      }),
+      getJobsById: build.query<GetJobsByIdRes, GetJobsByIdArgs>({
+        providesTags: ["admin", "jobs"],
+        query: (queryArg) => ({url: `/jobs/${queryArg}`}),
+      }),
+      getJobsSchedules: build.query<GetJobsSchedulesRes, GetJobsSchedulesArgs>({
+        providesTags: ["admin", "jobs"],
+        query: () => ({url: `/jobs/schedules`}),
+      }),
+      getJobsStats: build.query<GetJobsStatsRes, GetJobsStatsArgs>({
+        providesTags: ["admin", "jobs"],
+        query: () => ({url: `/jobs/stats`}),
+      }),
+      getNotificationPreferences: build.query<
+        GetNotificationPreferencesRes,
+        GetNotificationPreferencesArgs
+      >({
+        providesTags: ["notificationpreferences"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            limit: queryArg.limit,
+            ownerId: queryArg.ownerId,
+            page: queryArg.page,
+            sort: queryArg.sort,
+          },
+          url: `/notification-preferences/`,
+        }),
+      }),
+      getNotificationPreferencesById: build.query<
+        GetNotificationPreferencesByIdRes,
+        GetNotificationPreferencesByIdArgs
+      >({
+        providesTags: ["notificationpreferences"],
+        query: (queryArg) => ({url: `/notification-preferences/${queryArg}`}),
+      }),
+      getNotifications: build.query<GetNotificationsRes, GetNotificationsArgs>({
+        providesTags: ["notifications"],
+        query: (queryArg) => ({
+          params: {
+            _id: queryArg._id,
+            archivedAt: queryArg.archivedAt,
+            kind: queryArg.kind,
+            limit: queryArg.limit,
+            ownerId: queryArg.ownerId,
+            page: queryArg.page,
+            readAt: queryArg.readAt,
+            sort: queryArg.sort,
+          },
+          url: `/notifications/`,
+        }),
+      }),
+      getNotificationsById: build.query<GetNotificationsByIdRes, GetNotificationsByIdArgs>({
+        providesTags: ["notifications"],
+        query: (queryArg) => ({url: `/notifications/${queryArg}`}),
+      }),
+      getOrgs: build.query<GetOrgsRes, GetOrgsArgs>({
+        providesTags: ["organizations"],
+        query: () => ({url: `/orgs/`}),
+      }),
+      getOrgsById: build.query<GetOrgsByIdRes, GetOrgsByIdArgs>({
+        providesTags: ["organizations"],
+        query: (queryArg) => ({url: `/orgs/${queryArg}`}),
+      }),
+      getOrgsByIdMembers: build.query<GetOrgsByIdMembersRes, GetOrgsByIdMembersArgs>({
+        providesTags: ["organizations"],
+        query: (queryArg) => ({url: `/orgs/${queryArg}/members`}),
+      }),
+      getOrgsMine: build.query<GetOrgsMineRes, GetOrgsMineArgs>({
+        providesTags: ["organizations"],
+        query: () => ({url: `/orgs/mine`}),
+      }),
       getProjects: build.query<GetProjectsRes, GetProjectsArgs>({
         providesTags: ["exampleprojects"],
         query: (queryArg) => ({
@@ -344,10 +757,6 @@ const injectedRtkApi = api
       getProjectsById: build.query<GetProjectsByIdRes, GetProjectsByIdArgs>({
         providesTags: ["exampleprojects"],
         query: (queryArg) => ({url: `/projects/${queryArg}`}),
-      }),
-      getSettingsGcs: build.query<GetSettingsGcsRes, GetSettingsGcsArgs>({
-        providesTags: ["settings"],
-        query: () => ({url: `/settings/gcs`}),
       }),
       getTodos: build.query<GetTodosRes, GetTodosArgs>({
         providesTags: ["todos"],
@@ -384,6 +793,50 @@ const injectedRtkApi = api
       getUsersById: build.query<GetUsersByIdRes, GetUsersByIdArgs>({
         providesTags: ["users"],
         query: (queryArg) => ({url: `/users/${queryArg}`}),
+      }),
+      listMcpServiceTokens: build.query<ListMcpServiceTokensRes, ListMcpServiceTokensArgs>({
+        providesTags: ["mcp"],
+        query: (queryArg) => ({
+          params: {
+            limit: queryArg.limit,
+            page: queryArg.page,
+          },
+          url: `/mcp/service-tokens`,
+        }),
+      }),
+      loadtestLoadtestChurn: build.mutation<LoadtestLoadtestChurnRes, LoadtestLoadtestChurnArgs>({
+        invalidatesTags: ["loadtest"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/todos/loadtestChurn`,
+        }),
+      }),
+      loadtestLoadtestClear: build.mutation<LoadtestLoadtestClearRes, LoadtestLoadtestClearArgs>({
+        invalidatesTags: ["loadtest"],
+        query: () => ({method: "POST", url: `/todos/loadtestClear`}),
+      }),
+      loadtestLoadtestGenerate: build.mutation<
+        LoadtestLoadtestGenerateRes,
+        LoadtestLoadtestGenerateArgs
+      >({
+        invalidatesTags: ["loadtest"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/todos/loadtestGenerate`,
+        }),
+      }),
+      patchAdminAnnouncementsById: build.mutation<
+        PatchAdminAnnouncementsByIdRes,
+        PatchAdminAnnouncementsByIdArgs
+      >({
+        invalidatesTags: ["announcements"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/admin/announcements/${queryArg.id}`,
+        }),
       }),
       patchAdminConsentFormsById: build.mutation<
         PatchAdminConsentFormsByIdRes,
@@ -423,6 +876,16 @@ const injectedRtkApi = api
           url: `/admin/users/${queryArg.id}`,
         }),
       }),
+      patchAnnouncementsById: build.mutation<PatchAnnouncementsByIdRes, PatchAnnouncementsByIdArgs>(
+        {
+          invalidatesTags: ["announcements"],
+          query: (queryArg) => ({
+            body: queryArg.body,
+            method: "PATCH",
+            url: `/announcements/${queryArg.id}`,
+          }),
+        }
+      ),
       patchFeatureFlagsFlagsById: build.mutation<
         PatchFeatureFlagsFlagsByIdRes,
         PatchFeatureFlagsFlagsByIdArgs
@@ -453,6 +916,46 @@ const injectedRtkApi = api
           url: `/gpt/histories/${queryArg.id}/rating`,
         }),
       }),
+      patchNotificationPreferencesById: build.mutation<
+        PatchNotificationPreferencesByIdRes,
+        PatchNotificationPreferencesByIdArgs
+      >({
+        invalidatesTags: ["notificationpreferences"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/notification-preferences/${queryArg.id}`,
+        }),
+      }),
+      patchNotificationsById: build.mutation<PatchNotificationsByIdRes, PatchNotificationsByIdArgs>(
+        {
+          invalidatesTags: ["notifications"],
+          query: (queryArg) => ({
+            body: queryArg.body,
+            method: "PATCH",
+            url: `/notifications/${queryArg.id}`,
+          }),
+        }
+      ),
+      patchOrgsById: build.mutation<PatchOrgsByIdRes, PatchOrgsByIdArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/orgs/${queryArg.id}`,
+        }),
+      }),
+      patchOrgsByIdMembersAndMemberId: build.mutation<
+        PatchOrgsByIdMembersAndMemberIdRes,
+        PatchOrgsByIdMembersAndMemberIdArgs
+      >({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/orgs/${queryArg.id}/members/${queryArg.memberId}`,
+        }),
+      }),
       patchProjectsById: build.mutation<PatchProjectsByIdRes, PatchProjectsByIdArgs>({
         invalidatesTags: ["exampleprojects"],
         query: (queryArg) => ({
@@ -477,15 +980,69 @@ const injectedRtkApi = api
           url: `/users/${queryArg.id}`,
         }),
       }),
-      postAdminAuditLogsBulkPatch: build.mutation<
-        PostAdminAuditLogsBulkPatchRes,
-        PostAdminAuditLogsBulkPatchArgs
+      postAdminAnnouncementAcknowledgementsBulkPatch: build.mutation<
+        PostAdminAnnouncementAcknowledgementsBulkPatchRes,
+        PostAdminAnnouncementAcknowledgementsBulkPatchArgs
       >({
         invalidatesTags: ["admin"],
         query: (queryArg) => ({
           body: queryArg,
           method: "POST",
-          url: `/admin/audit-logs/bulk-patch`,
+          url: `/admin/announcement-acknowledgements/bulk-patch`,
+        }),
+      }),
+      postAdminAnnouncementClickEventsBulkPatch: build.mutation<
+        PostAdminAnnouncementClickEventsBulkPatchRes,
+        PostAdminAnnouncementClickEventsBulkPatchArgs
+      >({
+        invalidatesTags: ["admin"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/admin/announcement-click-events/bulk-patch`,
+        }),
+      }),
+      postAdminAnnouncementImpressionsBulkPatch: build.mutation<
+        PostAdminAnnouncementImpressionsBulkPatchRes,
+        PostAdminAnnouncementImpressionsBulkPatchArgs
+      >({
+        invalidatesTags: ["admin"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/admin/announcement-impressions/bulk-patch`,
+        }),
+      }),
+      postAdminAnnouncements: build.mutation<PostAdminAnnouncementsRes, PostAdminAnnouncementsArgs>(
+        {
+          invalidatesTags: ["announcements"],
+          query: (queryArg) => ({
+            body: queryArg,
+            method: "POST",
+            url: `/admin/announcements/`,
+          }),
+        }
+      ),
+      postAdminAnnouncementsBulkPatch: build.mutation<
+        PostAdminAnnouncementsBulkPatchRes,
+        PostAdminAnnouncementsBulkPatchArgs
+      >({
+        invalidatesTags: ["admin"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/admin/announcements/bulk-patch`,
+        }),
+      }),
+      postAdminAuditEventsBulkPatch: build.mutation<
+        PostAdminAuditEventsBulkPatchRes,
+        PostAdminAuditEventsBulkPatchArgs
+      >({
+        invalidatesTags: ["admin"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/admin/audit-events/bulk-patch`,
         }),
       }),
       postAdminBackgroundTasks: build.mutation<
@@ -548,6 +1105,17 @@ const injectedRtkApi = api
           url: `/admin/feature-flags/bulk-patch`,
         }),
       }),
+      postAdminMcpServiceTokensBulkPatch: build.mutation<
+        PostAdminMcpServiceTokensBulkPatchRes,
+        PostAdminMcpServiceTokensBulkPatchArgs
+      >({
+        invalidatesTags: ["admin"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/admin/mcp-service-tokens/bulk-patch`,
+        }),
+      }),
       postAdminTodos: build.mutation<PostAdminTodosRes, PostAdminTodosArgs>({
         invalidatesTags: ["todos"],
         query: (queryArg) => ({
@@ -586,15 +1154,33 @@ const injectedRtkApi = api
           url: `/admin/users/bulk-patch`,
         }),
       }),
-      postAdminUsersByIdPassword: build.mutation<
-        PostAdminUsersByIdPasswordRes,
-        PostAdminUsersByIdPasswordArgs
-      >({
-        invalidatesTags: ["admin-users"],
+      postAnnouncements: build.mutation<PostAnnouncementsRes, PostAnnouncementsArgs>({
+        invalidatesTags: ["announcements"],
         query: (queryArg) => ({
-          body: queryArg.body,
+          body: queryArg,
           method: "POST",
-          url: `/admin/users/${queryArg.id}/password`,
+          url: `/announcements/`,
+        }),
+      }),
+      postCommsMessagesByIdRetry: build.mutation<
+        PostCommsMessagesByIdRetryRes,
+        PostCommsMessagesByIdRetryArgs
+      >({
+        invalidatesTags: ["admin", "comms"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/comms/messages/${queryArg}/retry`,
+        }),
+      }),
+      postCommsMessagesRetryMany: build.mutation<
+        PostCommsMessagesRetryManyRes,
+        PostCommsMessagesRetryManyArgs
+      >({
+        invalidatesTags: ["admin", "comms"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/comms/messages/retryMany`,
         }),
       }),
       postCommsPushTokens: build.mutation<PostCommsPushTokensRes, PostCommsPushTokensArgs>({
@@ -637,31 +1223,90 @@ const injectedRtkApi = api
           url: `/gpt/remix`,
         }),
       }),
-      postLoadtestTodosChurn: build.mutation<PostLoadtestTodosChurnRes, PostLoadtestTodosChurnArgs>(
-        {
-          invalidatesTags: ["loadtest"],
-          query: (queryArg) => ({
-            body: queryArg,
-            method: "POST",
-            url: `/loadtest/todos/churn`,
-          }),
-        }
-      ),
-      postLoadtestTodosClear: build.mutation<PostLoadtestTodosClearRes, PostLoadtestTodosClearArgs>(
-        {
-          invalidatesTags: ["loadtest"],
-          query: () => ({method: "POST", url: `/loadtest/todos/clear`}),
-        }
-      ),
-      postLoadtestTodosGenerate: build.mutation<
-        PostLoadtestTodosGenerateRes,
-        PostLoadtestTodosGenerateArgs
+      postJobsByIdCancel: build.mutation<PostJobsByIdCancelRes, PostJobsByIdCancelArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/cancel`,
+        }),
+      }),
+      postJobsByIdRequeue: build.mutation<PostJobsByIdRequeueRes, PostJobsByIdRequeueArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/requeue`,
+        }),
+      }),
+      postJobsByIdRetry: build.mutation<PostJobsByIdRetryRes, PostJobsByIdRetryArgs>({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/${queryArg}/retry`,
+        }),
+      }),
+      postJobsSchedulesByNamePause: build.mutation<
+        PostJobsSchedulesByNamePauseRes,
+        PostJobsSchedulesByNamePauseArgs
       >({
-        invalidatesTags: ["loadtest"],
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/schedules/${queryArg}/pause`,
+        }),
+      }),
+      postJobsSchedulesByNameResume: build.mutation<
+        PostJobsSchedulesByNameResumeRes,
+        PostJobsSchedulesByNameResumeArgs
+      >({
+        invalidatesTags: ["admin", "jobs"],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/jobs/schedules/${queryArg}/resume`,
+        }),
+      }),
+      postNotificationPreferences: build.mutation<
+        PostNotificationPreferencesRes,
+        PostNotificationPreferencesArgs
+      >({
+        invalidatesTags: ["notificationpreferences"],
         query: (queryArg) => ({
           body: queryArg,
           method: "POST",
-          url: `/loadtest/todos/generate`,
+          url: `/notification-preferences/`,
+        }),
+      }),
+      postNotificationsDevNotify: build.mutation<
+        PostNotificationsDevNotifyRes,
+        PostNotificationsDevNotifyArgs
+      >({
+        invalidatesTags: ["notifications"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/notifications/dev/notify`,
+        }),
+      }),
+      postNotificationsMarkAllRead: build.mutation<
+        PostNotificationsMarkAllReadRes,
+        PostNotificationsMarkAllReadArgs
+      >({
+        invalidatesTags: ["notifications"],
+        query: () => ({method: "POST", url: `/notifications/mark-all-read`}),
+      }),
+      postOrgs: build.mutation<PostOrgsRes, PostOrgsArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/orgs/`,
+        }),
+      }),
+      postOrgsByIdMembers: build.mutation<PostOrgsByIdMembersRes, PostOrgsByIdMembersArgs>({
+        invalidatesTags: ["organizations"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "POST",
+          url: `/orgs/${queryArg.id}/members`,
         }),
       }),
       postProjects: build.mutation<PostProjectsRes, PostProjectsArgs>({
@@ -670,14 +1315,6 @@ const injectedRtkApi = api
           body: queryArg,
           method: "POST",
           url: `/projects/`,
-        }),
-      }),
-      postSettingsGcs: build.mutation<PostSettingsGcsRes, PostSettingsGcsArgs>({
-        invalidatesTags: ["settings"],
-        query: (queryArg) => ({
-          body: queryArg,
-          method: "POST",
-          url: `/settings/gcs`,
         }),
       }),
       postTodos: build.mutation<PostTodosRes, PostTodosArgs>({
@@ -695,6 +1332,37 @@ const injectedRtkApi = api
           method: "POST",
           url: `/users/`,
         }),
+      }),
+      postUsersByIdPassword: build.mutation<PostUsersByIdPasswordRes, PostUsersByIdPasswordArgs>({
+        invalidatesTags: ["admin-users"],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "POST",
+          url: `/users/${queryArg.id}/password`,
+        }),
+      }),
+      revokeMcpServiceToken: build.mutation<RevokeMcpServiceTokenRes, RevokeMcpServiceTokenArgs>({
+        invalidatesTags: ["mcp"],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/mcp/service-tokens/${queryArg}`,
+        }),
+      }),
+      settingsClearGcs: build.mutation<SettingsClearGcsRes, SettingsClearGcsArgs>({
+        invalidatesTags: ["settings"],
+        query: () => ({method: "POST", url: `/settings/clearGcs`}),
+      }),
+      settingsConfigureGcs: build.mutation<SettingsConfigureGcsRes, SettingsConfigureGcsArgs>({
+        invalidatesTags: ["settings"],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: `/settings/configureGcs`,
+        }),
+      }),
+      settingsGcs: build.query<SettingsGcsRes, SettingsGcsArgs>({
+        providesTags: ["settings"],
+        query: () => ({url: `/settings/gcs`}),
       }),
       todosBulkComplete: build.mutation<TodosBulkCompleteRes, TodosBulkCompleteArgs>({
         invalidatesTags: ["todos"],
@@ -716,16 +1384,9 @@ const injectedRtkApi = api
   });
 
 export {injectedRtkApi as openapi};
-export type GetAiModelsRes = /** status 200 Success */ {
-  models?: {
-    label?: string;
-    value?: string;
-  }[];
-};
-export type GetAiModelsArgs = undefined;
 export type PostGptHistoriesRes = /** status 201 Successful create */ {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -761,7 +1422,7 @@ export type PostGptHistoriesRes = /** status 201 Successful create */ {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -773,7 +1434,7 @@ export type PostGptHistoriesRes = /** status 201 Successful create */ {
 };
 export type PostGptHistoriesArgs = {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -809,7 +1470,7 @@ export type PostGptHistoriesArgs = {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId?: any;
+  userId?: string;
   _id?: string;
   /** When this document was last updated */
   updated?: string;
@@ -822,7 +1483,7 @@ export type PostGptHistoriesArgs = {
 export type GetGptHistoriesRes = /** status 200 Successful list */ {
   data?: {
     /** Project this conversation belongs to */
-    projectId?: any;
+    projectId?: string;
     /** Ordered list of messages in this conversation */
     prompts?: {
       /** Arguments passed to a tool call */
@@ -858,7 +1519,7 @@ export type GetGptHistoriesRes = /** status 200 Successful list */ {
     /** Auto-generated title from the first assistant response */
     title?: string;
     /** The user who owns this conversation history */
-    userId: any;
+    userId: string;
     _id: string;
     /** When this document was last updated */
     updated: string;
@@ -893,7 +1554,7 @@ export type GetGptHistoriesArgs = {
 };
 export type GetGptHistoriesByIdRes = /** status 200 Successful read */ {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -929,7 +1590,7 @@ export type GetGptHistoriesByIdRes = /** status 200 Successful read */ {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -942,7 +1603,7 @@ export type GetGptHistoriesByIdRes = /** status 200 Successful read */ {
 export type GetGptHistoriesByIdArgs = string;
 export type PatchGptHistoriesByIdRes = /** status 200 Successful update */ {
   /** Project this conversation belongs to */
-  projectId?: any;
+  projectId?: string;
   /** Ordered list of messages in this conversation */
   prompts?: {
     /** Arguments passed to a tool call */
@@ -978,7 +1639,7 @@ export type PatchGptHistoriesByIdRes = /** status 200 Successful update */ {
   /** Auto-generated title from the first assistant response */
   title?: string;
   /** The user who owns this conversation history */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -992,7 +1653,7 @@ export type PatchGptHistoriesByIdArgs = {
   id: string;
   body: {
     /** Project this conversation belongs to */
-    projectId?: any;
+    projectId?: string;
     /** Ordered list of messages in this conversation */
     prompts?: {
       /** Arguments passed to a tool call */
@@ -1028,7 +1689,7 @@ export type PatchGptHistoriesByIdArgs = {
     /** Auto-generated title from the first assistant response */
     title?: string;
     /** The user who owns this conversation history */
-    userId?: any;
+    userId?: string;
     _id?: string;
     /** When this document was last updated */
     updated?: string;
@@ -1081,76 +1742,78 @@ export type GetGptToolsRes = /** status 200 Success */ {
   }[];
 };
 export type GetGptToolsArgs = undefined;
-export type PostAdminUsersByIdPasswordRes = /** status 200 Success */ {
-  data?: {
-    _id?: string;
-    message?: string;
+export type AiModelsRes = /** status 200 Successful response */ {
+  data?: object;
+};
+export type AiModelsArgs = undefined;
+export type SettingsClearGcsRes = /** status 200 Successful response */ {
+  data: {
+    configured: boolean;
+    message: string;
   };
 };
-export type PostAdminUsersByIdPasswordArgs = {
-  id: string;
-  body: {
-    /** New password for the user */
-    password?: string;
+export type SettingsClearGcsArgs = undefined;
+export type SettingsConfigureGcsRes = /** status 200 Successful response */ {
+  data: {
+    configured: boolean;
+    message: string;
   };
 };
-export type GetSettingsGcsRes = /** status 200 Success */ {
-  data?: {
-    bucketName?: string;
-    configured?: boolean;
-    hasCredentials?: boolean;
-    projectId?: string;
-  };
-};
-export type GetSettingsGcsArgs = undefined;
-export type PostSettingsGcsRes = /** status 200 Success */ {
-  data?: {
-    configured?: boolean;
-    message?: string;
-  };
-};
-export type PostSettingsGcsArgs = {
-  bucketName?: string;
+export type SettingsConfigureGcsArgs = {
+  bucketName: string;
   projectId?: string;
   serviceAccountKey?: string;
 };
-export type DeleteSettingsGcsRes = /** status 200 Success */ {
-  data?: {
-    configured?: boolean;
-    message?: string;
+export type SettingsGcsRes = /** status 200 Successful response */ {
+  data: {
+    bucketName: string | null;
+    configured: boolean;
+    hasCredentials: boolean;
+    projectId: string | null;
   };
 };
-export type DeleteSettingsGcsArgs = undefined;
-export type PostLoadtestTodosGenerateRes = /** status 200 Success */ {
+export type SettingsGcsArgs = undefined;
+export type PostNotificationsDevNotifyRes = /** status 200 Success */ {
   data?: {
-    created?: number;
+    notificationId?: string;
   };
 };
-export type PostLoadtestTodosGenerateArgs = {
-  count?: number;
+export type PostNotificationsDevNotifyArgs = {
+  body?: string;
+  href?: string;
+  kind?: string;
+  title?: string;
 };
-export type PostLoadtestTodosChurnRes = /** status 200 Success */ {
-  data?: {
-    created?: number;
-    deleted?: number;
-    updated?: number;
-  };
-};
-export type PostLoadtestTodosChurnArgs = {
-  creates?: number;
-  deletes?: number;
-  updates?: number;
-};
-export type PostLoadtestTodosClearRes = /** status 200 Success */ {
-  data?: {
-    deleted?: number;
-  };
-};
-export type PostLoadtestTodosClearArgs = undefined;
 export type TodosMarkCompleteRes = /** status 200 Successful response */ {
   data?: object;
 };
 export type TodosMarkCompleteArgs = string;
+export type LoadtestLoadtestChurnRes = /** status 200 Successful response */ {
+  data: {
+    created: number;
+    deleted: number;
+    updated: number;
+  };
+};
+export type LoadtestLoadtestChurnArgs = {
+  creates?: number | null;
+  deletes?: number | null;
+  updates?: number | null;
+};
+export type LoadtestLoadtestClearRes = /** status 200 Successful response */ {
+  data: {
+    deleted: number;
+  };
+};
+export type LoadtestLoadtestClearArgs = undefined;
+export type LoadtestLoadtestGenerateRes = /** status 200 Successful response */ {
+  data: {
+    created: number;
+  };
+};
+export type LoadtestLoadtestGenerateArgs = {
+  count?: number | null;
+};
 export type TodosBulkCompleteRes = /** status 200 Successful response */ {
   data: {
     matched: number;
@@ -1166,7 +1829,7 @@ export type PostTodosRes = /** status 201 Successful create */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1190,7 +1853,7 @@ export type PostTodosArgs = {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId?: any;
+  ownerId?: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1215,7 +1878,7 @@ export type GetTodosRes = /** status 200 Successful list */ {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId: any;
+    ownerId: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -1262,7 +1925,7 @@ export type GetTodosByIdRes = /** status 200 Successful read */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1287,7 +1950,7 @@ export type PatchTodosByIdRes = /** status 200 Successful update */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -1313,7 +1976,7 @@ export type PatchTodosByIdArgs = {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId?: any;
+    ownerId?: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -1338,7 +2001,7 @@ export type PostProjectsRes = /** status 201 Successful create */ {
   /** The document id (String so offline sync clients can mint ids) */
   _id: string;
   /** The organization (tenant) this project belongs to */
-  organizationId: string;
+  organizationId?: string;
   /** The title of the project */
   title: string;
   /** When this document was last updated */
@@ -1375,7 +2038,7 @@ export type GetProjectsRes = /** status 200 Successful list */ {
     /** The document id (String so offline sync clients can mint ids) */
     _id: string;
     /** The organization (tenant) this project belongs to */
-    organizationId: string;
+    organizationId?: string;
     /** The title of the project */
     title: string;
     /** When this document was last updated */
@@ -1416,7 +2079,7 @@ export type GetProjectsByIdRes = /** status 200 Successful read */ {
   /** The document id (String so offline sync clients can mint ids) */
   _id: string;
   /** The organization (tenant) this project belongs to */
-  organizationId: string;
+  organizationId?: string;
   /** The title of the project */
   title: string;
   /** When this document was last updated */
@@ -1435,7 +2098,7 @@ export type PatchProjectsByIdRes = /** status 200 Successful update */ {
   /** The document id (String so offline sync clients can mint ids) */
   _id: string;
   /** The organization (tenant) this project belongs to */
-  organizationId: string;
+  organizationId?: string;
   /** The title of the project */
   title: string;
   /** When this document was last updated */
@@ -1472,6 +2135,18 @@ export type PatchProjectsByIdArgs = {
 };
 export type DeleteProjectsByIdRes = unknown;
 export type DeleteProjectsByIdArgs = string;
+export type PostUsersByIdPasswordRes = /** status 200 Successful response */ {
+  data: {
+    _id: string;
+    message: string;
+  };
+};
+export type PostUsersByIdPasswordArgs = {
+  id: string;
+  body: {
+    password: string;
+  };
+};
 export type PostUsersRes = /** status 201 Successful create */ {
   /** Whether the user has admin privileges */
   admin?: boolean;
@@ -1483,13 +2158,15 @@ export type PostUsersRes = /** status 201 Successful create */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -1508,13 +2185,15 @@ export type PostUsersArgs = {
   name?: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id?: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated?: string;
   /** When this document was created */
@@ -1534,13 +2213,15 @@ export type GetUsersRes = /** status 200 Successful list */ {
     name: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated: string;
     /** When this document was created */
@@ -1582,13 +2263,15 @@ export type GetUsersByIdRes = /** status 200 Successful read */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -1608,13 +2291,15 @@ export type PatchUsersByIdRes = /** status 200 Successful update */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -1635,13 +2320,15 @@ export type PatchUsersByIdArgs = {
     name?: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id?: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated?: string;
     /** When this document was created */
@@ -1652,9 +2339,15 @@ export type PatchUsersByIdArgs = {
 };
 export type DeleteUsersByIdRes = unknown;
 export type DeleteUsersByIdArgs = string;
+export type CommsTestPushRes = /** status 200 Successful response */ {
+  data?: object;
+};
+export type CommsTestPushArgs = {
+  body?: string;
+  title?: string;
+};
 export type PostCommsPushTokensRes =
-  /** status 200 Success */
-  | {
+  | /** status 200 Success */ {
       data?: object;
     }
   | /** status 201 Success */ {
@@ -1693,7 +2386,7 @@ export type GetCommsPushTokensByIdRes = /** status 200 Successful read */ {
   /** Push provider token identifying the device */
   token: string;
   /** User who owns the device token */
-  userId: any;
+  userId: string;
   _id: string;
   /** When this document was last updated */
   updated: string;
@@ -1715,10 +2408,65 @@ export type GetCommsMessagesArgs = {
   page?: number;
   limit?: number;
   channel?: string;
+  provider?: string;
   status?: string;
+  errorClass?: string;
+  errorCode?: string;
   userId?: string;
+  to?: string;
+  templateId?: string;
+  retriedFromId?: string;
   startDate?: string;
   endDate?: string;
+  q?: string;
+};
+export type PostCommsMessagesRetryManyRes = /** status 200 Success */ {
+  retried?: object[];
+  skipped?: object[];
+};
+export type PostCommsMessagesRetryManyArgs = {
+  channel?: string;
+  endDate?: string;
+  errorClass?: string;
+  errorCode?: string;
+  limit?: number;
+  provider?: string;
+  q?: string;
+  retriedFromId?: string;
+  startDate?: string;
+  status?: string;
+  templateId?: string;
+  to?: string;
+  userId?: string;
+};
+export type GetCommsMessagesByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetCommsMessagesByIdArgs = string;
+export type PostCommsMessagesByIdRetryRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostCommsMessagesByIdRetryArgs = string;
+export type GetCommsStatsRes = /** status 200 Success */ {
+  buckets?: object[];
+  byProvider?: object[];
+  totals?: object;
+};
+export type GetCommsStatsArgs = {
+  page?: number;
+  limit?: number;
+  channel?: string;
+  provider?: string;
+  status?: string;
+  errorClass?: string;
+  errorCode?: string;
+  userId?: string;
+  to?: string;
+  templateId?: string;
+  retriedFromId?: string;
+  startDate?: string;
+  endDate?: string;
+  q?: string;
 };
 export type PostFeatureFlagsFlagsRes = /** status 201 Successful create */ {
   /** Archived flags are excluded from evaluation. Use this instead of deleting flags to prevent bloat as new features are added. */
@@ -1748,6 +2496,7 @@ export type PostFeatureFlagsFlagsRes = /** status 201 Successful create */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1756,6 +2505,7 @@ export type PostFeatureFlagsFlagsRes = /** status 201 Successful create */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -1793,6 +2543,7 @@ export type PostFeatureFlagsFlagsArgs = {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1801,6 +2552,7 @@ export type PostFeatureFlagsFlagsArgs = {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id?: string;
   /** When this document was last updated */
@@ -1839,6 +2591,7 @@ export type GetFeatureFlagsFlagsRes = /** status 200 Successful list */ {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -1847,6 +2600,7 @@ export type GetFeatureFlagsFlagsRes = /** status 200 Successful list */ {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id: string;
     /** When this document was last updated */
@@ -1897,6 +2651,7 @@ export type GetFeatureFlagsFlagsByIdRes = /** status 200 Successful read */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1905,6 +2660,7 @@ export type GetFeatureFlagsFlagsByIdRes = /** status 200 Successful read */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -1943,6 +2699,7 @@ export type PatchFeatureFlagsFlagsByIdRes = /** status 200 Successful update */ 
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -1951,6 +2708,7 @@ export type PatchFeatureFlagsFlagsByIdRes = /** status 200 Successful update */ 
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -1990,6 +2748,7 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -1998,6 +2757,7 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id?: string;
     /** When this document was last updated */
@@ -2010,6 +2770,72 @@ export type PatchFeatureFlagsFlagsByIdArgs = {
 };
 export type DeleteFeatureFlagsFlagsByIdRes = unknown;
 export type DeleteFeatureFlagsFlagsByIdArgs = string;
+export type GetJobsSchedulesRes = /** status 200 Success */ {
+  data?: {
+    cron?: string;
+    enabled?: boolean;
+    handlerName?: string;
+    id?: string;
+    name?: string;
+    nextRunAt?: string;
+    timezone?: string;
+  }[];
+};
+export type GetJobsSchedulesArgs = undefined;
+export type PostJobsSchedulesByNamePauseRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsSchedulesByNamePauseArgs = string;
+export type PostJobsSchedulesByNameResumeRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsSchedulesByNameResumeArgs = string;
+export type GetJobsRes = /** status 200 Success */ {
+  data?: {
+    _id?: string;
+    attemptCount?: number;
+    id?: string;
+    name?: string;
+    status?: string;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetJobsArgs = {
+  page?: number;
+  limit?: number;
+  name?: string;
+  status?: string;
+  scheduleId?: string;
+  start?: string;
+  end?: string;
+  q?: string;
+};
+export type GetJobsStatsRes = /** status 200 Success */ {
+  data?: {
+    byStatus?: object;
+    total?: number;
+  };
+};
+export type GetJobsStatsArgs = undefined;
+export type GetJobsByIdRes = /** status 200 Success */ {
+  data?: object;
+};
+export type GetJobsByIdArgs = string;
+export type PostJobsByIdRetryRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdRetryArgs = string;
+export type PostJobsByIdRequeueRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdRequeueArgs = string;
+export type PostJobsByIdCancelRes = /** status 200 Success */ {
+  data?: object;
+};
+export type PostJobsByIdCancelArgs = string;
 export type GetAdminConfigRes = /** status 200 Success */ {
   capabilities?: {
     actions?: boolean;
@@ -2020,6 +2846,8 @@ export type GetAdminConfigRes = /** status 200 Success */ {
   customScreens?: {
     description?: string;
     displayName?: string;
+    group?: string;
+    icon?: string;
     name?: string;
   }[];
   home?: object;
@@ -2054,44 +2882,44 @@ export type PostAdminBackgroundTasksArgs = {
   /** Optional admin model route this task relates to */
   resourceRoute?: string;
 };
-export type PostAdminAuditLogsBulkPatchRes = /** status 200 Success */ {
+export type PostAdminMcpServiceTokensBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
 };
-export type PostAdminAuditLogsBulkPatchArgs = {
+export type PostAdminMcpServiceTokensBulkPatchArgs = {
   /** Document ids to update */
   ids: string[];
   /** Partial document; keys must be allowlisted for this model */
   patch: object;
 };
-export type GetAdminAuditLogsRes = /** status 200 Successful list */ {
+export type GetAdminMcpServiceTokensRes = /** status 200 Successful list */ {
   data?: {
-    /** User who performed the action */
-    actorId?: any;
-    /** Mongoose model name affected */
-    modelName: string;
-    /** Primary key of the affected document */
-    recordId?: any;
-    /** Human-readable label for the record */
-    recordLabel?: string;
-    /** Mutation kind */
-    verb: "created" | "deleted" | "updated";
+    /** When this MCP service token expires; unset when it does not expire */
+    expiresAt?: string;
+    /** When this MCP service token most recently authenticated an MCP request */
+    lastUsedAt?: string;
+    /** User-provided label identifying the MCP service token */
+    name: string;
+    /** When this MCP service token was revoked; unset while it remains active */
+    revokedAt?: string;
+    /** SHA-256 hash of the full MCP service token plaintext */
+    tokenHash: string;
+    /** First eight characters after mcp_ used to identify the token safely */
+    tokenPrefix: string;
+    /** The user this MCP service token acts as */
+    userId: string;
     _id: string;
-    createdAt?: string;
-    updatedAt?: string;
     /** When this document was last updated */
     updated: string;
     /** When this document was created */
     created: string;
-    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-    deleted?: boolean;
   }[];
   limit?: number;
   more?: boolean;
   page?: number;
   total?: number;
 };
-export type GetAdminAuditLogsArgs = {
+export type GetAdminMcpServiceTokensArgs = {
   _id?: {
     $in?: string[];
   };
@@ -2100,65 +2928,97 @@ export type GetAdminAuditLogsArgs = {
     | {
         $in?: any[];
       };
-  verb?:
-    | ("created" | "deleted" | "updated")
-    | {
-        $in?: string[];
-      };
-  modelName?:
+  name?:
     | string
     | {
         $in?: string[];
       };
-  recordLabel?:
+  tokenPrefix?:
     | string
     | {
         $in?: string[];
       };
-  recordId?:
+  userId?:
     | any
     | {
         $in?: any[];
       };
-  actorId?:
-    | any
-    | {
-        $in?: any[];
-      };
-  createdAt?:
+  lastUsedAt?:
     | string
     | {
+        /** When this MCP service token most recently authenticated an MCP request */
         $gt?: string;
+        /** When this MCP service token most recently authenticated an MCP request */
         $gte?: string;
+        /** When this MCP service token most recently authenticated an MCP request */
         $lt?: string;
+        /** When this MCP service token most recently authenticated an MCP request */
+        $lte?: string;
+      };
+  expiresAt?:
+    | string
+    | {
+        /** When this MCP service token expires; unset when it does not expire */
+        $gt?: string;
+        /** When this MCP service token expires; unset when it does not expire */
+        $gte?: string;
+        /** When this MCP service token expires; unset when it does not expire */
+        $lt?: string;
+        /** When this MCP service token expires; unset when it does not expire */
+        $lte?: string;
+      };
+  revokedAt?:
+    | string
+    | {
+        /** When this MCP service token was revoked; unset while it remains active */
+        $gt?: string;
+        /** When this MCP service token was revoked; unset while it remains active */
+        $gte?: string;
+        /** When this MCP service token was revoked; unset while it remains active */
+        $lt?: string;
+        /** When this MCP service token was revoked; unset while it remains active */
+        $lte?: string;
+      };
+  created?:
+    | string
+    | {
+        /** When this document was created */
+        $gt?: string;
+        /** When this document was created */
+        $gte?: string;
+        /** When this document was created */
+        $lt?: string;
+        /** When this document was created */
         $lte?: string;
       };
   page?: number;
   sort?: string;
   limit?: number;
 };
-export type GetAdminAuditLogsByIdRes = /** status 200 Successful read */ {
-  /** User who performed the action */
-  actorId?: any;
-  /** Mongoose model name affected */
-  modelName: string;
-  /** Primary key of the affected document */
-  recordId?: any;
-  /** Human-readable label for the record */
-  recordLabel?: string;
-  /** Mutation kind */
-  verb: "created" | "deleted" | "updated";
+export type GetAdminMcpServiceTokensByIdRes = /** status 200 Successful read */ {
+  /** When this MCP service token expires; unset when it does not expire */
+  expiresAt?: string;
+  /** When this MCP service token most recently authenticated an MCP request */
+  lastUsedAt?: string;
+  /** User-provided label identifying the MCP service token */
+  name: string;
+  /** When this MCP service token was revoked; unset while it remains active */
+  revokedAt?: string;
+  /** SHA-256 hash of the full MCP service token plaintext */
+  tokenHash: string;
+  /** First eight characters after mcp_ used to identify the token safely */
+  tokenPrefix: string;
+  /** The user this MCP service token acts as */
+  userId: string;
   _id: string;
-  createdAt?: string;
-  updatedAt?: string;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
   created: string;
-  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
-  deleted?: boolean;
 };
-export type GetAdminAuditLogsByIdArgs = string;
+export type GetAdminMcpServiceTokensByIdArgs = string;
+export type DeleteAdminMcpServiceTokensByIdRes = unknown;
+export type DeleteAdminMcpServiceTokensByIdArgs = string;
 export type PostAdminFeatureFlagsBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -2197,6 +3057,7 @@ export type PostAdminFeatureFlagsRes = /** status 201 Successful create */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2205,6 +3066,7 @@ export type PostAdminFeatureFlagsRes = /** status 201 Successful create */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -2242,6 +3104,7 @@ export type PostAdminFeatureFlagsArgs = {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2250,6 +3113,7 @@ export type PostAdminFeatureFlagsArgs = {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id?: string;
   /** When this document was last updated */
@@ -2288,6 +3152,7 @@ export type GetAdminFeatureFlagsRes = /** status 200 Successful list */ {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -2296,6 +3161,7 @@ export type GetAdminFeatureFlagsRes = /** status 200 Successful list */ {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id: string;
     /** When this document was last updated */
@@ -2393,6 +3259,7 @@ export type GetAdminFeatureFlagsByIdRes = /** status 200 Successful read */ {
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2401,6 +3268,7 @@ export type GetAdminFeatureFlagsByIdRes = /** status 200 Successful read */ {
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -2439,6 +3307,7 @@ export type PatchAdminFeatureFlagsByIdRes = /** status 200 Successful update */ 
     value?: any;
     /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
     variant?: string;
+    _id?: string;
   }[];
   /** Boolean toggle or multi-variant A/B test */
   type?: "boolean" | "variant";
@@ -2447,6 +3316,7 @@ export type PatchAdminFeatureFlagsByIdRes = /** status 200 Successful update */ 
     key: string;
     /** Percentage weight for assignment (0-100, all must sum to 100) */
     weight: number;
+    _id?: string;
   }[];
   _id: string;
   /** When this document was last updated */
@@ -2486,6 +3356,7 @@ export type PatchAdminFeatureFlagsByIdArgs = {
       value?: any;
       /** For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone. */
       variant?: string;
+      _id?: string;
     }[];
     /** Boolean toggle or multi-variant A/B test */
     type?: "boolean" | "variant";
@@ -2494,6 +3365,7 @@ export type PatchAdminFeatureFlagsByIdArgs = {
       key: string;
       /** Percentage weight for assignment (0-100, all must sum to 100) */
       weight: number;
+      _id?: string;
     }[];
     _id?: string;
     /** When this document was last updated */
@@ -2506,6 +3378,122 @@ export type PatchAdminFeatureFlagsByIdArgs = {
 };
 export type DeleteAdminFeatureFlagsByIdRes = unknown;
 export type DeleteAdminFeatureFlagsByIdArgs = string;
+export type PostAdminAuditEventsBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminAuditEventsBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type GetAdminAuditEventsRes = /** status 200 Successful list */ {
+  data?: {
+    /** User who performed the mutation, when known */
+    actorId?: string;
+    /** Redacted changed fields after the mutation */
+    after?: any;
+    /** Redacted changed fields before the mutation */
+    before?: any;
+    /** Mongoose model name of the affected document */
+    modelName: string;
+    /** Fine-grained mutation kind */
+    operation: "arrayPush" | "arrayRemove" | "arrayUpdate" | "create" | "delete" | "update";
+    /** Tenant organization id when known */
+    organizationId?: string;
+    /** Primary key of the affected document */
+    recordId?: string;
+    /** Short human-readable label for the affected record */
+    recordLabel?: string;
+    /** Which framework surface wrote this event */
+    source: "admin" | "modelRouter" | "rbac";
+    /** Widget-compatible mutation verb */
+    verb: "created" | "deleted" | "updated";
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminAuditEventsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  created?:
+    | string
+    | {
+        /** When this document was created */
+        $gt?: string;
+        /** When this document was created */
+        $gte?: string;
+        /** When this document was created */
+        $lt?: string;
+        /** When this document was created */
+        $lte?: string;
+      };
+  verb?:
+    | ("created" | "deleted" | "updated")
+    | {
+        $in?: string[];
+      };
+  modelName?:
+    | string
+    | {
+        $in?: string[];
+      };
+  recordLabel?:
+    | string
+    | {
+        $in?: string[];
+      };
+  actorId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminAuditEventsByIdRes = /** status 200 Successful read */ {
+  /** User who performed the mutation, when known */
+  actorId?: string;
+  /** Redacted changed fields after the mutation */
+  after?: any;
+  /** Redacted changed fields before the mutation */
+  before?: any;
+  /** Mongoose model name of the affected document */
+  modelName: string;
+  /** Fine-grained mutation kind */
+  operation: "arrayPush" | "arrayRemove" | "arrayUpdate" | "create" | "delete" | "update";
+  /** Tenant organization id when known */
+  organizationId?: string;
+  /** Primary key of the affected document */
+  recordId?: string;
+  /** Short human-readable label for the affected record */
+  recordLabel?: string;
+  /** Which framework surface wrote this event */
+  source: "admin" | "modelRouter" | "rbac";
+  /** Widget-compatible mutation verb */
+  verb: "created" | "deleted" | "updated";
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+};
+export type GetAdminAuditEventsByIdArgs = string;
 export type PostAdminConsentFormsBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -2533,6 +3521,7 @@ export type PostAdminConsentFormsRes = /** status 201 Successful create */ {
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content: {
@@ -2581,6 +3570,7 @@ export type PostAdminConsentFormsArgs = {
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content?: {
@@ -2630,6 +3620,7 @@ export type GetAdminConsentFormsRes = /** status 200 Successful list */ {
       label: string;
       /** Whether this checkbox must be checked before the user can agree */
       required?: boolean;
+      _id?: string;
     }[];
     /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
     content: {
@@ -2740,6 +3731,7 @@ export type GetAdminConsentFormsByIdRes = /** status 200 Successful read */ {
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content: {
@@ -2789,6 +3781,7 @@ export type PatchAdminConsentFormsByIdRes = /** status 200 Successful update */ 
     label: string;
     /** Whether this checkbox must be checked before the user can agree */
     required?: boolean;
+    _id?: string;
   }[];
   /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
   content: {
@@ -2839,6 +3832,7 @@ export type PatchAdminConsentFormsByIdArgs = {
       label: string;
       /** Whether this checkbox must be checked before the user can agree */
       required?: boolean;
+      _id?: string;
     }[];
     /** Locale-keyed map of Markdown content for this form (e.g. {"en": "# Terms\n..."}) */
     content?: {
@@ -3024,6 +4018,695 @@ export type GetAdminConsentResponsesByIdRes = /** status 200 Successful read */ 
   deleted?: boolean;
 };
 export type GetAdminConsentResponsesByIdArgs = string;
+export type PostAdminAnnouncementsBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminAnnouncementsBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type PostAdminAnnouncementsRes = /** status 201 Successful create */ {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type PostAdminAnnouncementsArgs = {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body?: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status?: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title?: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id?: string;
+  /** When this document was last updated */
+  updated?: string;
+  /** When this document was created */
+  created?: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAdminAnnouncementsRes = /** status 200 Successful list */ {
+  data?: {
+    /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+    acknowledgementPolicy?: "required" | "dismiss-only";
+    /** When the announcement was archived */
+    archivedAt?: string;
+    /** Opaque targeting metadata consumed by matchAudience callback */
+    audience?: any;
+    /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+    audienceType?: "staff" | "patient" | "all";
+    /** Markdown body shown in the announcement modal */
+    body: string;
+    /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+    displayMode?: "modal" | "banner" | "feed";
+    /** Optional expiry — hidden from pending/feed after this time */
+    expiresAt?: string;
+    /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+    minBuildNumber?: number;
+    /** Platforms that should receive this announcement */
+    platforms?: ("ios" | "android" | "web")[];
+    primaryAction?: {
+      /** Button label for optional primary action */
+      label?: string;
+      /** Deep link or external URL opened by the primary action button */
+      url?: string;
+    };
+    /** Higher priority announcements appear first in the modal queue */
+    priority?: number;
+    /** Optional scheduled publish time — hidden until this instant */
+    publishAt?: string;
+    /** When the announcement was first published */
+    publishedAt?: string;
+    /** Lifecycle status: draft, published, or archived */
+    status: "draft" | "published" | "archived";
+    /** Announcement title shown in modal and changelog feed */
+    title: string;
+    /** Content version — increments when published title/body changes */
+    version?: number;
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminAnnouncementsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  title?:
+    | string
+    | {
+        $in?: string[];
+      };
+  status?:
+    | ("draft" | "published" | "archived")
+    | {
+        $in?: string[];
+      };
+  priority?:
+    | number
+    | {
+        /** Higher priority announcements appear first in the modal queue */
+        $gt?: number;
+        /** Higher priority announcements appear first in the modal queue */
+        $gte?: number;
+        /** Higher priority announcements appear first in the modal queue */
+        $lt?: number;
+        /** Higher priority announcements appear first in the modal queue */
+        $lte?: number;
+      };
+  version?:
+    | number
+    | {
+        /** Content version — increments when published title/body changes */
+        $gt?: number;
+        /** Content version — increments when published title/body changes */
+        $gte?: number;
+        /** Content version — increments when published title/body changes */
+        $lt?: number;
+        /** Content version — increments when published title/body changes */
+        $lte?: number;
+      };
+  publishedAt?:
+    | string
+    | {
+        /** When the announcement was first published */
+        $gt?: string;
+        /** When the announcement was first published */
+        $gte?: string;
+        /** When the announcement was first published */
+        $lt?: string;
+        /** When the announcement was first published */
+        $lte?: string;
+      };
+  expiresAt?:
+    | string
+    | {
+        /** Optional expiry — hidden from pending/feed after this time */
+        $gt?: string;
+        /** Optional expiry — hidden from pending/feed after this time */
+        $gte?: string;
+        /** Optional expiry — hidden from pending/feed after this time */
+        $lt?: string;
+        /** Optional expiry — hidden from pending/feed after this time */
+        $lte?: string;
+      };
+  acknowledgementPolicy?:
+    | ("required" | "dismiss-only")
+    | {
+        $in?: string[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminAnnouncementsByIdRes = /** status 200 Successful read */ {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAdminAnnouncementsByIdArgs = string;
+export type PatchAdminAnnouncementsByIdRes = /** status 200 Successful update */ {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type PatchAdminAnnouncementsByIdArgs = {
+  id: string;
+  body: {
+    /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+    acknowledgementPolicy?: "required" | "dismiss-only";
+    /** When the announcement was archived */
+    archivedAt?: string;
+    /** Opaque targeting metadata consumed by matchAudience callback */
+    audience?: any;
+    /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+    audienceType?: "staff" | "patient" | "all";
+    /** Markdown body shown in the announcement modal */
+    body?: string;
+    /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+    displayMode?: "modal" | "banner" | "feed";
+    /** Optional expiry — hidden from pending/feed after this time */
+    expiresAt?: string;
+    /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+    minBuildNumber?: number;
+    /** Platforms that should receive this announcement */
+    platforms?: ("ios" | "android" | "web")[];
+    primaryAction?: {
+      /** Button label for optional primary action */
+      label?: string;
+      /** Deep link or external URL opened by the primary action button */
+      url?: string;
+    };
+    /** Higher priority announcements appear first in the modal queue */
+    priority?: number;
+    /** Optional scheduled publish time — hidden until this instant */
+    publishAt?: string;
+    /** When the announcement was first published */
+    publishedAt?: string;
+    /** Lifecycle status: draft, published, or archived */
+    status?: "draft" | "published" | "archived";
+    /** Announcement title shown in modal and changelog feed */
+    title?: string;
+    /** Content version — increments when published title/body changes */
+    version?: number;
+    _id?: string;
+    /** When this document was last updated */
+    updated?: string;
+    /** When this document was created */
+    created?: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  };
+};
+export type DeleteAdminAnnouncementsByIdRes = unknown;
+export type DeleteAdminAnnouncementsByIdArgs = string;
+export type PostAdminAnnouncementAcknowledgementsBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminAnnouncementAcknowledgementsBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type GetAdminAnnouncementAcknowledgementsRes = /** status 200 Successful list */ {
+  data?: {
+    /** When the user acknowledged this announcement version */
+    acknowledgedAt: string;
+    /** Announcement that was acknowledged */
+    announcementId: string;
+    /** User who acknowledged the announcement */
+    userId: string;
+    /** Announcement version acknowledged by the user */
+    version: number;
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminAnnouncementAcknowledgementsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  userId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  announcementId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  version?:
+    | number
+    | {
+        /** Announcement version acknowledged by the user */
+        $gt?: number;
+        /** Announcement version acknowledged by the user */
+        $gte?: number;
+        /** Announcement version acknowledged by the user */
+        $lt?: number;
+        /** Announcement version acknowledged by the user */
+        $lte?: number;
+      };
+  acknowledgedAt?:
+    | string
+    | {
+        /** When the user acknowledged this announcement version */
+        $gt?: string;
+        /** When the user acknowledged this announcement version */
+        $gte?: string;
+        /** When the user acknowledged this announcement version */
+        $lt?: string;
+        /** When the user acknowledged this announcement version */
+        $lte?: string;
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminAnnouncementAcknowledgementsByIdRes = /** status 200 Successful read */ {
+  /** When the user acknowledged this announcement version */
+  acknowledgedAt: string;
+  /** Announcement that was acknowledged */
+  announcementId: string;
+  /** User who acknowledged the announcement */
+  userId: string;
+  /** Announcement version acknowledged by the user */
+  version: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAdminAnnouncementAcknowledgementsByIdArgs = string;
+export type PostAdminAnnouncementImpressionsBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminAnnouncementImpressionsBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type GetAdminAnnouncementImpressionsRes = /** status 200 Successful list */ {
+  data?: {
+    /** Announcement that was viewed */
+    announcementId: string;
+    /** Client platform where the impression occurred */
+    platform?: "ios" | "android" | "web";
+    /** User who viewed the announcement */
+    userId: string;
+    /** Announcement version viewed by the user */
+    version: number;
+    /** When the announcement was viewed */
+    viewedAt: string;
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminAnnouncementImpressionsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  userId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  announcementId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  version?:
+    | number
+    | {
+        /** Announcement version viewed by the user */
+        $gt?: number;
+        /** Announcement version viewed by the user */
+        $gte?: number;
+        /** Announcement version viewed by the user */
+        $lt?: number;
+        /** Announcement version viewed by the user */
+        $lte?: number;
+      };
+  viewedAt?:
+    | string
+    | {
+        /** When the announcement was viewed */
+        $gt?: string;
+        /** When the announcement was viewed */
+        $gte?: string;
+        /** When the announcement was viewed */
+        $lt?: string;
+        /** When the announcement was viewed */
+        $lte?: string;
+      };
+  platform?:
+    | ("ios" | "android" | "web")
+    | {
+        $in?: string[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminAnnouncementImpressionsByIdRes = /** status 200 Successful read */ {
+  /** Announcement that was viewed */
+  announcementId: string;
+  /** Client platform where the impression occurred */
+  platform?: "ios" | "android" | "web";
+  /** User who viewed the announcement */
+  userId: string;
+  /** Announcement version viewed by the user */
+  version: number;
+  /** When the announcement was viewed */
+  viewedAt: string;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAdminAnnouncementImpressionsByIdArgs = string;
+export type PostAdminAnnouncementClickEventsBulkPatchRes = /** status 200 Success */ {
+  failures?: any;
+  updated?: number;
+};
+export type PostAdminAnnouncementClickEventsBulkPatchArgs = {
+  /** Document ids to update */
+  ids: string[];
+  /** Partial document; keys must be allowlisted for this model */
+  patch: object;
+};
+export type GetAdminAnnouncementClickEventsRes = /** status 200 Successful list */ {
+  data?: {
+    /** Which announcement action the user clicked */
+    action: "primaryAction";
+    /** Announcement whose primary action was clicked */
+    announcementId: string;
+    /** When the primary action was clicked */
+    clickedAt: string;
+    /** Client platform where the click occurred */
+    platform?: "ios" | "android" | "web";
+    /** User who clicked the announcement action */
+    userId: string;
+    /** Announcement version at click time */
+    version: number;
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAdminAnnouncementClickEventsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  q?:
+    | any
+    | {
+        $in?: any[];
+      };
+  userId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  announcementId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  version?:
+    | number
+    | {
+        /** Announcement version at click time */
+        $gt?: number;
+        /** Announcement version at click time */
+        $gte?: number;
+        /** Announcement version at click time */
+        $lt?: number;
+        /** Announcement version at click time */
+        $lte?: number;
+      };
+  action?:
+    | "primaryAction"
+    | {
+        $in?: string[];
+      };
+  clickedAt?:
+    | string
+    | {
+        /** When the primary action was clicked */
+        $gt?: string;
+        /** When the primary action was clicked */
+        $gte?: string;
+        /** When the primary action was clicked */
+        $lt?: string;
+        /** When the primary action was clicked */
+        $lte?: string;
+      };
+  platform?:
+    | ("ios" | "android" | "web")
+    | {
+        $in?: string[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAdminAnnouncementClickEventsByIdRes = /** status 200 Successful read */ {
+  /** Which announcement action the user clicked */
+  action: "primaryAction";
+  /** Announcement whose primary action was clicked */
+  announcementId: string;
+  /** When the primary action was clicked */
+  clickedAt: string;
+  /** Client platform where the click occurred */
+  platform?: "ios" | "android" | "web";
+  /** User who clicked the announcement action */
+  userId: string;
+  /** Announcement version at click time */
+  version: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAdminAnnouncementClickEventsByIdArgs = string;
 export type PostAdminTodosBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -3040,7 +4723,7 @@ export type PostAdminTodosRes = /** status 201 Successful create */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3064,7 +4747,7 @@ export type PostAdminTodosArgs = {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId?: any;
+  ownerId?: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3089,7 +4772,7 @@ export type GetAdminTodosRes = /** status 200 Successful list */ {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId: any;
+    ownerId: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -3178,7 +4861,7 @@ export type GetAdminTodosByIdRes = /** status 200 Successful read */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3203,7 +4886,7 @@ export type PatchAdminTodosByIdRes = /** status 200 Successful update */ {
   /** Whether the todo item has been completed */
   completed?: boolean;
   /** The user who owns this todo */
-  ownerId: any;
+  ownerId: string;
   /** Priority level of the todo */
   priority?: "low" | "medium" | "high";
   /** Free-form tags for categorization */
@@ -3229,7 +4912,7 @@ export type PatchAdminTodosByIdArgs = {
     /** Whether the todo item has been completed */
     completed?: boolean;
     /** The user who owns this todo */
-    ownerId?: any;
+    ownerId?: string;
     /** Priority level of the todo */
     priority?: "low" | "medium" | "high";
     /** Free-form tags for categorization */
@@ -3248,6 +4931,8 @@ export type PatchAdminTodosByIdArgs = {
     _syncSeq?: number;
   };
 };
+export type DeleteAdminTodosByIdRes = unknown;
+export type DeleteAdminTodosByIdArgs = string;
 export type PostAdminUsersBulkPatchRes = /** status 200 Success */ {
   failures?: any;
   updated?: number;
@@ -3269,13 +4954,15 @@ export type PostAdminUsersRes = /** status 201 Successful create */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -3294,13 +4981,15 @@ export type PostAdminUsersArgs = {
   name?: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id?: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated?: string;
   /** When this document was created */
@@ -3320,13 +5009,15 @@ export type GetAdminUsersRes = /** status 200 Successful list */ {
     name: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated: string;
     /** When this document was created */
@@ -3363,6 +5054,11 @@ export type GetAdminUsersArgs = {
     | {
         $in?: boolean[];
       };
+  emailVerified?:
+    | boolean
+    | {
+        $in?: boolean[];
+      };
   created?:
     | string
     | {
@@ -3390,13 +5086,15 @@ export type GetAdminUsersByIdRes = /** status 200 Successful read */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -3416,13 +5114,15 @@ export type PatchAdminUsersByIdRes = /** status 200 Successful update */ {
   name: string;
   /** OAuth provider used for authentication */
   oauthProvider?: "google" | "github" | "apple" | null;
-  /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-  organizationIds?: string[];
+  /** Incremented on password reset to invalidate outstanding refresh tokens */
+  tokenEpoch?: number;
   _id: string;
   hash?: string;
   salt?: string;
   /** RBAC role names assigned to this user */
   roles?: string[];
+  /** Whether the user has verified their email address */
+  emailVerified?: boolean;
   /** When this document was last updated */
   updated: string;
   /** When this document was created */
@@ -3443,13 +5143,15 @@ export type PatchAdminUsersByIdArgs = {
     name?: string;
     /** OAuth provider used for authentication */
     oauthProvider?: "google" | "github" | "apple" | null;
-    /** Organizations (tenants) the user belongs to, used for tenant-scoped sync */
-    organizationIds?: string[];
+    /** Incremented on password reset to invalidate outstanding refresh tokens */
+    tokenEpoch?: number;
     _id?: string;
     hash?: string;
     salt?: string;
     /** RBAC role names assigned to this user */
     roles?: string[];
+    /** Whether the user has verified their email address */
+    emailVerified?: boolean;
     /** When this document was last updated */
     updated?: string;
     /** When this document was created */
@@ -3460,6 +5162,802 @@ export type PatchAdminUsersByIdArgs = {
 };
 export type DeleteAdminUsersByIdRes = unknown;
 export type DeleteAdminUsersByIdArgs = string;
+export type AdminMigrationsRunRes = /** status 201 Successful response */ {
+  data?: object;
+};
+export type AdminMigrationsRunArgs = ("true" | "false") | undefined;
+export type AdminMigrationsStatusRes = /** status 200 Successful response */ {
+  data?: object;
+};
+export type AdminMigrationsStatusArgs = undefined;
+export type PostNotificationsMarkAllReadRes = /** status 200 Success */ {
+  data?: {
+    modified?: number;
+  };
+};
+export type PostNotificationsMarkAllReadArgs = undefined;
+export type GetNotificationsRes = /** status 200 Successful list */ {
+  data?: {
+    /** The document id (string so offline sync clients can mint ids) */
+    _id: string;
+    /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+    archivedAt?: string;
+    /** Main notification message text shown in the inbox */
+    body: string;
+    /** Optional deep link or in-app route opened when the user taps the notification */
+    href?: string;
+    /** Optional category string used for icons or grouping in the UI */
+    kind?: string;
+    /** The user who owns this inbox row */
+    ownerId: string;
+    /** When the owner marked this notification as read; null means unread */
+    readAt?: string;
+    /** Short headline shown in the inbox list */
+    title: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetNotificationsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  ownerId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  readAt?:
+    | string
+    | {
+        /** When the owner marked this notification as read; null means unread */
+        $gt?: string;
+        /** When the owner marked this notification as read; null means unread */
+        $gte?: string;
+        /** When the owner marked this notification as read; null means unread */
+        $lt?: string;
+        /** When the owner marked this notification as read; null means unread */
+        $lte?: string;
+      };
+  archivedAt?:
+    | string
+    | {
+        /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+        $gt?: string;
+        /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+        $gte?: string;
+        /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+        $lt?: string;
+        /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+        $lte?: string;
+      };
+  kind?:
+    | string
+    | {
+        $in?: string[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetNotificationsByIdRes = /** status 200 Successful read */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+  archivedAt?: string;
+  /** Main notification message text shown in the inbox */
+  body: string;
+  /** Optional deep link or in-app route opened when the user taps the notification */
+  href?: string;
+  /** Optional category string used for icons or grouping in the UI */
+  kind?: string;
+  /** The user who owns this inbox row */
+  ownerId: string;
+  /** When the owner marked this notification as read; null means unread */
+  readAt?: string;
+  /** Short headline shown in the inbox list */
+  title: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type GetNotificationsByIdArgs = string;
+export type PatchNotificationsByIdRes = /** status 200 Successful update */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+  archivedAt?: string;
+  /** Main notification message text shown in the inbox */
+  body: string;
+  /** Optional deep link or in-app route opened when the user taps the notification */
+  href?: string;
+  /** Optional category string used for icons or grouping in the UI */
+  kind?: string;
+  /** The user who owns this inbox row */
+  ownerId: string;
+  /** When the owner marked this notification as read; null means unread */
+  readAt?: string;
+  /** Short headline shown in the inbox list */
+  title: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type PatchNotificationsByIdArgs = {
+  id: string;
+  body: {
+    /** The document id (string so offline sync clients can mint ids) */
+    _id?: string;
+    /** When the owner archived (dismissed) this notification; null means it is still in the active inbox */
+    archivedAt?: string;
+    /** Main notification message text shown in the inbox */
+    body?: string;
+    /** Optional deep link or in-app route opened when the user taps the notification */
+    href?: string;
+    /** Optional category string used for icons or grouping in the UI */
+    kind?: string;
+    /** The user who owns this inbox row */
+    ownerId?: string;
+    /** When the owner marked this notification as read; null means unread */
+    readAt?: string;
+    /** Short headline shown in the inbox list */
+    title?: string;
+    /** When this document was last updated */
+    updated?: string;
+    /** When this document was created */
+    created?: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  };
+};
+export type DeleteNotificationsByIdRes = unknown;
+export type DeleteNotificationsByIdArgs = string;
+export type PostNotificationPreferencesRes = /** status 201 Successful create */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** Whether in-app inbox rows are created for this user */
+  inapp?: boolean;
+  /** Whether outbound email is sent for notifications */
+  mail?: boolean;
+  /** The user these preferences belong to */
+  ownerId: string;
+  /** Whether push notifications are sent for this user */
+  push?: boolean;
+  /** Whether SMS messages are sent for this user */
+  sms?: boolean;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type PostNotificationPreferencesArgs = {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id?: string;
+  /** Whether in-app inbox rows are created for this user */
+  inapp?: boolean;
+  /** Whether outbound email is sent for notifications */
+  mail?: boolean;
+  /** The user these preferences belong to */
+  ownerId?: string;
+  /** Whether push notifications are sent for this user */
+  push?: boolean;
+  /** Whether SMS messages are sent for this user */
+  sms?: boolean;
+  /** When this document was last updated */
+  updated?: string;
+  /** When this document was created */
+  created?: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type GetNotificationPreferencesRes = /** status 200 Successful list */ {
+  data?: {
+    /** The document id (string so offline sync clients can mint ids) */
+    _id: string;
+    /** Whether in-app inbox rows are created for this user */
+    inapp?: boolean;
+    /** Whether outbound email is sent for notifications */
+    mail?: boolean;
+    /** The user these preferences belong to */
+    ownerId: string;
+    /** Whether push notifications are sent for this user */
+    push?: boolean;
+    /** Whether SMS messages are sent for this user */
+    sms?: boolean;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetNotificationPreferencesArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  ownerId?:
+    | any
+    | {
+        $in?: any[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetNotificationPreferencesByIdRes = /** status 200 Successful read */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** Whether in-app inbox rows are created for this user */
+  inapp?: boolean;
+  /** Whether outbound email is sent for notifications */
+  mail?: boolean;
+  /** The user these preferences belong to */
+  ownerId: string;
+  /** Whether push notifications are sent for this user */
+  push?: boolean;
+  /** Whether SMS messages are sent for this user */
+  sms?: boolean;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type GetNotificationPreferencesByIdArgs = string;
+export type PatchNotificationPreferencesByIdRes = /** status 200 Successful update */ {
+  /** The document id (string so offline sync clients can mint ids) */
+  _id: string;
+  /** Whether in-app inbox rows are created for this user */
+  inapp?: boolean;
+  /** Whether outbound email is sent for notifications */
+  mail?: boolean;
+  /** The user these preferences belong to */
+  ownerId: string;
+  /** Whether push notifications are sent for this user */
+  push?: boolean;
+  /** Whether SMS messages are sent for this user */
+  sms?: boolean;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+  /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+  _syncPrevStream?: string;
+  /** Monotonic per-stream sequence stamped on every synced write */
+  _syncSeq?: number;
+};
+export type PatchNotificationPreferencesByIdArgs = {
+  id: string;
+  body: {
+    /** The document id (string so offline sync clients can mint ids) */
+    _id?: string;
+    /** Whether in-app inbox rows are created for this user */
+    inapp?: boolean;
+    /** Whether outbound email is sent for notifications */
+    mail?: boolean;
+    /** The user these preferences belong to */
+    ownerId?: string;
+    /** Whether push notifications are sent for this user */
+    push?: boolean;
+    /** Whether SMS messages are sent for this user */
+    sms?: boolean;
+    /** When this document was last updated */
+    updated?: string;
+    /** When this document was created */
+    created?: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+    /** The document's previous sync stream, set when a write moved it between scopes; null when the last write did not move it */
+    _syncPrevStream?: string;
+    /** Monotonic per-stream sequence stamped on every synced write */
+    _syncSeq?: number;
+  };
+};
+export type DeleteNotificationPreferencesByIdRes = unknown;
+export type DeleteNotificationPreferencesByIdArgs = string;
+export type GetAnnouncementsConfigRes = /** status 200 Success */ {
+  data?: {
+    /** "required" or "dismiss-only" */
+    defaultAcknowledgementPolicy?: string;
+  };
+};
+export type GetAnnouncementsConfigArgs = undefined;
+export type GetAnnouncementsOverviewRes = /** status 200 Success */ {
+  data?: {
+    _id?: string;
+    acknowledgementPolicy?: string;
+    audienceType?: string;
+    displayMode?: string;
+    expiresAt?: string;
+    metrics?: {
+      acknowledgements?: number;
+      clicks?: number;
+      impressions?: number;
+    };
+    priority?: number;
+    publishedAt?: string;
+    status?: string;
+    title?: string;
+    version?: number;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+  totals?: {
+    acknowledgements?: number;
+    announcements?: number;
+    archived?: number;
+    clicks?: number;
+    draft?: number;
+    impressions?: number;
+    published?: number;
+  };
+};
+export type GetAnnouncementsOverviewArgs = {
+  page?: number;
+  limit?: number;
+};
+export type PostAnnouncementsRes = /** status 201 Successful create */ {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type PostAnnouncementsArgs = {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body?: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status?: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title?: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id?: string;
+  /** When this document was last updated */
+  updated?: string;
+  /** When this document was created */
+  created?: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAnnouncementsRes = /** status 200 Successful list */ {
+  data?: {
+    /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+    acknowledgementPolicy?: "required" | "dismiss-only";
+    /** When the announcement was archived */
+    archivedAt?: string;
+    /** Opaque targeting metadata consumed by matchAudience callback */
+    audience?: any;
+    /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+    audienceType?: "staff" | "patient" | "all";
+    /** Markdown body shown in the announcement modal */
+    body: string;
+    /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+    displayMode?: "modal" | "banner" | "feed";
+    /** Optional expiry — hidden from pending/feed after this time */
+    expiresAt?: string;
+    /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+    minBuildNumber?: number;
+    /** Platforms that should receive this announcement */
+    platforms?: ("ios" | "android" | "web")[];
+    primaryAction?: {
+      /** Button label for optional primary action */
+      label?: string;
+      /** Deep link or external URL opened by the primary action button */
+      url?: string;
+    };
+    /** Higher priority announcements appear first in the modal queue */
+    priority?: number;
+    /** Optional scheduled publish time — hidden until this instant */
+    publishAt?: string;
+    /** When the announcement was first published */
+    publishedAt?: string;
+    /** Lifecycle status: draft, published, or archived */
+    status: "draft" | "published" | "archived";
+    /** Announcement title shown in modal and changelog feed */
+    title: string;
+    /** Content version — increments when published title/body changes */
+    version?: number;
+    _id: string;
+    /** When this document was last updated */
+    updated: string;
+    /** When this document was created */
+    created: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  }[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type GetAnnouncementsArgs = {
+  _id?: {
+    $in?: string[];
+  };
+  status?:
+    | ("draft" | "published" | "archived")
+    | {
+        $in?: string[];
+      };
+  priority?:
+    | number
+    | {
+        /** Higher priority announcements appear first in the modal queue */
+        $gt?: number;
+        /** Higher priority announcements appear first in the modal queue */
+        $gte?: number;
+        /** Higher priority announcements appear first in the modal queue */
+        $lt?: number;
+        /** Higher priority announcements appear first in the modal queue */
+        $lte?: number;
+      };
+  title?:
+    | string
+    | {
+        $in?: string[];
+      };
+  page?: number;
+  sort?: string;
+  limit?: number;
+};
+export type GetAnnouncementsByIdRes = /** status 200 Successful read */ {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type GetAnnouncementsByIdArgs = string;
+export type PatchAnnouncementsByIdRes = /** status 200 Successful update */ {
+  /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+  acknowledgementPolicy?: "required" | "dismiss-only";
+  /** When the announcement was archived */
+  archivedAt?: string;
+  /** Opaque targeting metadata consumed by matchAudience callback */
+  audience?: any;
+  /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+  audienceType?: "staff" | "patient" | "all";
+  /** Markdown body shown in the announcement modal */
+  body: string;
+  /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+  displayMode?: "modal" | "banner" | "feed";
+  /** Optional expiry — hidden from pending/feed after this time */
+  expiresAt?: string;
+  /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+  minBuildNumber?: number;
+  /** Platforms that should receive this announcement */
+  platforms?: ("ios" | "android" | "web")[];
+  primaryAction?: {
+    /** Button label for optional primary action */
+    label?: string;
+    /** Deep link or external URL opened by the primary action button */
+    url?: string;
+  };
+  /** Higher priority announcements appear first in the modal queue */
+  priority?: number;
+  /** Optional scheduled publish time — hidden until this instant */
+  publishAt?: string;
+  /** When the announcement was first published */
+  publishedAt?: string;
+  /** Lifecycle status: draft, published, or archived */
+  status: "draft" | "published" | "archived";
+  /** Announcement title shown in modal and changelog feed */
+  title: string;
+  /** Content version — increments when published title/body changes */
+  version?: number;
+  _id: string;
+  /** When this document was last updated */
+  updated: string;
+  /** When this document was created */
+  created: string;
+  /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+  deleted?: boolean;
+};
+export type PatchAnnouncementsByIdArgs = {
+  id: string;
+  body: {
+    /** Whether users must acknowledge (required) or may dismiss with an impression only (dismiss-only). Omitted values resolve from the plugin defaultAcknowledgementPolicy at read time. */
+    acknowledgementPolicy?: "required" | "dismiss-only";
+    /** When the announcement was archived */
+    archivedAt?: string;
+    /** Opaque targeting metadata consumed by matchAudience callback */
+    audience?: any;
+    /** First-class audience targeting: staff, patient, or all. Composed with matchAudience via matchAudienceByType. */
+    audienceType?: "staff" | "patient" | "all";
+    /** Markdown body shown in the announcement modal */
+    body?: string;
+    /** Where the announcement appears: blocking modal, non-blocking banner, or feed-only changelog entry */
+    displayMode?: "modal" | "banner" | "feed";
+    /** Optional expiry — hidden from pending/feed after this time */
+    expiresAt?: string;
+    /** Optional minimum client build number. Hidden from pending, feed, and help when query version is a finite integer below this value */
+    minBuildNumber?: number;
+    /** Platforms that should receive this announcement */
+    platforms?: ("ios" | "android" | "web")[];
+    primaryAction?: {
+      /** Button label for optional primary action */
+      label?: string;
+      /** Deep link or external URL opened by the primary action button */
+      url?: string;
+    };
+    /** Higher priority announcements appear first in the modal queue */
+    priority?: number;
+    /** Optional scheduled publish time — hidden until this instant */
+    publishAt?: string;
+    /** When the announcement was first published */
+    publishedAt?: string;
+    /** Lifecycle status: draft, published, or archived */
+    status?: "draft" | "published" | "archived";
+    /** Announcement title shown in modal and changelog feed */
+    title?: string;
+    /** Content version — increments when published title/body changes */
+    version?: number;
+    _id?: string;
+    /** When this document was last updated */
+    updated?: string;
+    /** When this document was created */
+    created?: string;
+    /** Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them. */
+    deleted?: boolean;
+  };
+};
+export type DeleteAnnouncementsByIdRes = unknown;
+export type DeleteAnnouncementsByIdArgs = string;
+export type PostOrgsRes = unknown;
+export type PostOrgsArgs = {
+  /** Organization name */
+  name: string;
+  /** App-defined organization settings */
+  settings?: object;
+};
+export type GetOrgsRes = unknown;
+export type GetOrgsArgs = undefined;
+export type GetOrgsMineRes = unknown;
+export type GetOrgsMineArgs = undefined;
+export type GetOrgsByIdRes = unknown;
+export type GetOrgsByIdArgs = string;
+export type PatchOrgsByIdRes = unknown;
+export type PatchOrgsByIdArgs = {
+  id: string;
+  body: {
+    /** Disable the organization */
+    disabled?: boolean;
+    /** Organization name */
+    name?: string;
+    /** App-defined organization settings */
+    settings?: object;
+  };
+};
+export type DeleteOrgsByIdRes = unknown;
+export type DeleteOrgsByIdArgs = string;
+export type GetOrgsByIdMembersRes = unknown;
+export type GetOrgsByIdMembersArgs = string;
+export type PostOrgsByIdMembersRes = unknown;
+export type PostOrgsByIdMembersArgs = {
+  id: string;
+  body: {
+    /** Existing user email */
+    email?: string;
+    /** Membership role */
+    roleName?: string;
+    /** Existing user id */
+    userId?: string;
+  };
+};
+export type PatchOrgsByIdMembersAndMemberIdRes = unknown;
+export type PatchOrgsByIdMembersAndMemberIdArgs = {
+  id: string;
+  memberId: string;
+  body: {
+    /** Membership role */
+    roleName?: string;
+    /** Membership status */
+    status?: string;
+  };
+};
+export type DeleteOrgsByIdMembersAndMemberIdRes = unknown;
+export type DeleteOrgsByIdMembersAndMemberIdArgs = {
+  id: string;
+  memberId: string;
+};
+export type CreateMcpServiceTokenRes = /** status 200 Success */ {
+  data?: {
+    created?: string;
+    expiresAt?: string;
+    id?: string;
+    mcpUrl?: string;
+    name?: string;
+    token?: string;
+    tokenPrefix?: string;
+  };
+};
+export type CreateMcpServiceTokenArgs = {
+  /** Optional ISO-8601 expiry; omit for a token that does not expire */
+  expiresAt?: string;
+  /** User-visible label for this token */
+  name: string;
+};
+export type ListMcpServiceTokensRes = /** status 200 Success */ {
+  data?: any;
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+};
+export type ListMcpServiceTokensArgs = {
+  page?: number;
+  limit?: number;
+};
+export type RevokeMcpServiceTokenRes = /** status 200 Success */ {
+  data?: {
+    id?: string;
+    revokedAt?: string;
+  };
+};
+export type RevokeMcpServiceTokenArgs = string;
 export type ApiError = {
   /** An application-specific error code, expressed as a string value. */
   code?: string;
@@ -3489,7 +5987,6 @@ export type ApiError = {
   title?: string;
 };
 export const {
-  useGetAiModelsQuery,
   usePostGptHistoriesMutation,
   useGetGptHistoriesQuery,
   useGetGptHistoriesByIdQuery,
@@ -3499,14 +5996,15 @@ export const {
   usePatchGptHistoriesByIdRatingMutation,
   usePostGptRemixMutation,
   useGetGptToolsQuery,
-  usePostAdminUsersByIdPasswordMutation,
-  useGetSettingsGcsQuery,
-  usePostSettingsGcsMutation,
-  useDeleteSettingsGcsMutation,
-  usePostLoadtestTodosGenerateMutation,
-  usePostLoadtestTodosChurnMutation,
-  usePostLoadtestTodosClearMutation,
+  useAiModelsQuery,
+  useSettingsClearGcsMutation,
+  useSettingsConfigureGcsMutation,
+  useSettingsGcsQuery,
+  usePostNotificationsDevNotifyMutation,
   useTodosMarkCompleteMutation,
+  useLoadtestLoadtestChurnMutation,
+  useLoadtestLoadtestClearMutation,
+  useLoadtestLoadtestGenerateMutation,
   useTodosBulkCompleteMutation,
   usePostTodosMutation,
   useGetTodosQuery,
@@ -3518,32 +6016,51 @@ export const {
   useGetProjectsByIdQuery,
   usePatchProjectsByIdMutation,
   useDeleteProjectsByIdMutation,
+  usePostUsersByIdPasswordMutation,
   usePostUsersMutation,
   useGetUsersQuery,
   useGetUsersByIdQuery,
   usePatchUsersByIdMutation,
   useDeleteUsersByIdMutation,
+  useCommsTestPushMutation,
   usePostCommsPushTokensMutation,
   useGetCommsPushTokensQuery,
   useDeleteCommsPushTokensByIdMutation,
   useGetCommsPushTokensByIdQuery,
   useGetCommsMessagesQuery,
+  usePostCommsMessagesRetryManyMutation,
+  useGetCommsMessagesByIdQuery,
+  usePostCommsMessagesByIdRetryMutation,
+  useGetCommsStatsQuery,
   usePostFeatureFlagsFlagsMutation,
   useGetFeatureFlagsFlagsQuery,
   useGetFeatureFlagsFlagsByIdQuery,
   usePatchFeatureFlagsFlagsByIdMutation,
   useDeleteFeatureFlagsFlagsByIdMutation,
+  useGetJobsSchedulesQuery,
+  usePostJobsSchedulesByNamePauseMutation,
+  usePostJobsSchedulesByNameResumeMutation,
+  useGetJobsQuery,
+  useGetJobsStatsQuery,
+  useGetJobsByIdQuery,
+  usePostJobsByIdRetryMutation,
+  usePostJobsByIdRequeueMutation,
+  usePostJobsByIdCancelMutation,
   useGetAdminConfigQuery,
   usePostAdminBackgroundTasksMutation,
-  usePostAdminAuditLogsBulkPatchMutation,
-  useGetAdminAuditLogsQuery,
-  useGetAdminAuditLogsByIdQuery,
+  usePostAdminMcpServiceTokensBulkPatchMutation,
+  useGetAdminMcpServiceTokensQuery,
+  useGetAdminMcpServiceTokensByIdQuery,
+  useDeleteAdminMcpServiceTokensByIdMutation,
   usePostAdminFeatureFlagsBulkPatchMutation,
   usePostAdminFeatureFlagsMutation,
   useGetAdminFeatureFlagsQuery,
   useGetAdminFeatureFlagsByIdQuery,
   usePatchAdminFeatureFlagsByIdMutation,
   useDeleteAdminFeatureFlagsByIdMutation,
+  usePostAdminAuditEventsBulkPatchMutation,
+  useGetAdminAuditEventsQuery,
+  useGetAdminAuditEventsByIdQuery,
   usePostAdminConsentFormsBulkPatchMutation,
   usePostAdminConsentFormsMutation,
   useGetAdminConsentFormsQuery,
@@ -3553,15 +6070,63 @@ export const {
   usePostAdminConsentResponsesBulkPatchMutation,
   useGetAdminConsentResponsesQuery,
   useGetAdminConsentResponsesByIdQuery,
+  usePostAdminAnnouncementsBulkPatchMutation,
+  usePostAdminAnnouncementsMutation,
+  useGetAdminAnnouncementsQuery,
+  useGetAdminAnnouncementsByIdQuery,
+  usePatchAdminAnnouncementsByIdMutation,
+  useDeleteAdminAnnouncementsByIdMutation,
+  usePostAdminAnnouncementAcknowledgementsBulkPatchMutation,
+  useGetAdminAnnouncementAcknowledgementsQuery,
+  useGetAdminAnnouncementAcknowledgementsByIdQuery,
+  usePostAdminAnnouncementImpressionsBulkPatchMutation,
+  useGetAdminAnnouncementImpressionsQuery,
+  useGetAdminAnnouncementImpressionsByIdQuery,
+  usePostAdminAnnouncementClickEventsBulkPatchMutation,
+  useGetAdminAnnouncementClickEventsQuery,
+  useGetAdminAnnouncementClickEventsByIdQuery,
   usePostAdminTodosBulkPatchMutation,
   usePostAdminTodosMutation,
   useGetAdminTodosQuery,
   useGetAdminTodosByIdQuery,
   usePatchAdminTodosByIdMutation,
+  useDeleteAdminTodosByIdMutation,
   usePostAdminUsersBulkPatchMutation,
   usePostAdminUsersMutation,
   useGetAdminUsersQuery,
   useGetAdminUsersByIdQuery,
   usePatchAdminUsersByIdMutation,
   useDeleteAdminUsersByIdMutation,
+  useAdminMigrationsRunMutation,
+  useAdminMigrationsStatusQuery,
+  usePostNotificationsMarkAllReadMutation,
+  useGetNotificationsQuery,
+  useGetNotificationsByIdQuery,
+  usePatchNotificationsByIdMutation,
+  useDeleteNotificationsByIdMutation,
+  usePostNotificationPreferencesMutation,
+  useGetNotificationPreferencesQuery,
+  useGetNotificationPreferencesByIdQuery,
+  usePatchNotificationPreferencesByIdMutation,
+  useDeleteNotificationPreferencesByIdMutation,
+  useGetAnnouncementsConfigQuery,
+  useGetAnnouncementsOverviewQuery,
+  usePostAnnouncementsMutation,
+  useGetAnnouncementsQuery,
+  useGetAnnouncementsByIdQuery,
+  usePatchAnnouncementsByIdMutation,
+  useDeleteAnnouncementsByIdMutation,
+  usePostOrgsMutation,
+  useGetOrgsQuery,
+  useGetOrgsMineQuery,
+  useGetOrgsByIdQuery,
+  usePatchOrgsByIdMutation,
+  useDeleteOrgsByIdMutation,
+  useGetOrgsByIdMembersQuery,
+  usePostOrgsByIdMembersMutation,
+  usePatchOrgsByIdMembersAndMemberIdMutation,
+  useDeleteOrgsByIdMembersAndMemberIdMutation,
+  useCreateMcpServiceTokenMutation,
+  useListMcpServiceTokensQuery,
+  useRevokeMcpServiceTokenMutation,
 } = injectedRtkApi;

@@ -1,5 +1,5 @@
 import {existsSync, readdirSync, readFileSync, statSync} from "node:fs";
-import {basename, dirname, join, relative, resolve} from "node:path";
+import {dirname, join, relative, resolve} from "node:path";
 
 export const REPO_ROOT = resolve(import.meta.dir, "../..");
 
@@ -10,11 +10,13 @@ export const SCAN_ROOTS = [
   "ai/src",
   "api/src",
   "api-health/src",
+  "cli/src",
   "comms/src",
   "demo",
   "example-backend/src",
   "example-frontend",
   "feature-flags/src",
+  "jobs/src",
   "mcp-server/src",
   "rtk/src",
   "test/src",
@@ -40,8 +42,10 @@ export const PACKAGE_PUBLIC_ENTRIES: Record<string, string> = {
   "@terreno/ai": resolve(REPO_ROOT, "ai/src/index.ts"),
   "@terreno/api": resolve(REPO_ROOT, "api/src/index.ts"),
   "@terreno/api-health": resolve(REPO_ROOT, "api-health/src/index.ts"),
+  "@terreno/cli": resolve(REPO_ROOT, "cli/src/index.ts"),
   "@terreno/comms": resolve(REPO_ROOT, "comms/src/index.ts"),
   "@terreno/feature-flags": resolve(REPO_ROOT, "feature-flags/src/index.ts"),
+  "@terreno/jobs": resolve(REPO_ROOT, "jobs/src/index.ts"),
   "@terreno/mcp": resolve(REPO_ROOT, "mcp-server/src/index.ts"),
   "@terreno/rtk": resolve(REPO_ROOT, "rtk/src/index.ts"),
   "@terreno/test": resolve(REPO_ROOT, "test/src/index.ts"),
@@ -60,7 +64,7 @@ export interface BarrelViolation {
   resolvedBarrel: string;
 }
 
-export interface PathAliasMap {
+interface PathAliasMap {
   [alias: string]: string[];
 }
 
@@ -70,7 +74,7 @@ const shouldSkipDirectory = (dirName: string): boolean => {
   return IGNORED_DIR_NAMES.has(dirName) || dirName.startsWith(".");
 };
 
-export const walkSourceFiles = (directory: string, files: string[] = []): string[] => {
+const walkSourceFiles = (directory: string, files: string[] = []): string[] => {
   if (!existsSync(directory)) {
     return files;
   }
@@ -123,7 +127,7 @@ const readTsconfigPathAliases = (packageDir: string): PathAliasMap => {
   }
 };
 
-export const loadPathAliases = (repoRoot: string = REPO_ROOT): Map<string, PathAliasMap> => {
+const loadPathAliases = (repoRoot: string = REPO_ROOT): Map<string, PathAliasMap> => {
   const packagesWithAliases = ["example-frontend", "admin-spa", "demo"];
   const aliasByPackageDir = new Map<string, PathAliasMap>();
 
@@ -149,7 +153,7 @@ const findOwningPackageDir = (filePath: string, repoRoot: string): string | null
   return null;
 };
 
-export const resolveImportBase = (
+const resolveImportBase = (
   importPath: string,
   fromFile: string,
   aliasByPackageDir: Map<string, PathAliasMap>,
@@ -206,7 +210,7 @@ export const resolveImportBase = (
   return resolve(dirname(fromFile), importPath);
 };
 
-export const resolveModulePath = (basePath: string): string | null => {
+const resolveModulePath = (basePath: string): string | null => {
   const candidates = [
     basePath,
     `${basePath}.ts`,
@@ -238,7 +242,7 @@ const isPackagePublicEntry = (filePath: string, repoRoot: string = REPO_ROOT): b
   return /^[^/]+\/src\/index\.tsx?$/.test(relativePath);
 };
 
-export const isBarrelIndexFile = (filePath: string, repoRoot: string = REPO_ROOT): boolean => {
+const isBarrelIndexFile = (filePath: string, repoRoot: string = REPO_ROOT): boolean => {
   if (!/\/index\.tsx?$/.test(filePath)) {
     return false;
   }

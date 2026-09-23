@@ -712,6 +712,66 @@ describe("CommsService", () => {
     assert.equal(result.loggedMessageId, String(row._id));
   });
 
+  it("passes the send option userId to mail and SMS beforeSend hooks", async (): Promise<void> => {
+    const seenUserIds: Array<string | undefined> = [];
+    const mailUserId = new mongoose.Types.ObjectId();
+    const smsUserId = new mongoose.Types.ObjectId();
+    const service = new CommsService({
+      beforeSend: async (context): Promise<undefined> => {
+        seenUserIds.push(context.userId);
+        return undefined;
+      },
+      mail: {
+        id: "user-aware-mail",
+        sendMail: async (): Promise<SendResult> => ({accepted: true}),
+      },
+      sms: {
+        id: "user-aware-sms",
+        sendSms: async (): Promise<SendResult> => ({accepted: true}),
+      },
+    });
+
+    await service.sendMail({subject: "Welcome", to: "person@example.com"}, {userId: mailUserId});
+    await service.sendSms({body: "Hello", to: "+15555550100"}, {userId: smsUserId});
+
+    assert.deepEqual(seenUserIds, [String(mailUserId), String(smsUserId)]);
+    const mailLog = await CommsMessage.findExactlyOne({channel: "mail"});
+    const smsLog = await CommsMessage.findExactlyOne({channel: "sms"});
+    assert.equal(String(mailLog.userId), String(mailUserId));
+    assert.equal(String(smsLog.userId), String(smsUserId));
+  });
+
+  it("preserves the original userId when retrying mail", async (): Promise<void> => {
+    const userId = new mongoose.Types.ObjectId();
+    const seenUserIds: Array<string | undefined> = [];
+    const service = new CommsService({
+      beforeSend: async (context): Promise<undefined> => {
+        seenUserIds.push(context.userId);
+        return undefined;
+      },
+      mail: {
+        id: "retry-user-aware-mail",
+        sendMail: async (): Promise<SendResult> => ({accepted: true}),
+      },
+    });
+    const original = await CommsMessage.create({
+      channel: "mail",
+      payload: {subject: "Retry me", to: "person@example.com"},
+      payloadExpiresAt: DateTime.utc().plus({days: 1}).toJSDate(),
+      provider: "retry-user-aware-mail",
+      status: "failed",
+      subject: "Retry me",
+      to: "person@example.com",
+      userId,
+    });
+
+    await service.retryMessage({messageId: String(original._id)});
+
+    assert.deepEqual(seenUserIds, [String(userId)]);
+    const retried = await CommsMessage.findExactlyOne({retriedFromId: original._id});
+    assert.equal(String(retried.userId), String(userId));
+  });
+
   it("attaches loggedMessageId when beforeSend cancels a push send", async (): Promise<void> => {
     const userId = new mongoose.Types.ObjectId();
     await PushToken.upsert(
@@ -1274,6 +1334,41 @@ describe("CommsService", () => {
     assert.equal(row.errorCode, "bounce-500");
     assert.equal(row.errorClass, "permanent");
     assert.isTrue(warnSpy.mock.calls.some((call) => String(call[0]).includes("missing-delivery")));
+    warnSpy.mockRestore();
+  });
+
+  it("rethrows when applying a delivery event fails to save", async (): Promise<void> => {
+    const warnSpy = spyOn(logger, "warn");
+    const service = new CommsService({
+      mail: {
+        id: "event-mail-save-fail",
+        sendMail: async (): Promise<SendResult> => ({
+          accepted: true,
+          providerMessageId: "mail-save-fail",
+        }),
+      },
+    });
+    await service.sendMail({subject: "Welcome", to: "person@example.com"});
+    const saveSpy = spyOn(CommsMessage.prototype, "save").mockImplementation(
+      async (): Promise<never> => {
+        throw new Error("save failed");
+      }
+    );
+    let threw = false;
+    try {
+      await service.recordDeliveryEvent({
+        channel: "mail",
+        providerMessageId: "mail-save-fail",
+        status: "delivered",
+      });
+    } catch (error: unknown) {
+      threw = error instanceof Error && error.message === "save failed";
+    }
+    saveSpy.mockRestore();
+    assert.isTrue(threw);
+    assert.isTrue(
+      warnSpy.mock.calls.some((call) => String(call[0]).includes("Failed to apply delivery event"))
+    );
     warnSpy.mockRestore();
   });
 

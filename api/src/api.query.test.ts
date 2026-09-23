@@ -1,5 +1,3 @@
-// noExplicitAny: test mock typing
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import * as Sentry from "@sentry/bun";
 import type express from "express";
@@ -8,17 +6,19 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
+import {type UserModel as AuthUserModel, addAuthRoutes, setupAuth} from "./auth";
 import {logRequests} from "./expressServer";
 import {Permissions} from "./permissions";
 import {authAsUser, type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
 
+type TestUser = Awaited<ReturnType<typeof setupDb>>[number];
+
 describe("query and list methods", () => {
   let server: TestAgent;
   let app: express.Application;
-  let notAdmin: any;
-  let admin: any;
-  let adminOther: any;
+  let notAdmin: TestUser;
+  let admin: TestUser;
+  let adminOther: TestUser;
   let agent: TestAgent;
 
   let spinach: Food;
@@ -78,8 +78,8 @@ describe("query and list methods", () => {
     ])) as [Food, Food, Food, Food];
     [spinach, apple, carrots, pizza] = results;
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
     app.use(logRequests);
     app.use(
       "/food",
@@ -126,9 +126,9 @@ describe("query and list methods", () => {
   it("list default", async () => {
     const res = await agent.get("/food").expect(200);
     expect(res.body.data).toHaveLength(2);
-    expect(res.body.data[0].id).toBe((spinach as any).id);
+    expect(res.body.data[0].id).toBe(String(spinach._id));
     expect(res.body.data[0].ownerId._id).toBe(notAdmin.id);
-    expect(res.body.data[1].id).toBe((pizza as any).id);
+    expect(res.body.data[1].id).toBe(String(pizza._id));
     expect(res.body.data[1].ownerId._id).toBe(admin.id);
     expect(res.body.data[0].lastEatenWith).toEqual({
       dressing: "2021-12-03T19:00:30.000Z",
@@ -141,7 +141,7 @@ describe("query and list methods", () => {
   it("list limit", async () => {
     const res = await agent.get("/food?limit=1").expect(200);
     expect(res.body.data).toHaveLength(1);
-    expect(res.body.data[0].id).toBe((spinach as any).id);
+    expect(res.body.data[0].id).toBe(String(spinach._id));
     expect(res.body.data[0].ownerId._id).toBe(notAdmin.id);
     expect(res.body.more).toBe(true);
     expect(res.body.total).toBe(3);
@@ -159,9 +159,9 @@ describe("query and list methods", () => {
     expect(res.body.data).toHaveLength(3);
     expect(res.body.more).toBe(true);
     expect(res.body.total).toBe(4);
-    expect(res.body.data[0].id).toBe((spinach as any).id);
-    expect(res.body.data[1].id).toBe((pizza as any).id);
-    expect(res.body.data[2].id).toBe((carrots as any).id);
+    expect(res.body.data[0].id).toBe(String(spinach._id));
+    expect(res.body.data[1].id).toBe(String(pizza._id));
+    expect(res.body.data[2].id).toBe(String(carrots._id));
 
     expect(Sentry.captureMessage).toHaveBeenCalledWith(
       'More than 3 results returned for foods without pagination, data may be silently truncated. req.query: {"limit":"4"}'
@@ -173,7 +173,7 @@ describe("query and list methods", () => {
     expect(res.body.data).toHaveLength(1);
     expect(res.body.more).toBe(true);
     expect(res.body.total).toBe(3);
-    expect(res.body.data[0].id).toBe((pizza as any).id);
+    expect(res.body.data[0].id).toBe(String(pizza._id));
   });
 
   it("list page 0 ", async () => {
@@ -202,7 +202,7 @@ describe("query and list methods", () => {
     expect(res.body.data).toHaveLength(1);
     expect(res.body.more).toBe(false);
     expect(res.body.total).toBe(1);
-    expect(res.body.data[0].id).toBe((apple as any).id);
+    expect(res.body.data[0].id).toBe(String(apple._id));
   });
 
   it("list applies created_gte and created_lte as a Date range", async () => {
@@ -291,7 +291,7 @@ describe("query and list methods", () => {
     const res = await agent.get("/food?source.name=USDA").expect(200);
     expect(res.body.data).toHaveLength(1);
     expect(res.body.total).toBe(1);
-    expect(res.body.data[0].id).toBe((carrots as any).id);
+    expect(res.body.data[0].id).toBe(String(carrots._id));
   });
 
   it("query by date", async () => {
@@ -312,14 +312,14 @@ describe("query and list methods", () => {
       )
       .set("authorization", `Bearer ${token}`)
       .expect(200);
-    expect(res.body.data.map((d: any) => d.created)).toEqual(
+    expect(res.body.data.map((d: Food) => d.created)).toEqual(
       expect.arrayContaining([
         "2021-12-03T00:00:20.000Z",
         "2021-12-03T00:00:10.000Z",
         "2021-12-03T00:00:00.000Z",
       ])
     );
-    expect(res.body.data.map((d: any) => d.created)).toHaveLength(3);
+    expect(res.body.data.map((d: Food) => d.created)).toHaveLength(3);
 
     res = await server
       .get(
@@ -332,10 +332,10 @@ describe("query and list methods", () => {
       )
       .set("authorization", `Bearer ${token}`)
       .expect(200);
-    expect(res.body.data.map((d: any) => d.created)).toEqual(
+    expect(res.body.data.map((d: Food) => d.created)).toEqual(
       expect.arrayContaining(["2021-12-03T00:00:10.000Z", "2021-12-03T00:00:00.000Z"])
     );
-    expect(res.body.data.map((d: any) => d.created)).toHaveLength(2);
+    expect(res.body.data.map((d: Food) => d.created)).toHaveLength(2);
 
     res = await server
       .get(
@@ -348,7 +348,7 @@ describe("query and list methods", () => {
       )
       .set("authorization", `Bearer ${token}`)
       .expect(200);
-    const createdDates = res.body.data.map((d: any) => d.created);
+    const createdDates = res.body.data.map((d: Food) => d.created);
     expect(createdDates).toEqual(expect.arrayContaining(["2021-12-03T00:00:10.000Z"]));
     expect(createdDates).toHaveLength(1);
   });
@@ -399,7 +399,7 @@ describe("query and list methods", () => {
         })}`
       )
       .expect(200);
-    const names1 = res.body.data.map((d: any) => d.name);
+    const names1 = res.body.data.map((d: Food) => d.name);
     expect(names1).toEqual(expect.arrayContaining(["Spinach"]));
     expect(names1).toHaveLength(1);
 
@@ -412,7 +412,7 @@ describe("query and list methods", () => {
         })}`
       )
       .expect(200);
-    const names2 = res.body.data.map((d: any) => d.name);
+    const names2 = res.body.data.map((d: Food) => d.name);
     expect(names2).toEqual(expect.arrayContaining(["Spinach", "Carrots"]));
     expect(names2).toHaveLength(2);
   });
@@ -430,7 +430,7 @@ describe("query and list methods", () => {
     expect(res.body.more).toBe(false);
     expect(res.body.total).toBe(2);
     expect(res.body.data).toHaveLength(2);
-    const names3 = res.body.data.map((d: any) => d.name);
+    const names3 = res.body.data.map((d: Food) => d.name);
     expect(names3).toEqual(expect.arrayContaining(["Carrots", "Pizza"]));
     expect(names3).toHaveLength(2);
   });
@@ -460,7 +460,7 @@ describe("query and list methods", () => {
       .get(`/food?${qs.stringify({$or: [{name: "Carrots"}, {name: "Pizza"}]})}`)
       .expect(200);
     expect(res.body.data).toHaveLength(2);
-    const ids1 = res.body.data.map((d: any) => d.id);
+    const ids1 = res.body.data.map((d: Food) => d.id);
     expect(ids1).toEqual(expect.arrayContaining([carrots?._id.toString(), pizza?._id.toString()]));
     expect(ids1).toHaveLength(2);
   });
@@ -475,7 +475,7 @@ describe("query and list methods", () => {
       )
       .expect(200);
     expect(res.body.data).toHaveLength(2);
-    const ids2 = res.body.data.map((d: any) => d.id);
+    const ids2 = res.body.data.map((d: Food) => d.id);
     expect(ids2).toEqual(
       expect.arrayContaining([carrots?._id.toString(), spinach?._id.toString()])
     );
@@ -558,7 +558,7 @@ describe("query and list methods", () => {
 describe("special query params", () => {
   let server: TestAgent;
   let app: express.Application;
-  let admin: any;
+  let admin: TestUser;
 
   beforeEach(async () => {
     [admin] = await setupDb();
@@ -572,8 +572,8 @@ describe("special query params", () => {
     });
 
     app = getBaseServer();
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    setupAuth(app, UserModel as unknown as AuthUserModel);
+    addAuthRoutes(app, UserModel as unknown as AuthUserModel);
   });
 
   it("period query param is stripped from query", async () => {
@@ -629,6 +629,6 @@ describe("special query params", () => {
     server = supertest(app);
 
     const res = await server.get("/food?hidden=false").expect(200);
-    expect(res.body.data.every((f: any) => f.hidden === false)).toBe(true);
+    expect(res.body.data.every((f: Food) => f.hidden === false)).toBe(true);
   });
 });

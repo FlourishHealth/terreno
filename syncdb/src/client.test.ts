@@ -13,6 +13,7 @@ import {idbGet} from "./storage/idb";
 import {SYNC_SCHEMA_VERSION} from "./storage/schema";
 import {CURSORS_TABLE} from "./storage/types";
 import {AuthRequiredError, type HttpChannel} from "./sync/httpChannel";
+import type {SyncTransport} from "./sync/transport";
 import {createFakeTransport, type FakeTransport} from "./testing/fakeTransport";
 import type {AuthProvider, SyncDelta, SyncSnapshotResponse, SyncStreamInfo} from "./types";
 
@@ -24,6 +25,16 @@ const uniqueName = (): string => {
 
 const flush = async (): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, 5));
+};
+
+const waitUntil = async (predicate: () => boolean, maxAttempts = 20): Promise<void> => {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    if (predicate()) {
+      return;
+    }
+    await flush();
+  }
+  throw new Error("waitUntil timed out");
 };
 
 interface FakeAuth {
@@ -197,9 +208,9 @@ const makeObservableTransport = (base: FakeTransport): ObservableTransport => {
         events.push("disconnect");
         base.disconnect();
       },
-      subscribe: (collections: string[]): void => {
+      subscribe: (collections: string[], options?: {mode?: "window"}): void => {
         events.push("subscribe");
-        base.subscribe(collections);
+        base.subscribe(collections, options);
       },
     },
   };
@@ -416,6 +427,62 @@ describe("createSyncDb", () => {
     await client.stop();
   });
 
+  it("batches an inbound delta burst into one store notification while retaining per-delta debug and reconcile behavior", async () => {
+    const harness = makeHarness({debug: true});
+    const batchTransport: SyncTransport = {
+      ...harness.transport,
+      onDeltaBatch: (callback: (deltas: SyncDelta[]) => void): (() => void) => {
+        const pending: SyncDelta[] = [];
+        let isScheduled = false;
+        return harness.transport.onDelta((delta: SyncDelta): void => {
+          pending.push(delta);
+          if (isScheduled) {
+            return;
+          }
+          isScheduled = true;
+          queueMicrotask(() => {
+            isScheduled = false;
+            callback(pending.splice(0));
+          });
+        });
+      },
+    };
+    const client = createSyncDb({...harness.config, transport: batchTransport});
+    await client.start();
+    await flush();
+    const baselineFetchCount = harness.http.state.fetchCount;
+    let tableListenerCount = 0;
+    const listenerId = client.store.raw.addTableListener("todos", () => {
+      tableListenerCount += 1;
+    });
+
+    harness.transport.deliverDelta(makeDelta({id: "t1", seq: 1}));
+    harness.transport.deliverDelta(makeDelta({id: "t2", seq: 2}));
+    // This jump must retain the existing reconcile hint behavior.
+    harness.transport.deliverDelta(makeDelta({id: "t3", seq: 4}));
+    await flush();
+
+    client.store.raw.delListener(listenerId);
+    expect(tableListenerCount).toBe(1);
+    expect(client.store.listEntities({collection: "todos"}).map((entity) => entity.id)).toEqual([
+      "t1",
+      "t2",
+      "t3",
+    ]);
+    expect(
+      client.debug
+        ?.getEvents()
+        .filter((event) => event.type === "delta")
+        .map((event) => ({entityId: event.entityId, seq: event.seq}))
+    ).toEqual([
+      {entityId: "t1", seq: 1},
+      {entityId: "t2", seq: 2},
+      {entityId: "t3", seq: 4},
+    ]);
+    expect(harness.http.state.fetchCount).toBe(baselineFetchCount + 1);
+    await client.stop();
+  });
+
   describe("reconcile triggers", () => {
     it("reconciles and replays when the transport (re)connects", async () => {
       const harness = makeHarness();
@@ -496,6 +563,21 @@ describe("createSyncDb", () => {
       await expect(client.reconcile()).resolves.toBeUndefined();
       await client.stop();
     });
+
+    it("window collection reconcile interval does not GET /sync/snapshot", async () => {
+      const snapshotStreams: string[] = [];
+      const harness = makeHarness({reconcileIntervalMs: 20, windowCollections: ["todos"]});
+      const fetchSnapshotPage = harness.http.channel.fetchSnapshotPage;
+      harness.http.channel.fetchSnapshotPage = async (args) => {
+        snapshotStreams.push(args.stream);
+        return fetchSnapshotPage(args);
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await new Promise((resolve) => setTimeout(resolve, 70));
+      assert.deepEqual(snapshotStreams, []);
+      await client.stop();
+    });
   });
 
   describe("subscribe confirmation catch-up", () => {
@@ -551,6 +633,30 @@ describe("createSyncDb", () => {
 
       expect(harness.http.state.fetchCount).toBe(baseline);
       expect(client.store.getKnownStreams()).not.toContain("projects|all");
+      await client.stop();
+    });
+
+    it("window subscribe confirmation does not GET /sync/snapshot", async () => {
+      const harness = makeHarness({windowCollections: ["todos"]});
+      const snapshotStreams: string[] = [];
+      const fetchSnapshotPage = harness.http.channel.fetchSnapshotPage;
+      harness.http.channel.fetchSnapshotPage = async (args) => {
+        snapshotStreams.push(args.stream);
+        return fetchSnapshotPage(args);
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      snapshotStreams.length = 0;
+
+      harness.transport.confirmSubscribed({
+        collection: "todos",
+        mode: "window",
+        streams: ["todos|admin"],
+      });
+      await flush();
+
+      assert.deepEqual(snapshotStreams, []);
       await client.stop();
     });
 
@@ -829,7 +935,7 @@ describe("createSyncDb", () => {
 
       harness.auth.setUserId("u2");
       harness.auth.emitAuthChange();
-      await flush();
+      await waitUntil(() => client.store.getLastUserId() === "u2");
       expect(client.store.listEntities({collection: "todos"})).toEqual([]);
       expect(client.store.getLastUserId()).toBe("u2");
       await client.stop();
@@ -2984,6 +3090,218 @@ describe("createSyncDb", () => {
       } finally {
         globalScope.BroadcastChannel = original;
       }
+    });
+  });
+
+  describe("forceResync", () => {
+    it("skips when there is no HTTP channel", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb({
+        ...harness.config,
+        httpChannel: undefined,
+      });
+      const result = await client.forceResync();
+      assert.deepEqual(result, {
+        ok: false,
+        purged: 0,
+        reason: "noHttpChannel",
+        repaired: 0,
+        streams: 0,
+      });
+    });
+
+    it("skips while simulated offline", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      client.goOffline();
+      const result = await client.forceResync();
+      assert.equal(result.ok, false);
+      assert.equal(result.reason, "offline");
+      await client.stop();
+    });
+
+    it("skips while auth-paused", async () => {
+      const harness = makeHarness();
+      harness.http.state.streamsError = new AuthRequiredError();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      const result = await client.forceResync();
+      assert.equal(result.ok, false);
+      assert.equal(result.reason, "authPaused");
+      await client.stop();
+    });
+
+    it("skips when the server and local store have no streams", async () => {
+      const harness = makeHarness();
+      harness.http.state.streams = [];
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      const result = await client.forceResync();
+      assert.equal(result.ok, false);
+      assert.equal(result.reason, "noStreams");
+      await client.stop();
+    });
+
+    it("purges local rows and re-bootstraps from the snapshot", async () => {
+      const harness = makeHarness();
+      harness.http.state.pages[DEFAULT_STREAM] = {
+        cursor: 1,
+        entities: [{data: {title: "stale"}, deleted: false, id: "local-1", seq: 1}],
+        frontierSeq: 1,
+        hasMore: false,
+        oldestRetainedSeq: 0,
+        stream: DEFAULT_STREAM,
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      assert.deepEqual(client.store.getEntity({collection: "todos", id: "local-1"})?.data, {
+        title: "stale",
+      });
+
+      harness.http.state.pages[DEFAULT_STREAM] = {
+        cursor: 9,
+        entities: [{data: {title: "fresh"}, deleted: false, id: "server-1", seq: 9}],
+        frontierSeq: 9,
+        hasMore: false,
+        oldestRetainedSeq: 0,
+        stream: DEFAULT_STREAM,
+      };
+      const result = await client.forceResync();
+      assert.equal(result.ok, true);
+      assert.isAtLeast(result.streams, 1);
+      assert.isAtLeast(result.purged, 1);
+      assert.equal(client.store.getEntity({collection: "todos", id: "local-1"}), undefined);
+      assert.deepEqual(client.store.getEntity({collection: "todos", id: "server-1"})?.data, {
+        title: "fresh",
+      });
+      await client.stop();
+    });
+
+    it("falls back to locally known streams when discovery 401s", async () => {
+      const harness = makeHarness();
+      harness.http.state.pages[DEFAULT_STREAM] = {
+        cursor: 2,
+        entities: [{data: {title: "kept"}, deleted: false, id: "k1", seq: 2}],
+        frontierSeq: 2,
+        hasMore: false,
+        oldestRetainedSeq: 0,
+        stream: DEFAULT_STREAM,
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      harness.http.state.streamsError = new AuthRequiredError();
+      const result = await client.forceResync();
+      assert.equal(result.ok, true);
+      assert.equal(result.streams, 1);
+      assert.deepEqual(client.store.getEntity({collection: "todos", id: "k1"})?.data, {
+        title: "kept",
+      });
+      await client.stop();
+    });
+
+    it("pauses and reports authPaused when a snapshot page 401s mid-resync", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      harness.http.channel.fetchSnapshotPage = async () => {
+        throw new AuthRequiredError();
+      };
+      const result = await client.forceResync();
+      assert.equal(result.ok, false);
+      assert.equal(result.reason, "authPaused");
+      assert.equal(client.getSyncStatus().paused, "auth");
+      await client.stop();
+    });
+
+    it("rethrows a non-auth discovery error", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      harness.http.state.streamsError = new Error("resync boom");
+      await expect(client.forceResync()).rejects.toThrow("resync boom");
+      await client.stop();
+    });
+
+    it("repairs marked entities after re-bootstrap", async () => {
+      const harness = makeHarness();
+      harness.http.state.pages[DEFAULT_STREAM] = {
+        cursor: 1,
+        entities: [{data: {title: "broken"}, deleted: false, id: "r1", seq: 1}],
+        frontierSeq: 1,
+        hasMore: false,
+        oldestRetainedSeq: 0,
+        stream: DEFAULT_STREAM,
+      };
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      client.store.markNeedsRepair({
+        collection: "todos",
+        entityId: "r1",
+        missedSeq: 1,
+        stream: DEFAULT_STREAM,
+      });
+      harness.http.channel.fetchEntities = async () => ({
+        entities: [
+          {
+            data: {title: "repaired"},
+            deleted: false,
+            id: "r1",
+            seq: 2,
+            stream: DEFAULT_STREAM,
+          },
+        ],
+      });
+      const result = await client.forceResync();
+      assert.equal(result.ok, true);
+      await client.stop();
+    });
+
+    it("abandons the resync when the user changes during discovery", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      const originalFetch = harness.http.channel.fetchStreams;
+      harness.http.channel.fetchStreams = async () => {
+        harness.auth.setUserId("other-user");
+        harness.auth.emitAuthChange();
+        for (let attempt = 0; attempt < 50; attempt += 1) {
+          if (client.store.getLastUserId() === "other-user") {
+            break;
+          }
+          await flush();
+        }
+        return originalFetch();
+      };
+      const result = await client.forceResync();
+      assert.equal(result.ok, false);
+      assert.equal(result.reason, "superseded");
+      await client.stop();
+    });
+
+    it("abandons the resync when the user changes during bootstrap", async () => {
+      const harness = makeHarness();
+      const client = createSyncDb(harness.config);
+      await client.start();
+      await flush();
+      harness.http.channel.fetchSnapshotPage = async ({stream}) => {
+        harness.auth.setUserId("other-user");
+        harness.auth.emitAuthChange();
+        await flush();
+        return emptyPage(stream);
+      };
+      const result = await client.forceResync();
+      assert.equal(result.ok, false);
+      assert.equal(result.reason, "superseded");
+      await client.stop();
     });
   });
 });

@@ -8,6 +8,7 @@
 [![@terreno/admin-frontend](https://img.shields.io/npm/v/@terreno/admin-frontend?label=%40terreno%2Fadmin-frontend)](https://www.npmjs.com/package/@terreno/admin-frontend)
 [![@terreno/api-health](https://img.shields.io/npm/v/@terreno/api-health?label=%40terreno%2Fapi-health)](https://www.npmjs.com/package/@terreno/api-health)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![codecov](https://codecov.io/gh/FlourishHealth/terreno/graph/badge.svg)](https://codecov.io/gh/FlourishHealth/terreno)
 
 **Terreno is Django/Rails for TypeScript — with universal app support.**
 
@@ -73,6 +74,8 @@ Published together from [`.github/workflows/publish-on-tag.yml`](.github/workflo
 - **api-health/** — Health check plugin for `@terreno/api` (published as `@terreno/api-health`)
 - **comms/** — Pluggable mail, SMS, push, and verification providers (published as `@terreno/comms`)
 - **feature-flags/** — Feature flags and A/B testing plugin for `@terreno/api` (published as `@terreno/feature-flags`)
+- **jobs/** — Durable background jobs plugin for `@terreno/api` (published as `@terreno/jobs`)
+- **create-terreno-app/** — Scaffold CLI for a deployable full-stack Terreno app (published as unscoped `create-terreno-app`)
 - **mcp-server/** — MCP server that gives coding agents Terreno docs, codegen tools, and prompts (published as `@terreno/mcp`)
 - **syncdb/** — Local-first data layer with TinyBase, durable outbox, and delta sync (published as `@terreno/syncdb`)
 
@@ -154,9 +157,16 @@ Claude Desktop config paths: macOS `~/Library/Application Support/Claude/claude_
 
 Restart the assistant after saving.
 
+## Upgrading
+
+`@terreno/*` packages version in lockstep. Fetch notes for your range with the MCP tool `terreno_get_upgrade_guide`, or read `mcp-server/src/docs/upgrades/`. Format: `mcp-server/src/docs/upgrades/README.md`.
+
+If you still call `GET …/feature-flags/evaluate`, migrate using [Add feature flags](docs/how-to/add-feature-flags.md#migrating-from-get-evaluate-openfeature) (also in the 0.30.0 upgrade note).
+
 ## Roadmap
 
-Shipped vs planned work is tracked in [ROADMAP.md](ROADMAP.md). Background jobs, web SSR, and consumer-installable `/terreno-*` packaging are not shipped yet.
+Shipped vs planned work is tracked in [ROADMAP.md](ROADMAP.md). Web SSR and
+consumer-installable `/terreno-*` packaging are not shipped yet.
 
 ## Contributing
 

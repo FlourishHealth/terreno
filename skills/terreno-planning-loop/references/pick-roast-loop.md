@@ -1,9 +1,10 @@
 # Pick–Roast inner loop
 
 Pick and Roast run as one automated inner loop until the approved task list is done.
-The outer loop still owns Grow, Brew, Taste, persistence, product-CI waiting, and
-escalation. It does not wait between Pick and Roast, and it does not wait for a human to
-reinvoke the next frontier task.
+The outer loop still owns Grow, Brew, Taste, persistence, Taste `PENDING` reinvocation,
+and escalation. Taste waits in-process for product CI on the current head. The outer
+loop does not wait between Pick and Roast, and it does not wait for a human to reinvoke
+the next frontier task.
 
 ```text
 Grow PASS
@@ -41,8 +42,12 @@ Roast subagent both start the next task. A fresh Roast subagent has no conversat
 "who invoked me" signal; prove-only Roast is the durable driver.
 
 - After Pick records a completed slice, **invoke Roast to prove that task only**. Prefer
-  a fresh context or subagent when the harness allows. If a fresh context is unavailable,
-  execute Roast from durable artifacts only and ignore Pick's completion claims.
+  a fresh context or subagent when the harness allows. Pass a
+  [task-scoped briefing](subagent-briefing.md): this task's criteria, file list, and
+  patch. Do not ask Roast or its children to rediscover the skill catalog or diff the
+  whole branch. Roast must not spawn two unconstrained reviewers. If a fresh context is
+  unavailable, execute Roast from durable artifacts only and ignore Pick's completion
+  claims.
 - Roast proves, records, and **returns**. It does not reconstruct Pick, does not invoke
   Pick, and does not start the next task. `PASS` with remaining tasks emits `next: pick`.
   `PASS` with none remaining emits `next: brew`. `FAIL` emits `next: pick`.

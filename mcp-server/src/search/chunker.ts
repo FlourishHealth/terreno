@@ -30,6 +30,7 @@ const stableChunkId = (sourcePath: string, headingTrail: string[], body: string)
  * Fallback chunk when markdown has no extractable heading sections but is non-empty.
  * Exported for unit tests (the `chunkMarkdown` path delegates here).
  */
+/** @internal */
 export const standaloneDocumentChunk = (
   sourcePath: string,
   raw: string,

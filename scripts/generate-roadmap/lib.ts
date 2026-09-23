@@ -29,12 +29,12 @@ export const AREA_ORDER = [
   "dx",
 ] as const;
 
-export const DECLINED_STATUS = "Declined";
+const DECLINED_STATUS = "Declined";
 
 /**
- * Tracking issues are titled `[Roadmap] <thing>` so they stand out in the issue
- * list. That prefix is pure noise once every line in this file is a roadmap
- * item, so it is dropped from the rendered title only.
+ * Roadmap issues are marked with the `roadmap` label, not a title prefix. Older
+ * issues were titled `[Roadmap] <thing>`, so that legacy prefix is stripped
+ * here — both for rendering and for matching a board issue to a seed entry.
  */
 export const displayTitle = (title: string): string => {
   return title.replace(/^\s*\[Roadmap\]\s*/, "").trim() || title.trim();
@@ -65,12 +65,10 @@ const compareByTarget = (left: RoadmapItem, right: RoadmapItem): number => {
 };
 
 export const filterRoadmapItems = (items: RoadmapItem[]): RoadmapItem[] => {
-  return items
-    .filter((item) => item.status !== DECLINED_STATUS)
-    .sort(compareByTarget);
+  return items.filter((item) => item.status !== DECLINED_STATUS).sort(compareByTarget);
 };
 
-export const groupItemsByTarget = (items: RoadmapItem[]): Map<string, RoadmapItem[]> => {
+const groupItemsByTarget = (items: RoadmapItem[]): Map<string, RoadmapItem[]> => {
   const grouped = new Map<string, RoadmapItem[]>();
 
   for (const item of filterRoadmapItems(items)) {
@@ -110,7 +108,9 @@ export const renderRoadmapMarkdown = ({
   const grouped = groupItemsByTarget(items);
   const targetKeys = [
     ...TARGET_ORDER.filter((target) => grouped.has(target)),
-    ...[...grouped.keys()].filter((target) => !TARGET_ORDER.includes(target as (typeof TARGET_ORDER)[number])).sort(),
+    ...[...grouped.keys()]
+      .filter((target) => !TARGET_ORDER.includes(target as (typeof TARGET_ORDER)[number]))
+      .sort(),
   ];
 
   if (targetKeys.length === 0) {
@@ -131,7 +131,9 @@ export const renderRoadmapMarkdown = ({
 
     const areaKeys = [
       ...AREA_ORDER.filter((area) => byArea.has(area)),
-      ...[...byArea.keys()].filter((area) => !AREA_ORDER.includes(area as (typeof AREA_ORDER)[number])).sort(),
+      ...[...byArea.keys()]
+        .filter((area) => !AREA_ORDER.includes(area as (typeof AREA_ORDER)[number]))
+        .sort(),
     ];
 
     for (const area of areaKeys) {
@@ -141,7 +143,9 @@ export const renderRoadmapMarkdown = ({
           item.ipSlug === null || item.ipSlug === ""
             ? ""
             : ` — IP: [${item.ipSlug}](docs/implementationPlans/${item.ipSlug}.md)`;
-        lines.push(`- [${displayTitle(item.title)}](${item.url}) (${item.impact}, ${item.status})${ipLink}`);
+        lines.push(
+          `- [${displayTitle(item.title)}](${item.url}) (${item.impact}, ${item.status})${ipLink}`
+        );
       }
       lines.push("");
     }

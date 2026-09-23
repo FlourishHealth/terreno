@@ -2,15 +2,15 @@ import {readdirSync, readFileSync} from "node:fs";
 import {join} from "node:path";
 
 import {
-  isFragmentFileName,
-  parseChangelogFragment,
   type ChangelogFragment,
   type ChangelogValidationFailure,
+  isFragmentFileName,
+  parseChangelogFragment,
 } from "./lib";
 
 export const UNRELEASED_DIR_NAME = "changelog/unreleased";
 
-export const listUnreleasedDirectoryFileNames = (repoRoot: string): string[] => {
+const listUnreleasedDirectoryFileNames = (repoRoot: string): string[] => {
   const directoryPath = join(repoRoot, UNRELEASED_DIR_NAME);
   return readdirSync(directoryPath, {withFileTypes: true})
     .filter((entry) => entry.isFile())
@@ -19,7 +19,7 @@ export const listUnreleasedDirectoryFileNames = (repoRoot: string): string[] => 
 };
 
 export const loadUnreleasedFragments = (
-  repoRoot: string,
+  repoRoot: string
 ): {
   failures: ChangelogValidationFailure[];
   fragments: ChangelogFragment[];

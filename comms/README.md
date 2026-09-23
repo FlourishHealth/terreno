@@ -44,6 +44,8 @@ Send from routes or jobs with `getCommsService()`. Console providers log counts 
 - Console providers for local development
 - `CommsMessage` / `PushToken` models and admin explorer routes
 - Adapter subpath `@terreno/comms/adapters/sendgrid` (optional peer `@sendgrid/mail`)
+- Adapter subpath `@terreno/comms/adapters/twilioSms` (optional peer `twilio`)
+- Adapter subpath `@terreno/comms/adapters/twilioVerify` (optional peer `twilio`)
 - Adapter subpath `@terreno/comms/adapters/expoPush` (optional peer `expo-server-sdk`)
 - `beforeSend`, delivery events, opt-out, and payload retention controls
 

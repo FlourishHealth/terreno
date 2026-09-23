@@ -111,7 +111,10 @@ See `docs/reference/syncdb.md` for `sync` scoping (`owner`, `tenant`, `broadcast
 
 - **Local-first only** — no server-first mode; do not wait on HTTP for reads/writes of synced collections
 - **Delete RTK Query hooks** for migrated collections (`useGetXQuery`, `usePostXMutation`, manual optimistic updates, refetch-after-mutate)
-- **Keep RTK Query** for non-synced routes: `/auth/me`, admin, AI, feature flags — regenerate with `bun run sdk`
+- **Keep RTK Query** for non-synced routes: `/auth/me`, AI, feature flags, and
+  custom request/response APIs. Built-in admin String-`_id` collection CRUD uses
+  windowed syncdb when `adminBroadcast` is enabled; admin RPC uses its host-bound
+  fetch client; ObjectId compatibility CRUD remains RTK until Terreno 58.
 - Use `useSyncDbReady()` (or equivalent) before calling `mutate()` if `start()` is async
 - Call `wipeLocalData` / `syncDb.stop()` on user change to avoid cross-account local data
 - Use Luxon for dates in entity payloads
@@ -123,6 +126,21 @@ See `docs/reference/syncdb.md` for `sync` scoping (`owner`, `tenant`, `broadcast
 - Framework: `bun test` with `expect` in `syncdb/`
 - Use `createFakeTransport` from `@terreno/syncdb/testing` for unit tests
 - E2E: see `example-frontend/e2e/syncdb-*.spec.ts`
+
+## Runtime debugging
+
+Use the `debug-syncdb-with-mcp` skill for stale entities, outbox stalls,
+conflicts, cursor/stream drift, reconcile behavior, and offline replay. A client
+created with `debug: true` registers itself with `terreno-mcp-local`.
+
+- `get_syncdb_state` reads debugger events plus entities, outbox, conflicts,
+  cursors, streams, repair markers, and aggregate status.
+- `syncdb_snapshot` captures and compares state; captures can later be CRDT-merged.
+- `syncdb_action` mutates, flushes, reconciles, resyncs, resolves, retries, toggles
+  offline mode, directly edits local rows, or merges snapshots. State changes
+  require `TERRENO_MCP_EVAL=1`.
+
+See `docs/how-to/debug-with-mcp.md`.
 
 ## Environment variables
 

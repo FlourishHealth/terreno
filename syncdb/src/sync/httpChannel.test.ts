@@ -57,6 +57,27 @@ describe("createHttpChannel", () => {
       expect(headersOf(requests[0]).Authorization).toBe("Bearer token-123");
     });
 
+    it("attaches X-Organization-Id when an organizationIdProvider returns an id", async () => {
+      const {fetchImpl, requests} = makeFetch(() =>
+        json({
+          cursor: 0,
+          entities: [],
+          frontierSeq: 0,
+          hasMore: false,
+          oldestRetainedSeq: 0,
+          stream: "todos|owner:u1",
+        })
+      );
+      const channel = createHttpChannel({
+        authProvider,
+        baseUrl: "http://api",
+        fetchImpl,
+        organizationIdProvider: () => "org-selected",
+      });
+      await channel.fetchSnapshotPage({cursor: 0, stream: "todos|owner:u1"});
+      expect(headersOf(requests[0])["X-Organization-Id"]).toBe("org-selected");
+    });
+
     it("forwards the legacyCursor token (C3) when provided", async () => {
       const page = {
         cursor: 0,
@@ -217,6 +238,67 @@ describe("createHttpChannel", () => {
       const {fetchImpl} = makeFetch(() => json({}));
       const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
       await expect(channel.sendMutation(mutation)).rejects.toThrow("status 200");
+    });
+  });
+
+  describe("fetchEntities", () => {
+    it("GETs /sync/entities with collection and ids", async () => {
+      const body = {
+        entities: [{data: {title: "a"}, deleted: false, id: "a", seq: 1}],
+      };
+      const {fetchImpl, requests} = makeFetch(() => json(body));
+      const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
+      await expect(channel.fetchEntities({collection: "todos", ids: ["a", "b"]})).resolves.toEqual(
+        body
+      );
+      expect(requests[0]?.input).toBe("http://api/sync/entities?collection=todos&ids=a%2Cb");
+    });
+
+    it("rejects on non-ok statuses", async () => {
+      const {fetchImpl} = makeFetch(() => json({}, 500));
+      const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
+      await expect(channel.fetchEntities({collection: "todos", ids: ["a"]})).rejects.toThrow(
+        "status 500"
+      );
+    });
+  });
+
+  describe("sendMutationBatch", () => {
+    const batch = {
+      mutations: [
+        {
+          collection: "todos",
+          data: {title: "hi"},
+          id: "t1",
+          mutationId: "m1",
+          operation: "create" as const,
+        },
+      ],
+    };
+
+    it("maps 200 results to a results payload", async () => {
+      const results = [{ack: {id: "t1", mutationId: "m1", seq: 1}, type: "ack" as const}];
+      const {fetchImpl} = makeFetch(() => json({results}));
+      const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
+      await expect(channel.sendMutationBatch?.(batch)).resolves.toEqual({results, type: "results"});
+    });
+
+    it("maps 404 to unsupported", async () => {
+      const {fetchImpl} = makeFetch(() => json({}, 404));
+      const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
+      await expect(channel.sendMutationBatch?.(batch)).resolves.toEqual({type: "unsupported"});
+    });
+
+    it("rejects on non-JSON responses", async () => {
+      const {fetchImpl} = makeFetch(() => new Response("nope", {status: 500}));
+      const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
+      await expect(channel.sendMutationBatch?.(batch)).rejects.toThrow("non-JSON");
+    });
+
+    it("rejects when results is missing", async () => {
+      const {fetchImpl} = makeFetch(() => json({}));
+      const channel = createHttpChannel({authProvider, baseUrl: "http://api", fetchImpl});
+      await expect(channel.sendMutationBatch?.(batch)).rejects.toThrow("status 200");
     });
   });
 

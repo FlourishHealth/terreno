@@ -1,7 +1,6 @@
 ---
 name: terreno-taste-sweep
 description: Outer loop over open PRs you authored that currently have a merge conflict or a failing product-CI job on any discovered host (GitHub Actions, CircleCI, Buildkite, and similar). Isolates each PR and reinvokes Taste until mergeable or blocked. Skip drafts and already-green PRs.
-disable-model-invocation: true
 ---
 
 # Taste sweep — drive broken PRs to mergeable
@@ -14,6 +13,7 @@ and exits; this skill **is** the outer loop, one instance per PR.
 Read the shared [`lifecycle contract`](../../references/lifecycle-contract.md),
 [`loop engineering`](../../references/loop-engineering.md),
 [`product CI`](../../references/product-ci.md),
+[`PR deployments`](../../references/pr-deployments.md),
 [`async review bots`](../../references/async-review-bots.md), and
 [`GitHub attention contract`](../../references/github-attention-contract.md).
 
@@ -90,7 +90,8 @@ invokes Taste, waits, and reports.
    - Work exclusively inside `<worktree-path>` on `<headRefName>` (base `<baseRefName>`).
    - Qualifying reason is conflict / failing-ci / both.
    - **Loop:** invoke `terreno-5-taste` against this PR until `PASS` or `BLOCKED`.
-     Taste is not itself a loop.
+     Taste is one reactive iteration; it may wait in-process for review bots and
+     product CI, but this sweep owns reinvocation.
    - **PASS** → stop (success).
    - **BLOCKED** → stop; record the exact `block` reason and required action.
    - **PENDING** → for at most `wait` seconds if present (otherwise 120), prefer the
@@ -115,6 +116,9 @@ invokes Taste, waits, and reports.
    - Draft PRs skipped (count; titles only if few)
    - PRs discarded because they were already clean (count)
    - Anything `blocked-*` with the specific decision or action needed
+
+   Close the report with each qualifying PR's deployment URLs when GitHub Deployments
+   exist.
 
 ## Supporting skills
 

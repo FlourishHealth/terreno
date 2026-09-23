@@ -1,6 +1,7 @@
-import {AdminModelForm, AdminShellLayout, useAdminConfig} from "@terreno/admin-frontend";
+import {AdminModelForm, useAdminConfig} from "@terreno/admin-frontend";
 import {useLocalSearchParams} from "expo-router";
 import React, {useMemo} from "react";
+import {AdminSpaShell} from "../../components/AdminSpaShell";
 import {useAppConfig} from "../../components/AppConfigGate";
 import {terrenoApi} from "../../store/sdk";
 
@@ -20,14 +21,7 @@ const ModelEditScreen: React.FC = () => {
   }, [config?.models, model]);
 
   return (
-    <AdminShellLayout
-      api={terrenoApi}
-      apiBase={apiBase}
-      breadcrumbs={breadcrumbs}
-      configurationPath="/configuration"
-      rolesPath="/roles"
-      routeBase=""
-    >
+    <AdminSpaShell breadcrumbs={breadcrumbs}>
       <AdminModelForm
         api={terrenoApi}
         apiBase={apiBase}
@@ -36,7 +30,7 @@ const ModelEditScreen: React.FC = () => {
         modelName={model}
         routeBase=""
       />
-    </AdminShellLayout>
+    </AdminSpaShell>
   );
 };
 

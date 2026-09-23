@@ -45,25 +45,24 @@ describe("FilterSelectMenu", () => {
     expect(getByTestId("filter")).toBeTruthy();
   });
 
-  it("tints the row while the select is hovered", () => {
+  it("tints the row while the select is hovered and restores the base color", () => {
     const {getByTestId} = renderWithTheme(
       <FilterSelectMenu {...defaultProps} testID="filter" value="all" />
     );
-    const container = getByTestId("filter.selectContainer");
-    const rowBackground = (): unknown =>
+    const backgroundColor = (): unknown =>
       StyleSheet.flatten(getByTestId("filter").props.style).backgroundColor;
+    const baseColor = backgroundColor();
 
-    const initialBackground = rowBackground();
-    fireEvent(container, "hoverIn");
-    assert.notEqual(rowBackground(), initialBackground);
+    fireEvent(getByTestId("filter.selectContainer"), "hoverIn");
+    expect(backgroundColor()).not.toBe(baseColor);
 
-    fireEvent(container, "hoverOut");
-    assert.equal(rowBackground(), initialBackground);
+    fireEvent(getByTestId("filter.selectContainer"), "hoverOut");
+    expect(backgroundColor()).toBe(baseColor);
   });
 
-  it("renders the placeholder and disabled state on the select", () => {
+  it("passes the disabled state to the select control", () => {
     const {getByTestId} = renderWithTheme(
-      <FilterSelectMenu {...defaultProps} disabled placeholder="Select" testID="filter" />
+      <FilterSelectMenu {...defaultProps} disabled testID="filter" value="all" />
     );
     expect(getByTestId("filter.select")).toBeTruthy();
   });

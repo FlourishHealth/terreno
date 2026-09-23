@@ -2,7 +2,6 @@
 // we can add extra tags to endpoints.
 
 import {generateTags, realtimeDocument, realtimeList} from "@terreno/rtk";
-import startCase from "lodash/startCase";
 
 import {addTagTypes, openapi} from "./openApiSdk";
 
@@ -41,12 +40,13 @@ export interface ProfileResponse {
   email: string;
   name: string;
   admin?: boolean;
+  emailVerified?: boolean;
   permissions?: Record<string, readonly string[]>;
   roles?: string[];
 }
 
 // AI Request Explorer types
-export interface AIRequestExplorerItem {
+interface AIRequestExplorerItem {
   _id: string;
   aiModel: string;
   created: string;
@@ -77,7 +77,7 @@ export interface AIRequestExplorerParams {
 }
 
 // Selectable AI chat model option returned by GET /ai/models
-export interface AiModelOption {
+interface AiModelOption {
   label: string;
   value: string;
 }
@@ -100,7 +100,7 @@ export interface SetAdminUserPasswordRequest {
 
 // GptHistory endpoints are hand-maintained: nested modelRouter mounts under /gpt/histories
 // are not always present in the generated OpenAPI SDK after regen.
-export interface GptHistoryPrompt {
+interface GptHistoryPrompt {
   args?: Record<string, unknown>;
   content?: Array<{
     filename?: string;
@@ -156,6 +156,7 @@ export interface GetGptHistoriesArgs {
 }
 
 export const terrenoApi = openapi
+  .enhanceEndpoints({addTagTypes: ["gptHistories", "profile"]})
   .injectEndpoints({
     endpoints: (builder) => ({
       deleteGptHistoriesById: builder.mutation<void, {id: string}>({
@@ -238,6 +239,28 @@ export const terrenoApi = openapi
           url: "/auth/me",
         }),
       }),
+      postAuthForgotPassword: builder.mutation<{ok: boolean}, {email: string}>({
+        query: (body) => ({
+          body,
+          method: "POST",
+          url: "/auth/forgotPassword",
+        }),
+      }),
+      postAuthSendVerification: builder.mutation<{ok: boolean}, void>({
+        invalidatesTags: ["profile"],
+        query: () => ({
+          method: "POST",
+          url: "/auth/sendVerification",
+        }),
+      }),
+      postAuthVerifyEmail: builder.mutation<{ok: boolean}, {token: string}>({
+        invalidatesTags: ["profile"],
+        query: (body) => ({
+          body,
+          method: "POST",
+          url: "/auth/verifyEmail",
+        }),
+      }),
       postCommsDevTestPush: builder.mutation<
         {accepted: number; results: unknown[]; tokenCount: number},
         {body?: string; title?: string} | undefined
@@ -256,6 +279,22 @@ export const terrenoApi = openapi
           url: "/gpt/histories",
         }),
       }),
+      postNotificationsDevNotify: builder.mutation<
+        {notificationId: string},
+        {body?: string; href?: string; kind?: string; title?: string} | undefined
+      >({
+        query: (body) => ({
+          body: body ?? {},
+          method: "POST",
+          url: "/notifications/dev/notify",
+        }),
+      }),
+      postNotificationsMarkAllRead: builder.mutation<{modified: number}, void>({
+        query: () => ({
+          method: "POST",
+          url: "/notifications/mark-all-read",
+        }),
+      }),
       setAdminUserPassword: builder.mutation<
         {data: {_id: string; message: string}},
         SetAdminUserPasswordRequest
@@ -264,7 +303,7 @@ export const terrenoApi = openapi
         query: ({id, password}) => ({
           body: {password},
           method: "POST",
-          url: `/admin/users/${id}/password`,
+          url: `/users/${id}/password`,
         }),
       }),
     }),
@@ -290,48 +329,17 @@ export const terrenoApi = openapi
 
 export const {
   useDeleteGptHistoriesByIdMutation,
-  useEmailLoginMutation,
-  useGoogleLoginMutation,
-  useCreateEmailUserMutation,
-  useEmailSignUpMutation,
-  useGetGptHistoriesByIdQuery,
   useGetGptHistoriesQuery,
   useResetPasswordMutation,
   useGetMeQuery,
   usePatchGptHistoriesByIdMutation,
   usePatchMeMutation,
+  usePostAuthForgotPasswordMutation,
+  usePostAuthSendVerificationMutation,
+  usePostAuthVerifyEmailMutation,
   usePostCommsDevTestPushMutation,
-  useGetAiRequestsExplorerQuery,
+  usePostNotificationsDevNotifyMutation,
   useGetAiModelsQuery,
-  usePostGptHistoriesMutation,
   useSetAdminUserPasswordMutation,
 } = terrenoApi;
 export * from "./openApiSdk";
-
-// Endpoint type from the OpenAPI generated SDK - uses Record for dynamic structure
-type OpenApiEndpoints = Record<string, unknown>;
-
-// Get hooks from the @terreno/rtk generated SDK for CRUD/list operations.
-// Returns the appropriate RTK Query hook based on model name and operation type
-// Return type is Record<string, unknown> as it varies based on operation and model
-export const getSdkHook = (
-  modelName: string,
-  type: "list" | "read" | "create" | "update" | "remove"
-): Record<string, unknown> => {
-  const modelPath = startCase(modelName).replace(/\s/g, "");
-  const endpoints = openapi.endpoints as OpenApiEndpoints;
-  switch (type) {
-    case "list":
-      return endpoints[`get${modelPath}`] as Record<string, unknown>;
-    case "read":
-      return endpoints[`get${modelPath}ById`] as Record<string, unknown>;
-    case "create":
-      return endpoints[`post${modelPath}`] as Record<string, unknown>;
-    case "update":
-      return endpoints[`patch${modelPath}ById`] as Record<string, unknown>;
-    case "remove":
-      return endpoints[`delete${modelPath}ById`] as Record<string, unknown>;
-    default:
-      throw new Error(`Invalid SDK hook: ${modelName}/${type}`);
-  }
-};

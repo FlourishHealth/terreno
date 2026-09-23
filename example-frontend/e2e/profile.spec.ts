@@ -14,6 +14,7 @@ test.describe("Profile", () => {
     await expect(page.getByTestId("profile-email-input.edit-clickable").first()).toBeVisible();
     await expect(page.getByTestId("profile-password-input.edit-clickable").first()).toBeVisible();
     await expect(page.getByTestId("profile-logout-button").first()).toBeVisible();
+    await expect(page.getByTestId("profile-verify-email-banner").first()).toBeVisible();
   });
 
   test("shows current user info", async ({page}) => {
@@ -67,5 +68,13 @@ test.describe("Profile", () => {
 
   test("admin panel button hidden for non-admin", async ({page}) => {
     await expect(page.getByTestId("profile-admin-button")).not.toBeVisible();
+  });
+
+  test("notification preferences screen loads without SyncDbProvider crash", async ({page}) => {
+    await page.getByTestId("profile-notification-settings-button").first().click();
+    await page.getByTestId("notification-settings-back").first().waitFor({state: "visible"});
+    await expect(page.getByTestId("notification-settings-back").first()).toBeVisible();
+    await page.getByTestId("notification-preferences").waitFor({state: "visible"});
+    await expect(page.getByTestId("notification-preferences-inapp.switch")).toBeVisible();
   });
 });

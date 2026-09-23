@@ -1,5 +1,5 @@
-import {assert} from "chai";
 import {describe, it} from "bun:test";
+import {assert} from "chai";
 import {AREA_ORDER, TARGET_ORDER} from "../generate-roadmap/lib.ts";
 import {
   deriveAreas,
@@ -45,6 +45,35 @@ describe("validateRoadmapItem", () => {
     });
 
     assert.isEmpty(problems);
+  });
+
+  it("requires the roadmap label only for board items", async () => {
+    const {knownLabels, options} = await loadRealTaxonomy();
+    const item = {area: "api", labels: ["area:api", "type:feature"]};
+
+    // Triage labels plenty of issues that never reach the board.
+    assert.isEmpty(validateRoadmapItem({item, knownLabels, options}));
+
+    assert.isTrue(
+      validateRoadmapItem({item, knownLabels, options, requireRoadmapLabel: true}).some((problem) =>
+        problem.includes('Needs the "roadmap" label')
+      )
+    );
+    assert.isEmpty(
+      validateRoadmapItem({
+        item: {...item, labels: [...item.labels, "roadmap"]},
+        knownLabels,
+        options,
+        requireRoadmapLabel: true,
+      })
+    );
+  });
+
+  it("includes ready-for-dev workflow labels in the taxonomy", async () => {
+    const {knownLabels} = await loadRealTaxonomy();
+
+    assert.include(knownLabels, "status:ready-for-dev");
+    assert.include(knownLabels, "status:in-progress");
   });
 
   it("rejects a label that does not exist in the taxonomy", async () => {

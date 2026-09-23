@@ -426,6 +426,7 @@ const BoxComponent = React.forwardRef((props: BoxProps, ref) => {
       <View
         {...(accessibilityHint ? {accessibilityHint} : {})}
         {...(accessibilityLabel ? {accessibilityLabel} : {})}
+        {...(props.onLayout ? {onLayout: props.onLayout} : {})}
         onPointerEnter={onHoverIn}
         onPointerLeave={onHoverOut}
         style={boxStyle}

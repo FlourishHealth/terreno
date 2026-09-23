@@ -1,4 +1,10 @@
-import {type AdminContribution, APIError, logger, type TerrenoPlugin} from "@terreno/api";
+import {
+  type AdminContribution,
+  APIError,
+  logger,
+  type TerrenoPlugin,
+  type WebhooksApp,
+} from "@terreno/api";
 import type express from "express";
 
 import {CommsService} from "./commsService";
@@ -6,9 +12,13 @@ import {PushToken} from "./models/pushToken";
 import {addCommsDashboardRoutes} from "./routes/commsDashboard";
 import {addPushTokenRoutes} from "./routes/pushTokens";
 import type {CommsOptions} from "./types";
+import {maybeRegisterSendGridCommsWebhooks} from "./webhooks/sendgridWebhooks";
+import {maybeRegisterTwilioCommsWebhooks} from "./webhooks/twilioWebhooks";
 
 export interface CommsAppOptions extends CommsOptions {
   basePath?: string;
+  webhookPublicUrl?: string;
+  webhooks?: WebhooksApp;
 }
 
 let registeredCommsService: CommsService | undefined;
@@ -44,6 +54,19 @@ export class CommsApp implements TerrenoPlugin {
 
     addPushTokenRoutes(app, {basePath: `${basePath}/pushTokens`, openApi});
     addCommsDashboardRoutes(app, {basePath, openApi, service: this.service});
+    maybeRegisterTwilioCommsWebhooks({
+      basePath,
+      publicUrl: this.options.webhookPublicUrl,
+      service: this.service,
+      sms: this.options.sms,
+      webhooks: this.options.webhooks,
+    });
+    maybeRegisterSendGridCommsWebhooks({
+      basePath,
+      mail: this.options.mail,
+      service: this.service,
+      webhooks: this.options.webhooks,
+    });
   }
 
   adminContribution(): AdminContribution {

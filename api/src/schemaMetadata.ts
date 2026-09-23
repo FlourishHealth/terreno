@@ -176,8 +176,9 @@ const describeSchemaPath = (path: string, schemaPath: MongooseSchemaPath): Field
     const itemSchemaPath = getNestedValueSchemaPath(schemaPath);
     if (itemSchemaPath) {
       const item = describeCaster(itemSchemaPath);
+      const {enum: _arrayEnum, ...arrayBase} = base;
       return {
-        ...base,
+        ...arrayBase,
         isArray: true,
         item,
         kind: item.kind,
@@ -314,10 +315,8 @@ const applyWriteMasks = (
   );
 };
 
-export const describeModel = (
-  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  model: Model<any>,
+export const describeModel = <T>(
+  model: Model<T>,
   options: DescribeModelOptions = {}
 ): ModelDescription => {
   const fields: Record<string, FieldDescription> = {};
@@ -341,10 +340,8 @@ export const describeModel = (
   };
 };
 
-export const describeModelForRouter = (
-  // noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  // biome-ignore lint/suspicious/noExplicitAny: Mongoose's invariant generics require any to accept arbitrary consumer models
-  model: Model<any>,
+export const describeModelForRouter = <T>(
+  model: Model<T>,
   options: DescribeModelForRouterOptions = {}
 ): ModelDescription => {
   const description = describeModel(model, options);
@@ -366,9 +363,6 @@ export const fieldDescriptionToOpenApiProperty = (
       items,
       type: "array",
     };
-    if (field.enum) {
-      property.enum = field.enum;
-    }
     return property;
   }
 
@@ -381,7 +375,9 @@ export const fieldDescriptionToOpenApiProperty = (
     if (field.description) {
       property.description = field.description;
     }
-    property.required = nested.required.length ? nested.required : [];
+    if (nested.required.length > 0) {
+      property.required = nested.required;
+    }
     return property;
   }
 

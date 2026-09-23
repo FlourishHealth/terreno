@@ -85,6 +85,7 @@ export const idbSet = async ({
 };
 
 /** Delete a single key (no-op when absent). */
+/** @internal */
 export const idbDelete = async ({
   databaseName,
   key,

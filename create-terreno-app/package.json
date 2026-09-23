@@ -1,0 +1,59 @@
+{
+  "bin": {
+    "create-terreno-app": "./dist/cli.js"
+  },
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "description": "Scaffold a deployable Terreno full-stack app — part of Terreno, the batteries-included TypeScript framework for universal apps.",
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.6",
+    "@types/bun": "^1.4.0",
+    "@types/node": "^25.3.0",
+    "chai": "^6.2.2",
+    "typescript": "~6.0.3"
+  },
+  "exports": {
+    ".": {
+      "default": "./dist/generate.js",
+      "types": "./dist/generate.d.ts"
+    },
+    "./writeScaffold": {
+      "default": "./dist/writeScaffold.js",
+      "types": "./dist/writeScaffold.d.ts"
+    }
+  },
+  "files": [
+    "LICENSE",
+    "dist",
+    "README.md"
+  ],
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "create-app",
+    "scaffold",
+    "terreno"
+  ],
+  "license": "MIT",
+  "main": "dist/generate.js",
+  "name": "create-terreno-app",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "scripts": {
+    "compile": "tsc",
+    "compile:watch": "tsc -w",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "test": "bun run compile && bun test src/",
+    "test:agent": "AGENT=1 bun test --only-failures src/",
+    "test:ci": "bun run compile && bun test src/",
+    "test:coverage": "bun run compile && bun run ../scripts/check-coverage.ts"
+  },
+  "type": "module",
+  "version": "57.4.0"
+}

@@ -5,7 +5,7 @@
     "email": "terreno@flourish.health"
   },
   "description": "Public marketplace for Terreno: agentic SDLC planning and execution plugins.",
-  "version": "2.4.0",
+  "version": "2.12.0",
   "metadata": {
     "pluginRoot": "plugins"
   },
@@ -13,7 +13,12 @@
     {
       "name": "terreno",
       "source": "./plugins/terreno-claude",
-      "description": "Five bounded transitions plus outer loops; Brew and Taste observe every CI host and prefer native watch hooks over timer polling."
+      "description": "Combined Terreno lifecycle, app-building, documentation, deployment, and verification workflows."
+    },
+    {
+      "name": "terreno-scan",
+      "source": "./plugins/terreno-scan-claude",
+      "description": "Goal-driven code scans: charter a measurable goal, map-reduce the repository into findings, and drive each slice through the lifecycle."
     }
   ]
 }

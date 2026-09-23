@@ -5,11 +5,16 @@ Ready-to-paste GitHub issue bodies for IPs on the public roadmap — the
 roadmap-tracked work. Open one tracking issue per IP when the IP reaches **Approved**, then
 add it to the **Terreno Roadmap** project with the field values below.
 
+Every entry also gets the `roadmap` label — `bun run roadmap:sync` adds it, so it is not
+repeated on the `**Labels:**` lines. That label is how roadmap items are filtered
+(`gh issue list --label roadmap`, or `label:roadmap` in the GitHub UI); titles carry no
+`[Roadmap]` prefix.
+
 ---
 
 ## oss-governance-baseline
 
-**Title:** `[Roadmap] OSS governance baseline`
+**Title:** `OSS governance baseline`
 
 **Labels:** `area:dx`, `type:chore`  
 **Project fields:** Area=`dx`, Target=`Released`, Impact=`Improvement`, IP=`oss-governance-baseline`, Status=`Shipped`
@@ -29,7 +34,7 @@ contributors or consumers.
 
 ## public-roadmap-github
 
-**Title:** `[Roadmap] Public roadmap on GitHub`
+**Title:** `Public roadmap on GitHub`
 
 **Labels:** `area:dx`, `type:feature`  
 **Project fields:** Area=`dx`, Target=`Released`, Impact=`Improvement`, IP=`public-roadmap-github`, Status=`Shipped`
@@ -49,7 +54,7 @@ duplicating sprint planning.
 
 ## deploy-to-gcp
 
-**Title:** `[Roadmap] Deploy to GCP (generalized)`
+**Title:** `Deploy to GCP (generalized)`
 
 **Labels:** `area:deploy`, `type:docs`  
 **Project fields:** Area=`deploy`, Target=`Next`, Impact=`Improvement`, IP=`deploy-to-gcp`, Status=`Planned`
@@ -69,7 +74,7 @@ session-affinity constraints that commonly break production Terreno deployments.
 
 ## agentic-sdlc-plugin
 
-**Title:** `[Roadmap] Agentic SDLC plugin (/terreno-*)`
+**Title:** `Agentic SDLC plugin (/terreno-*)`
 
 **Labels:** `area:dx`, `type:feature`  
 **Project fields:** Area=`dx`, Target=`Released`, Impact=`Feature`, IP=`agentic-sdlc-plugin`, Status=`Shipped`
@@ -89,7 +94,7 @@ invisible and breaks in consumer apps.
 
 ## rtk-to-syncdb-migration-docs
 
-**Title:** `[Roadmap] RTK deprecation and syncdb migration docs`
+**Title:** `RTK deprecation and syncdb migration docs`
 
 **Labels:** `area:syncdb`, `type:docs`, `deprecation`, `status:blocked`  
 **Project fields:** Area=`syncdb`, Target=`Released`, Impact=`Improvement`, IP=`rtk-to-syncdb-migration-docs`, Status=`Shipped`
@@ -111,7 +116,7 @@ bootstrap output, and upgrade notes. Gates most Wave 1 launch documentation.
 
 ## positioning-django-rails-universal
 
-**Title:** `[Roadmap] Positioning — Django/Rails for TypeScript`
+**Title:** `Positioning — Django/Rails for TypeScript`
 
 **Labels:** `area:docs`, `type:docs`  
 **Project fields:** Area=`docs`, Target=`Released`, Impact=`Improvement`, IP=`positioning-django-rails-universal`, Status=`Shipped`
@@ -129,7 +134,7 @@ support, organized around batteries included, universal by default, and AI-nativ
 
 ## docs-reference-coverage
 
-**Title:** `[Roadmap] Reference documentation coverage`
+**Title:** `Reference documentation coverage`
 
 **Labels:** `area:docs`, `type:docs`  
 **Project fields:** Area=`docs`, Target=`Next`, Impact=`Improvement`, IP=`docs-reference-coverage`, Status=`In progress`
@@ -147,7 +152,7 @@ leakage, and extends docs-audit CI to catch drift.
 
 ## docs-tutorials-ai-first
 
-**Title:** `[Roadmap] AI-first tutorials`
+**Title:** `AI-first tutorials`
 
 **Labels:** `area:docs`, `type:docs`  
 **Project fields:** Area=`docs`, Target=`Next`, Impact=`Feature`, IP=`docs-tutorials-ai-first`, Status=`Planned`
@@ -165,7 +170,7 @@ features, admin panel, and production deploy — all on syncdb + Better Auth.
 
 ## deployment-foundation
 
-**Title:** `[Roadmap] Deployment foundation`
+**Title:** `Deployment foundation`
 
 **Labels:** `area:deploy`, `type:docs`  
 **Project fields:** Area=`deploy`, Target=`Released`, Impact=`Improvement`, IP=`deployment-foundation`, Status=`Shipped`
@@ -183,14 +188,14 @@ example-backend Dockerfile with CI validation.
 
 ## deploy-to-vercel
 
-**Title:** `[Roadmap] Deploy to Vercel`
+**Title:** `Deploy to Vercel`
 
 **Labels:** `area:deploy`, `type:docs`  
 **Project fields:** Area=`deploy`, Target=`Next`, Impact=`Improvement`, IP=`deploy-to-vercel`, Status=`Planned`
 
 Documents Expo web export on Vercel, preview-deployment CORS and Better Auth origin handling,
-and a deploy-vercel skill with websocket verification. Requires a spike on backend hosting
-options.
+Vercel Functions WebSockets (Public Beta) operator docs, and a deploy-vercel skill with
+websocket verification. Requires a spike on backend hosting options.
 
 - **Implementation plan:** [deploy-to-vercel.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/deploy-to-vercel.md)
 - **Tasks:** [deploy-to-vercel.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/deploy-to-vercel.md)
@@ -201,7 +206,7 @@ options.
 
 ## upgrade-guides-and-skill
 
-**Title:** `[Roadmap] Upgrade guides and upgrading-terreno skill`
+**Title:** `Upgrade guides and upgrading-terreno skill`
 
 **Labels:** `area:mcp`, `type:docs`  
 **Project fields:** Area=`mcp`, Target=`Next`, Impact=`Improvement`, IP=`upgrade-guides-and-skill`, Status=`Planned`
@@ -219,7 +224,7 @@ enforces upgrade-note requirements in release CI.
 
 ## ai-dev-loop-boost
 
-**Title:** `[Roadmap] AI development loop (MCP Boost)`
+**Title:** `AI development loop (MCP Boost)`
 
 **Labels:** `area:mcp`, `type:feature`  
 **Project fields:** Area=`mcp`, Target=`Next`, Impact=`Feature`, IP=`ai-dev-loop-boost`, Status=`Planned`
@@ -237,7 +242,7 @@ observe merged logs and client state, then fix and iterate. Builds on MCP Boost 
 
 ## build-terreno-app-validation
 
-**Title:** `[Roadmap] Dogfooding run and launch blog post`
+**Title:** `Dogfooding run and launch blog post`
 
 **Labels:** `area:docs`, `type:chore`  
 **Project fields:** Area=`docs`, Target=`Next`, Impact=`Improvement`, IP=`build-terreno-app-validation`, Status=`Planned`
@@ -254,7 +259,7 @@ using only public docs and skills, then publishes a friction log and blog post.
 
 ## examples-demo-coverage
 
-**Title:** `[Roadmap] Examples, demo, and test coverage`
+**Title:** `Examples, demo, and test coverage`
 
 **Labels:** `area:examples`, `type:chore`  
 **Project fields:** Area=`examples`, Target=`Future`, Impact=`Improvement`, IP=`examples-demo-coverage`, Status=`Planned`
@@ -271,7 +276,7 @@ stories, extends coverage enforcement, and publishes an example-app feature matr
 
 ## web-ssr-and-admin-spa
 
-**Title:** `[Roadmap] Web SSR and admin SPA`
+**Title:** `Web SSR and admin SPA`
 
 **Labels:** `area:ui`, `type:feature`  
 **Project fields:** Area=`ui`, Target=`Future`, Impact=`Feature`, IP=`web-ssr-and-admin-spa`, Status=`Planned`
@@ -291,7 +296,7 @@ ground; SSR is opt-in and depends on Expo SDK 55+.
 
 *Outside the OSS launch program.*
 
-**Title:** `[Roadmap] Infrastructure MCP server (@terreno/infra-mcp)`
+**Title:** `Infrastructure MCP server (@terreno/infra-mcp)`
 
 **Labels:** `area:mcp`, `type:feature`, `status:blocked`  
 **Project fields:** Area=`mcp`, Target=`Future`, Impact=`Feature`, IP=`infra-mcp`, Status=`Planned`
@@ -323,7 +328,7 @@ issue with `Status=Planned` and fill the IP field when the IP lands.
 
 ## comms-abstraction
 
-**Title:** `[Roadmap] Pluggable communications layer (@terreno/comms)`
+**Title:** `Pluggable communications layer (@terreno/comms)`
 
 **Labels:** `area:api`, `type:feature`
 **Project fields:** Area=`api`, Target=`Released`, Impact=`Feature`, IP=`comms-abstraction`, Status=`Shipped`
@@ -344,7 +349,7 @@ roadmap item, so apps only install the SDKs they use.
 
 ## comms-adapter-expo-push
 
-**Title:** `[Roadmap] Comms adapter — Expo push notifications`
+**Title:** `Comms adapter — Expo push notifications`
 
 **Labels:** `area:api`, `type:feature`
 **Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-expo-push`, Status=`In progress`
@@ -363,7 +368,7 @@ half — `getExpoPushTokenAsync` registration — already exists in example-fron
 
 ## comms-adapter-twilio-sms
 
-**Title:** `[Roadmap] Comms adapter — Twilio SMS`
+**Title:** `Comms adapter — Twilio SMS`
 
 **Labels:** `area:api`, `type:feature`
 **Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-twilio-sms`, Status=`Planned`
@@ -382,10 +387,10 @@ catalog.
 
 ## comms-adapter-twilio-verify
 
-**Title:** `[Roadmap] Comms adapter — Twilio Verify (OTP)`
+**Title:** `Comms adapter — Twilio Verify (OTP)`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-twilio-verify`, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-twilio-verify`, Status=`Shipped`
 
 Implements the `@terreno/comms` verification provider on Twilio Verify for SMS and email
 one-time codes. This is the delivery channel for phone verification and for the future MFA
@@ -400,7 +405,7 @@ step-up work, without Terreno storing or rate-limiting codes itself.
 
 ## comms-adapter-sendgrid
 
-**Title:** `[Roadmap] Comms adapter — transactional email (SendGrid)`
+**Title:** `Comms adapter — transactional email (SendGrid)`
 
 **Labels:** `area:api`, `type:feature`
 **Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`comms-adapter-sendgrid`, Status=`In progress`
@@ -419,7 +424,7 @@ SES, SMTP) get their own items when demand appears.
 
 ## comms-admin-dashboard
 
-**Title:** `[Roadmap] Comms admin dashboard (errors, retries, log digging)`
+**Title:** `Comms admin dashboard (errors, retries, log digging)`
 
 **Labels:** `area:admin`, `type:feature`
 **Project fields:** Area=`admin`, Target=`Next`, Impact=`Feature`, IP=`comms-admin-dashboard`, Status=`Planned`
@@ -440,7 +445,7 @@ comms abstraction.
 
 ## password-reset-and-email-verification
 
-**Title:** `[Roadmap] Password reset and email verification`
+**Title:** `Password reset and email verification`
 
 **Labels:** `area:auth`, `type:feature`
 **Project fields:** Area=`auth`, Target=`Next`, Impact=`Feature`, IP=`password-reset-and-email-verification`, Status=`Planned`
@@ -459,18 +464,21 @@ equivalents, and sends the emails through `@terreno/comms`.
 
 ## inbound-webhooks
 
-**Title:** `[Roadmap] Inbound webhook framework`
+**Title:** `Inbound webhook framework`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`inbound-webhooks`, Status=`Planned`
+
+**GitHub:** https://github.com/FlourishHealth/terreno/issues/1172
 
 Terreno has outbound notifiers (Slack, Google Chat, Zoom) but no framework for receiving
 webhooks from external services. Adds a plugin for registering webhook endpoints with
 signature verification, raw-body handling, idempotency/replay protection, and event
-dispatch — required by Stripe billing and by Twilio/Expo delivery status callbacks.
+dispatch — required by Stripe billing and by Twilio/SendGrid delivery status callbacks
+(Expo push polls receipts and does not use this plugin).
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+- **Implementation plan:** [inbound-webhooks.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/inbound-webhooks.md)
+- **Tasks:** [inbound-webhooks.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/inbound-webhooks.md)
 - **RTK flag:** None
 - **Depends on:** —
 
@@ -478,7 +486,7 @@ dispatch — required by Stripe billing and by Twilio/Expo delivery status callb
 
 ## orgs-and-teams
 
-**Title:** `[Roadmap] Organizations, teams, and multi-tenant scoping`
+**Title:** `Organizations, teams, and multi-tenant scoping`
 
 **Labels:** `area:api`, `type:feature`
 **Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`orgs-and-teams`, Status=`Declined`
@@ -496,7 +504,7 @@ from this item.
 
 ## rbac-permissions
 
-**Title:** `[Roadmap] Role-based access control`
+**Title:** `Role-based access control`
 
 **Labels:** `area:api`, `type:feature`
 **Project fields:** Area=`api`, Target=`Released`, Impact=`Feature`, IP=`rbac-permissions`, Status=`Shipped`
@@ -516,7 +524,7 @@ across REST, websockets, MCP tools, and admin. An API design draft already exist
 
 ## invitations-and-seats
 
-**Title:** `[Roadmap] Invitations and seat management`
+**Title:** `Invitations and seat management`
 
 **Labels:** `area:api`, `type:feature`
 **Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
@@ -534,7 +542,7 @@ billing can later enforce. Emails go through `@terreno/comms`.
 
 ## org-management-ui
 
-**Title:** `[Roadmap] Organizations as a first-class primitive (admin UI + RBAC)`
+**Title:** `Organizations as a first-class primitive (admin UI + RBAC)`
 
 **Labels:** `area:api`, `type:feature`
 **Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`org-management-ui`, Status=`Planned`
@@ -545,14 +553,16 @@ org-admins manage only the current org. Invites and billing are design-only plac
 
 - **Implementation plan:** [org-management-ui.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/org-management-ui.md)
 - **Tasks:** [org-management-ui.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/org-management-ui.md)
-- **RTK flag:** Partial — admin screens use generated SDK / `useAdminApi`
+- **RTK flag:** Partial — custom non-synced routes use the generated SDK;
+  ObjectId admin compatibility may use `useAdminApi` in Terreno 57, while
+  eligible String-`_id` CRUD uses windowed syncdb
 - **Depends on:** rbac-permissions
 
 ---
 
 ## billing-stripe
 
-**Title:** `[Roadmap] Stripe billing and subscriptions`
+**Title:** `Stripe billing and subscriptions`
 
 **Labels:** `area:api`, `type:feature`
 **Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`billing-stripe`, Status=`Planned`
@@ -572,7 +582,7 @@ are a separate item.
 
 ## native-module-baseline
 
-**Title:** `[Roadmap] Native module baseline for the next major release`
+**Title:** `Native module baseline for the next major release`
 
 **Labels:** `area:ui`, `type:chore`, `breaking`
 **Project fields:** Area=`ui`, Target=`Next`, Impact=`Breaking`, IP=*(not yet written)*, Status=`Planned`
@@ -594,18 +604,18 @@ same binary. Manifest finalized 2026-08-09 (decisions D1/D3/D7); TenTap excluded
 
 ## create-terreno-app
 
-**Title:** `[Roadmap] create-terreno-app scaffolding CLI`
+**Title:** `create-terreno-app scaffolding CLI`
 
 **Labels:** `area:dx`, `type:feature`
-**Project fields:** Area=`dx`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`dx`, Target=`Next`, Impact=`Feature`, IP=`create-terreno-app`, Status=`In progress`
 
 Today the MCP bootstrap tool returns markdown instructions and writes no files. This ships
 a real `create-terreno-app` CLI (or template repo) that produces a running, deployable app
 — backend, Expo app, env files, seeded auth — in one command, with the MCP bootstrap
 delegating to it.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+- **Implementation plan:** [create-terreno-app.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/create-terreno-app.md)
+- **Tasks:** [create-terreno-app.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/create-terreno-app.md)
 - **RTK flag:** Partial — scaffold output follows the syncdb + Better Auth direction
 - **Depends on:** deployment-foundation
 
@@ -613,18 +623,17 @@ delegating to it.
 
 ## charts-and-dashboards
 
-**Title:** `[Roadmap] Charts and dashboard primitives`
+**Title:** `Charts and dashboard primitives`
 
 **Labels:** `area:ui`, `type:feature`
-**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=`charts-and-dashboards`, Status=`In progress`
 
-`@terreno/ui` has a stubbed `Chart` export and no implementation. Adds themed chart
-components (line, bar, area, donut) on `victory-native` — JS-only, since its Skia /
-Reanimated / Gesture Handler peers are already linked — plus a simple dashboard grid
-layout, with demo stories and docs.
+`@terreno/ui` ships themed `LineChart`, `BarChart`, `AreaChart`, `DonutChart` on owned
+`react-native-svg` (not `victory-native`) plus `DashboardGrid`. Demo stories and Diátaxis
+docs are the proof; comms admin stats consume these primitives later.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+- **Implementation plan:** [charts-and-dashboards.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/charts-and-dashboards.md)
+- **Tasks:** [charts-and-dashboards.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/charts-and-dashboards.md)
 - **RTK flag:** None
 - **Depends on:** —
 
@@ -632,7 +641,7 @@ layout, with demo stories and docs.
 
 ## dark-mode-theme
 
-**Title:** `[Roadmap] First-class dark mode`
+**Title:** `First-class dark mode`
 
 **Labels:** `area:ui`, `type:feature`
 **Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
@@ -651,17 +660,17 @@ root views and system chrome follow the scheme.
 
 ## data-grid-server-filters
 
-**Title:** `[Roadmap] DataTable server-side filtering and search`
+**Title:** `DataTable server-side filtering and search`
 
 **Labels:** `area:ui`, `type:feature`
-**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=`datatable-server-side-filtering`, Status=`Planned`
 
 DataTable sorts and paginates but has no filter UI. Adds per-column filter controls and a
 search box that emit modelRouter-compatible query params (`queryFields`, `$and`/`$or`), so
 list screens get server-side filtering without custom plumbing. Admin tables adopt it.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+- **Implementation plan:** [datatable-server-side-filtering.md](../implementationPlans/datatable-server-side-filtering.md)
+- **Tasks:** [datatable-server-side-filtering.md](../tasks/datatable-server-side-filtering.md)
 - **RTK flag:** Partial — query wiring examples depend on the frontend data layer
 - **Depends on:** —
 
@@ -669,7 +678,7 @@ list screens get server-side filtering without custom plumbing. Admin tables ado
 
 ## mobile-iap-revenuecat
 
-**Title:** `[Roadmap] Mobile in-app purchases (RevenueCat)`
+**Title:** `Mobile in-app purchases (RevenueCat)`
 
 **Labels:** `area:api`, `type:feature`
 **Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
@@ -688,17 +697,17 @@ native module baseline regardless, so this lands as a JS/OTA feature when schedu
 
 ## notification-center
 
-**Title:** `[Roadmap] In-app notification center`
+**Title:** `In-app notification center`
 
 **Labels:** `area:ui`, `type:feature`
-**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=`notification-center` (Approved), Status=`Planned`
 
 Adds a Notification model with per-user preferences, realtime delivery over the existing
 change-stream socket layer, and a bell/inbox UI in `@terreno/ui` with read/unread state —
 the in-app channel beside `@terreno/comms` mail/SMS/push.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+- **Implementation plan:** [notification-center.md](../implementationPlans/notification-center.md)
+- **Tasks:** [notification-center.md](../tasks/notification-center.md)
 - **RTK flag:** Partial — inbox screens target the syncdb data layer where available
 - **Depends on:** comms-abstraction
 
@@ -706,7 +715,7 @@ the in-app channel beside `@terreno/comms` mail/SMS/push.
 
 ## command-palette
 
-**Title:** `[Roadmap] Command palette (⌘K)`
+**Title:** `Command palette (⌘K)`
 
 **Labels:** `area:ui`, `type:feature`
 **Project fields:** Area=`ui`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
@@ -723,7 +732,7 @@ actions, navigation targets, and async search sources. Admin panel adopts it fir
 
 ## wizard-stepper
 
-**Title:** `[Roadmap] Generic multi-step wizard component`
+**Title:** `Generic multi-step wizard component`
 
 **Labels:** `area:ui`, `type:feature`
 **Project fields:** Area=`ui`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
@@ -741,7 +750,7 @@ wizard/stepper: step state, validation gates, progress indicator, and per-step p
 
 ## wysiwyg-editor
 
-**Title:** `[Roadmap] Rich text (WYSIWYG) editor`
+**Title:** `Rich text (WYSIWYG) editor`
 
 **Labels:** `area:ui`, `type:feature`
 **Project fields:** Area=`ui`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
@@ -760,7 +769,7 @@ native module baseline, adopting it means waiting for a later major release.
 
 ## global-search
 
-**Title:** `[Roadmap] Global search across entities`
+**Title:** `Global search across entities`
 
 **Labels:** `area:api`, `type:feature`
 **Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
@@ -778,7 +787,7 @@ and a search UI hook — feeding the command palette and app-level search bars.
 
 ## enterprise-sso
 
-**Title:** `[Roadmap] Enterprise SSO (SAML / OIDC)`
+**Title:** `Enterprise SSO (SAML / OIDC)`
 
 **Labels:** `area:auth`, `type:feature`
 **Project fields:** Area=`auth`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
@@ -797,7 +806,7 @@ baseline.
 
 ## mfa-step-up-auth
 
-**Title:** `[Roadmap] MFA and biometric step-up auth`
+**Title:** `MFA and biometric step-up auth`
 
 **Labels:** `area:auth`, `type:feature`
 **Project fields:** Area=`auth`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
@@ -815,36 +824,42 @@ enforcement hooks in the permission layer.
 
 ## framework-audit-log
 
-**Title:** `[Roadmap] Framework-level audit log`
+**Title:** `Framework-level audit log`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`framework-audit-log`, Status=`Planned`
 
 Generalizes the admin/consent audit patterns into a first-class audit log: an AuditEvent
 model, modelRouter hooks that record who changed what (with before/after diffs), org
 scoping, retention policy, and an admin viewer — a hard requirement for compliance-minded
 B2B customers.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1186.
+
+- **Implementation plan:** [framework-audit-log.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/framework-audit-log.md)
+- **Tasks:** [framework-audit-log.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/framework-audit-log.md)
+- **How-to:** [audit-log.md](../how-to/audit-log.md)
 - **RTK flag:** None
-- **Depends on:** org-management-ui
+- **Depends on:** — (optional `organizationId` now; org-admin list filter waits on org-management-ui)
 
 ---
 
 ## rate-limiting
 
-**Title:** `[Roadmap] API rate limiting`
+**Title:** `API rate limiting`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=`rate-limiting`, Status=`Planned`
 
-Adds HTTP rate limiting to `@terreno/api`: per-user/per-org/per-IP policies, sensible
-defaults for auth and OTP endpoints, memory and Redis stores, and standard rate-limit
-headers. Today only realtime subscriptions are capped.
+Adds opt-in HTTP rate limiting to `@terreno/api`: per-user or per-IP keys, stricter
+auth/OTP buckets (including login), memory Redis or Mongo stores, and 429 rate-limit
+headers. Default is off until Terreno 58. Sync mutation nacks stay a separate limiter.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1187.
+
+- **Implementation plan:** [rate-limiting.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/rate-limiting.md)
+- **Tasks:** [rate-limiting.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/rate-limiting.md)
+- **How-to:** [rate-limiting.md](../how-to/rate-limiting.md)
 - **RTK flag:** None
 - **Depends on:** —
 
@@ -852,35 +867,41 @@ headers. Today only realtime subscriptions are capped.
 
 ## job-queues
 
-**Title:** `[Roadmap] Durable background jobs`
+**Title:** `Durable background jobs`
 
 **Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Project fields:** Area=`api`, Target=`Released`, Impact=`Feature`, IP=`job-queues`, Status=`Shipped`
 
-Terreno has an in-process cron helper and admin script runner but no durable queue. Adds a
-job abstraction with retries, scheduling, and dead-lettering — Mongo-backed by default with
-a Redis/BullMQ driver — so email sends, webhook retries, and billing sync survive restarts.
+Adds `@terreno/jobs`: Mongo-recorded jobs with retries, schedules, dead-lettering, in-process or
+standalone workers, and pluggable runners (Mongo, GCP Cloud Tasks, Vercel Queues, custom).
+Email/webhook/billing consumers enqueue later; this item ships the queue.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
-- **RTK flag:** None
+Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1188.
+
+- **Implementation plan:** [job-queues.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/job-queues.md)
+- **Tasks:** [job-queues.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/job-queues.md)
+- **How-to:** [background-jobs.md](../how-to/background-jobs.md)
+- **Reference:** [jobs.md](../reference/jobs.md)
+- **RTK flag:** Partial — admin screens use generated SDK
 - **Depends on:** —
 
 ---
 
 ## mongo-migrations
 
-**Title:** `[Roadmap] MongoDB migrations tooling`
+**Title:** `MongoDB migrations tooling`
 
-**Labels:** `area:api`, `type:feature`
-**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=*(not yet written)*, Status=`Planned`
+**Labels:** `area:api`, `type:feature`  
+**Project fields:** Area=`api`, Target=`Future`, Impact=`Feature`, IP=`mongodb-migrations-tooling`, Status=`Planned`
 
 A migrations runner for Terreno apps: versioned migration files, up/down with a lock
-collection, CI checks, and integration with the mongoose-schema-safety guidance — replacing
-ad-hoc backfill scripts.
+collection, CI checks, CLI generate-from-schema-diff, optional boot apply, and an admin
+Migrations page — replacing ad-hoc backfill scripts for once-per-environment schema changes.
 
-- **Implementation plan:** *(not yet written)*
-- **Tasks:** *(not yet written)*
+Shipping this work **closes** https://github.com/FlourishHealth/terreno/issues/1189.
+
+- **Implementation plan:** [mongodb-migrations-tooling.md](https://github.com/FlourishHealth/terreno/blob/master/docs/implementationPlans/mongodb-migrations-tooling.md)
+- **Tasks:** [mongodb-migrations-tooling.md](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/mongodb-migrations-tooling.md)
 - **RTK flag:** None
 - **Depends on:** —
 

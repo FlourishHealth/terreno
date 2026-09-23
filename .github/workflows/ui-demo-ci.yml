@@ -1,7 +1,11 @@
 name: UI Demo CI
 
 # Disabled after migration to CircleCI; retained for rollback.
-on: []
+on:
+  # Retained for rollback without registering failed zero-job runs.
+  push:
+    branches-ignore:
+      - "**"
 
 jobs:
   check-ui-changes:
@@ -40,17 +44,6 @@ jobs:
         with:
           bun-version: 1.4.0
 
-      - name: Cache Bun dependencies
-        id: cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-${{ github.ref }}-
-            bun-${{ runner.os }}-
-
       - name: Install root dependencies (workspace)
         run: bun install --frozen-lockfile
 
@@ -65,3 +58,12 @@ jobs:
       - name: TypeScript compile Demo
         run: bun run compile
         working-directory: demo
+
+      - name: Demo story smoke tests
+        run: bun run test:ci
+        working-directory: demo
+
+      - name: Check demo story coverage
+        run: |
+          bun test scripts/check-demo-coverage.test.ts
+          bun run check:demo-coverage

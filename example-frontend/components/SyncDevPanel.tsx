@@ -167,8 +167,10 @@ export const SyncDevPanel: React.FC = () => {
 
   // Listen even when the visible panel is collapsed or omitted so CircleCI's
   // production static export can still break socket backoff after chaos flaps.
+  // React Native aliases `window` to `global` without DOM events, so the
+  // listener API has to be feature-detected rather than assumed from `window`.
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || typeof window.addEventListener !== "function") {
       return;
     }
     const onReconnect = (): void => {

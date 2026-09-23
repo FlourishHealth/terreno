@@ -75,7 +75,7 @@ State who accepted it and where. If that is not visible, stop and ask. An idea p
 
 Follow the house style in [`docs/explanation/roadmap-seed-issues.md`](https://github.com/FlourishHealth/terreno/blob/master/docs/explanation/roadmap-seed-issues.md):
 
-- **Title:** `[Roadmap] <outcome in plain language>` — the outcome, not the mechanism
+- **Title:** the outcome in plain language, not the mechanism. **No `[Roadmap]` prefix** — the `roadmap` label marks it
 - **Body:** two or three paragraphs — the problem, what shipping it changes for users, and scope boundaries. No implementation detail; that belongs in the IP
 - **Links:** the source discussion, and the IP once one exists
 - **Credit:** name the discussion author
@@ -83,10 +83,11 @@ Follow the house style in [`docs/explanation/roadmap-seed-issues.md`](https://gi
 Then choose labels and Project fields, and validate them:
 
 ```bash
-bun run roadmap:check --labels "area:ui,type:feature" --status Shaping --target Next --impact Feature --area ui
+bun run roadmap:check --on-board --labels "roadmap,area:ui,type:feature" --status Shaping --target Next --impact Feature --area ui
 ```
 
-`tracked` is only for items being mirrored into Linear — do not add it reflexively.
+`tracked` is only for items being mirrored into Linear — do not add it reflexively. The
+`roadmap` label is added by `roadmap:sync`, so leave it off the `**Labels:**` line.
 
 ### 4. Plan and confirm (required)
 
@@ -112,7 +113,7 @@ leave the `IP` field empty:
 ```markdown
 ## <discussion-slug>
 
-**Title:** `[Roadmap] <outcome>`
+**Title:** `<outcome>`
 
 **Labels:** `area:ui`, `type:feature`
 **Project fields:** Area=`ui`, Target=`Next`, Impact=`Feature`, IP=*(not yet written)*, Status=`Shaping`

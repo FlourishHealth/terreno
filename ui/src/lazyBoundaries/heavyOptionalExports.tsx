@@ -1,14 +1,18 @@
 import type {AIRequestExplorer as AIRequestExplorerComponent} from "../AIRequestExplorer";
 import type {AiSuggestionBox as AiSuggestionBoxComponent} from "../AiSuggestionBox";
+import type {AreaChart as AreaChartComponent} from "../AreaChart";
 import type {AttachmentPreview as AttachmentPreviewComponent} from "../AttachmentPreview";
+import type {BarChart as BarChartComponent} from "../BarChart";
 import type {ConflictSheet as ConflictSheetComponent} from "../ConflictSheet";
 import type {ConsentFormScreen as ConsentFormScreenComponent} from "../ConsentFormScreen";
 import type {ConsentNavigator as ConsentNavigatorComponent} from "../ConsentNavigator";
+import type {DonutChart as DonutChartComponent} from "../DonutChart";
 import type {DraggableList as DraggableListComponent} from "../DraggableList";
 import type EmojiSelectorComponent from "../EmojiSelector";
 import {Categories} from "../emojiCategories";
 import type {GPTChat as GPTChatComponent} from "../GPTChat";
 import type {GPTMemoryModal as GPTMemoryModalComponent} from "../GPTMemoryModal";
+import type {LineChart as LineChartComponent} from "../LineChart";
 import type {MarkdownEditor as MarkdownEditorComponent} from "../MarkdownEditor";
 import type {MarkdownEditorField as MarkdownEditorFieldComponent} from "../MarkdownEditorField";
 import type {UpgradeRequiredScreen as UpgradeRequiredScreenComponent} from "../UpgradeRequiredScreen";
@@ -17,14 +21,18 @@ import {createLazyComponentExport, createLazyNamedExport} from "./createLazyComp
 export const heavyOptionalModuleFactories = {
   AIRequestExplorer: () => import("../AIRequestExplorer"),
   AiSuggestionBox: () => import("../AiSuggestionBox"),
+  AreaChart: () => import("../AreaChart"),
   AttachmentPreview: () => import("../AttachmentPreview"),
+  BarChart: () => import("../BarChart"),
   ConflictSheet: () => import("../ConflictSheet"),
   ConsentFormScreen: () => import("../ConsentFormScreen"),
   ConsentNavigator: () => import("../ConsentNavigator"),
+  DonutChart: () => import("../DonutChart"),
   DraggableList: () => import("../DraggableList"),
   EmojiSelector: () => import("../EmojiSelector"),
   GPTChat: () => import("../GPTChat"),
   GPTMemoryModal: () => import("../GPTMemoryModal"),
+  LineChart: () => import("../LineChart"),
   MarkdownEditor: () => import("../MarkdownEditor"),
   MarkdownEditorField: () => import("../MarkdownEditorField"),
   UpgradeRequiredScreen: () => import("../UpgradeRequiredScreen"),
@@ -46,6 +54,11 @@ export const AIRequestExplorer = createLazyNamedExport(
   "AIRequestExplorer"
 ) as unknown as typeof AIRequestExplorerComponent;
 
+export const AreaChart = createLazyNamedExport(
+  heavyOptionalModuleFactories.AreaChart,
+  "AreaChart"
+) as unknown as typeof AreaChartComponent;
+
 export const AiSuggestionBox = createLazyNamedExport(
   heavyOptionalModuleFactories.AiSuggestionBox,
   "AiSuggestionBox"
@@ -55,6 +68,11 @@ export const AttachmentPreview = createLazyNamedExport(
   heavyOptionalModuleFactories.AttachmentPreview,
   "AttachmentPreview"
 ) as unknown as typeof AttachmentPreviewComponent;
+
+export const BarChart = createLazyNamedExport(
+  heavyOptionalModuleFactories.BarChart,
+  "BarChart"
+) as unknown as typeof BarChartComponent;
 
 export const ConflictSheet = createLazyNamedExport(
   heavyOptionalModuleFactories.ConflictSheet,
@@ -71,6 +89,11 @@ export const ConsentNavigator = createLazyNamedExport(
   "ConsentNavigator"
 ) as unknown as typeof ConsentNavigatorComponent;
 
+export const DonutChart = createLazyNamedExport(
+  heavyOptionalModuleFactories.DonutChart,
+  "DonutChart"
+) as unknown as typeof DonutChartComponent;
+
 export const DraggableList = createLazyNamedExport(
   heavyOptionalModuleFactories.DraggableList,
   "DraggableList"
@@ -84,6 +107,11 @@ export const GPTChat = createLazyNamedExport(
   heavyOptionalModuleFactories.GPTChat,
   "GPTChat"
 ) as unknown as typeof GPTChatComponent;
+
+export const LineChart = createLazyNamedExport(
+  heavyOptionalModuleFactories.LineChart,
+  "LineChart"
+) as unknown as typeof LineChartComponent;
 
 export const GPTMemoryModal = createLazyNamedExport(
   heavyOptionalModuleFactories.GPTMemoryModal,

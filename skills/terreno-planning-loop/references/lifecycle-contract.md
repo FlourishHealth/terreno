@@ -1,12 +1,12 @@
 # Lifecycle contract
 
 Grow, Pick, Roast, Brew, and Taste are **transitions**, not the orchestration loop.
-`terreno-planning-loop` and `terreno-taste-sweep` are invocable outer loops; they
-must not be recorded as `stage` values.
+`terreno-pick-roast-loop`, `terreno-planning-loop`, and `terreno-taste-sweep` are
+invocable outer loops; they must not be recorded as `stage` values.
 
 | Owner | Responsibility |
 | --- | --- |
-| Outer loop | when to invoke, which agent, persistence, waiting, retry, stop, escalation |
+| Outer loop | when to invoke, which agent, persistence, Taste `PENDING` reinvocation, retry, stop, escalation |
 | Pick–Roast inner loop | one task Pick, Roast that task, next task, until the list is done |
 | Lifecycle stage | how to perform one stage correctly and emit evidence |
 | Repository skills | repository commands, architecture, safety rules, and domain conventions |
@@ -21,9 +21,16 @@ task) until the approved list is done, a `FAIL` that cannot continue, or `BLOCKE
 Roast never invokes Pick. Roast proves the current task and returns. Brew and Taste
 include one in-process wait for
 [`async review bots`](async-review-bots.md) (Bugbot, CodeQL, and similar) before that
-exit, so they can react to those results. Taste observes product CI with
-[`product-ci.md`](product-ci.md) on every discovered host. Hosts and tokens
-are on that page.
+exit, so they can react to those results. Taste then waits in-process for product CI
+with [`product-ci.md`](product-ci.md) on every discovered host, using GitHub CLI or
+CircleCI CLI in a watch loop until jobs are terminal or the wait times out. Before any
+push, Taste always fetches and merges the latest `master`, then records last-run failed
+tests from the CI snapshot and re-verifies them locally, then spawns a fresh subagent
+with no parent conversation. The subagent runs the root package's `prepush` script when
+present; that script is the repository-owned gate for lint, typecheck, static analysis,
+tests, and other local policy. When it is absent, Taste falls back to lint, typecheck,
+and locally affected tests in each affected package. Taste then pushes and watches
+product CI. Hosts and tokens are on the product-CI page.
 
 ## Discover supporting skills
 
@@ -31,8 +38,10 @@ At the start of every stage:
 
 1. Inspect skills exposed by the harness and repository (for example skill catalogs and
    repository skill directories).
-2. Match their descriptions to the affected domains and the current stage.
-3. Load applicable skills before acting. Record their names in `skills`.
+2. Match their descriptions to the **files and criteria in this slice**, not the whole
+   catalog.
+3. Load applicable `SKILL.md` files before acting. Record their names in `skills`.
+   Do not load sibling lifecycle references this stage did not name.
 4. If repository instructions require a capability and it is unavailable, return
    `BLOCKED`; never silently skip it.
 5. If no skill applies, infer conventions from repository instructions, existing code,
@@ -40,6 +49,9 @@ At the start of every stage:
 
 Do not assume any particular supporting skill name exists. Lifecycle skills describe
 portable method; repository skills describe the repository.
+
+When spawning a fresh subagent, pass a [task-scoped briefing](subagent-briefing.md)
+instead of asking the child to rediscover the repository.
 
 ## Documentation
 
@@ -60,6 +72,10 @@ Lead the chat with `status`, `next`, and `action` in one or two lines. Put the Y
 only in a collapsed details block. On a PR, put it only in the Details toggle from the
 [`GitHub attention contract`](github-attention-contract.md). Never paste the YAML in
 visible PR body, comments, or the main chat.
+
+When a PR has GitHub Deployments, close every wait-for-human or done message with those
+demo URLs as the **last visible section**, per [`pr-deployments.md`](pr-deployments.md).
+Omit the section when no `environmentUrl` exists. Do not comment the links on the PR.
 
 The schema is [`stage-result.schema.json`](stage-result.schema.json) (`v: 2`). Required
 keys are `v`, `stage`, `status`, `next`, and `action`. Omit nulls and empty arrays.
@@ -110,12 +126,17 @@ transcripts.
 | `ask` | human questions: `q` / `rec` / optional `opts` |
 | `next` | recommended next stage or `null` |
 | `action` | concrete next action |
-| `wait` | seconds until the next Taste check (`PENDING` after bot timeout or remaining product CI on any discovered host) |
+| `wait` | seconds until the next Taste check (`PENDING` after bot timeout, product-CI wait timeout, or a second post-fix push) |
 
 ## Execution state
 
 The IP and task file remain authoritative for design and scope. Execution state is a
 small loop-owned handoff, not another plan.
+
+The focused Pick–Roast outer loop may add the schema-defined `ledger` array. Each entry
+records one Pick or Roast task attempt, head, status, summary/evidence, and optional
+files, checks, artifacts, docs, hypothesis, and risks. It is the source for the single
+completion or human-gate report.
 
 Use an existing repository convention when present. Otherwise use
 `.terreno/pipeline/<ip-or-task-slug>.json`, conforming to
@@ -132,6 +153,9 @@ Each invocation:
 4. Perform the stage.
 5. Replace `last`, merge artifact references, and set `next`.
 6. Emit the same result to the caller so the loop can persist it elsewhere.
+
+When `terreno-pick-roast-loop` is driving, append the schema-defined `ledger` entry
+between steps 5 and 6.
 
 These six state operations are mandatory whenever a stage says “update execution state.”
 Every result also includes a concrete `action`, even when `next` is `null`. For
@@ -150,11 +174,13 @@ transport.
 - `BLOCKED`: no safe engineering action exists now. Classify `human`, `environment`,
   `access`, or `external`; include the exact action or decision required.
 - `PENDING`: changing external state is not terminal (primarily Taste). Include `wait`;
-  the **outer loop** waits and invokes again. Use `PENDING` for remaining product CI on
-  any discovered host (GitHub Actions, CircleCI, Buildkite, and similar),
-  for review-bot timeout, and after Taste's second post-fix push. Do not emit `PENDING`
-  while Bugbot, CodeQL, or similar review bots are still queued or in progress; wait
-  per the async-review-bots procedure first, preferring native watch/subscription hooks.
+  the **outer loop** waits and invokes again. Use `PENDING` for review-bot timeout,
+  product-CI wait-loop timeout (jobs still pending on GitHub Actions, CircleCI,
+  Buildkite, and similar), and after Taste's second post-fix push. Do not emit
+  `PENDING` while Bugbot, CodeQL, or similar review bots are still queued or in
+  progress; wait per the async-review-bots procedure first. Do not emit `PENDING` for
+  unfinished product CI until Taste has run the product-CI wait loop to completion or
+  timeout, preferring `gh` / `circleci` watch hooks.
 - `PASS`: this stage's success conditions are proven for the recorded head.
 
 Human gates include unresolved product semantics, architecture/security/data ownership,
@@ -162,6 +188,12 @@ destructive or irreversible operations, permissions, public compatibility, signi
 scope growth, and policy-required approval. Include options, tradeoffs, evidence, and a
 recommended default when appropriate.
 
-Bounded engineering retries must be hypothesis-driven. Unbounded product-CI observation
-on every discovered host belongs to the outer loop. Brew and Taste wait in-process only
-for async review bots.
+An outer loop requesting human input must first summarize the overall plan state,
+completed work, failed/recovered attempts, decisive evidence, options and impact, and a
+recommended default. It ends with one exact question, then the Demo section when the PR
+has deployment URLs. Objective engineering failures are not human gates while a concrete
+safe action remains.
+
+Bounded engineering retries must be hypothesis-driven. Taste waits in-process for
+async review bots and for product CI (bounded watch loop). The outer loop reinvokes
+Taste after `PENDING`. Brew waits in-process only for async review bots.

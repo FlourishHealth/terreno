@@ -30,6 +30,8 @@ deploy.
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
 - **admin-spa/** - Standalone admin SPA (Expo Router web app) + Express plugin to serve it from a backend (`@terreno/admin-spa`)
 - **comms/** - Pluggable transactional communications (`@terreno/comms`)
+- **cli/** - Operator CLI (`@terreno/cli`, bin `terreno`) for docs, codegen, bootstrap, and OpenAPI REST
+- **jobs/** - Durable background jobs plugin for `@terreno/api` (`@terreno/jobs`)
 - **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp`, bins `terreno-mcp` + `terreno-mcp-local`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
@@ -41,15 +43,20 @@ The reusable planning plugin uses five bounded transitions:
 **Grow** (shape) → **Pick** (build) ⇄ **Roast** (prove) until tasks are done →
 **Brew** (submit) → **Taste** (react once). Pick owns the inner loop: one task, roast
 it, next task. Roast never invokes Pick. The outer loop owns state persistence,
-product-CI waiting, retry, stop, and escalation.
-Brew and Taste also wait until review bots such as Bugbot or CodeQL finish so they can
-react in the same invocation, preferring provider CLI watch hooks or harness event
-subscriptions over sleep polling. Taste observes product CI on every discovered host
-(GitHub Actions, CircleCI, Buildkite, and similar), not only GitHub checks. See
-`plugins/README.md` and `docs/reference/lifecycle-plugin.md`.
+retry, stop, and escalation. Taste waits in-process for review bots and for product
+CI (`gh` / `circleci` watch loop). Before any push it always pulls latest `master`,
+records last-run failed tests and re-verifies them locally, then
+spawns a no-context subagent to run the root `prepush` package script when present
+(otherwise lint, typecheck, and locally affected tests in affected packages), then
+pushes and watches CI. Brew also waits until
+review bots such as Bugbot or CodeQL finish so they can react in the same invocation.
+Taste observes product CI on every discovered host (GitHub Actions, CircleCI,
+Buildkite, and similar), not only GitHub checks. See `plugins/README.md` and
+`docs/reference/lifecycle-plugin.md`.
 
-Lifecycle stages discover and compose the repo-local skills under `.rulesync/skills/`;
-project commands and domain conventions belong there, not in the portable plugin.
+The installed planning plugin also ships the reusable Terreno app, docs, upgrade,
+deployment, and verification skills used by consumer projects. Repository-only roadmap,
+release, and maintenance workflows remain under `.rulesync/skills/`.
 
 ## Documentation
 
@@ -58,10 +65,12 @@ explanation and reference pages for the affected area. Update those pages in the
 same slice using the `update-docs` skill. Missing docs for a user-visible or
 architectural change fails the slice. Install the published skill set with
 `npx skills add FlourishHealth/terreno`; regenerate `skills/` with
-`bun run skills:sync`. The same five stages install as the Cursor plugin
-`terreno-planning` from `.cursor-plugin/marketplace.json` (invoke `/terreno-1-grow`), or
-as the Claude Code plugin `terreno` via `/plugin marketplace add FlourishHealth/terreno`
-then `/plugin install terreno@terreno-plugins` (invoke `/terreno:1-grow`). The Claude copy under
+`bun run skills:sync`. The combined lifecycle and Terreno app skill set installs as the Cursor plugin
+`terreno-planning` from `.cursor-plugin/marketplace.json` (invoke `/terreno-1-grow`),
+as the Codex plugin `terreno-planning` from `.agents/plugins/marketplace.json`
+(invoke `$terreno-1-grow`), or as the Claude Code plugin `terreno` via
+`/plugin marketplace add FlourishHealth/terreno` then
+`/plugin install terreno@terreno-plugins` (invoke `/terreno:1-grow`). The Claude copy under
 `plugins/terreno-claude/` is generated; never hand-edit it.
 
 ## Development
@@ -98,7 +107,20 @@ bun run admin-backend:compile   # Compile admin backend
 bun run admin-frontend:compile  # Compile admin frontend
 bun run comms:compile           # Compile communications package
 bun run comms:test              # Test communications package
+bun run jobs:compile            # Compile jobs package
+bun run jobs:test               # Test jobs package
+bun run jobs:worker             # Example-backend standalone jobs worker
 ```
+
+### Static analysis
+
+Agent post-edit hooks run `bun run analyze:fast`; agent stop hooks run
+`bun run analyze:full`. `.rulesync/hooks.json` is the canonical hook configuration.
+Knip has no baseline: every finding must be fixed or documented as a narrow exception in
+`knip.jsonc`, and `bun run check:knip` enforces zero findings in CI. dependency-cruiser
+keeps a ratcheted baseline; run `bun run analyze:dependency-baseline` only after reviewing
+an intentional repository-wide dependency-graph change. See
+`docs/explanation/static-analysis.md`.
 
 ## How the Packages Work Together
 
@@ -240,25 +262,44 @@ const router = modelRouter(YourModel, {
 });
 ```
 
-#### Custom Routes
+#### Custom endpoints (modelRouter actions)
 
-For non-CRUD endpoints, use the OpenAPI builder:
+Do **not** use `app.get` / `app.post` / `router.get` / `router.post` for application
+APIs. Use `collectionActions` and `instanceActions` on `modelRouter`:
 
 ```typescript
-import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
+import {modelRouter, Permissions, z} from "@terreno/api";
 
-router.get("/yourRoute/:id", [
-  authenticateMiddleware(),
-  createOpenApiBuilder(options)
-    .withTags(["yourTag"])
-    .withSummary("Brief summary")
-    .withPathParameter("id", {type: "string"})
-    .withResponse(200, {data: {type: "object"}})
-    .build(),
-], asyncHandler(async (req, res) => {
-  return res.json({data: result});
-}));
+export const todoRouter = modelRouter("/todos", Todo, {
+  collectionActions: {
+    bulkComplete: {
+      method: "POST",
+      permissions: [Permissions.IsAuthenticated],
+      body: z.object({ids: z.array(z.string()).min(1)}).strict(),
+      handler: async ({body, user}) => {
+        return {matched: 0, modified: 0};
+      },
+    },
+  },
+  instanceActions: {
+    markComplete: {
+      method: "POST",
+      permissions: [Permissions.IsOwner],
+      handler: async ({doc}) => doc,
+    },
+  },
+  permissions: {
+    list: [Permissions.IsAuthenticated],
+    create: [Permissions.IsAuthenticated],
+    read: [Permissions.IsOwner],
+    update: [Permissions.IsOwner],
+    delete: [Permissions.IsOwner],
+  },
+});
 ```
+
+See `docs/explanation/model-router-actions.md`. Exceptions: `WebhooksApp`, static SPA,
+auth/health/version plugins, SSE.
 
 #### API Conventions
 
@@ -360,6 +401,12 @@ Key imports:
 import {createSyncDb, betterAuthAdapter} from "@terreno/syncdb";
 import {SyncDbProvider, useQuery, useMutate} from "@terreno/syncdb/react";
 ```
+
+For running-app SyncDB bugs, invoke the `debug-syncdb-with-mcp` skill and use
+`get_syncdb_state`, `syncdb_snapshot`, and `syncdb_action` from
+`terreno-mcp-local`. Enable the client with `debug: true`; set
+`TERRENO_MCP_EVAL=1` only for state-changing actions. See
+`docs/how-to/debug-with-mcp.md`.
 
 ### @terreno/rtk (legacy data sync; still required for SDK + auth)
 
@@ -493,7 +540,22 @@ Seed login users with `bun run backend:seed` (same env vars): creates `test@exam
 
 ### Tests and lint
 
-- `bun run lint`, `bun run api:test`, `bun run ui:test` (root `bun run test` may fail if optional workspace packages lack tests).
+Every CircleCI test job has a local command. Map and run them with
+[`docs/how-to/run-tests-locally.md`](../../docs/how-to/run-tests-locally.md).
+
+```bash
+bun run test              # every workspace test:ci (including example-frontend)
+bun run test:agent        # same suites; passing cases suppressed
+bun run frontend:test     # example-frontend unit tests
+bun run frontend:e2e      # Playwright (needs replica-set mongod; starts backend+web)
+bun run maestro:test      # Maestro web flows
+bun run prepush           # lint + compile + analyze:full
+```
+
+Install Playwright browsers once: `cd example-frontend && bunx playwright install --with-deps chromium`.
+Taste: copy failed tests from the last CI log, run that exact local command, then
+`git push`. `prepush` does not replace that re-verify.
+
 - `demo:start` serves the UI component demo on port **8085**.
 
 ### GCP service account secrets

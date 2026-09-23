@@ -11,8 +11,9 @@ both.
 
 See also [CONTRIBUTING.md](https://github.com/FlourishHealth/terreno/blob/master/CONTRIBUTING.md) for the contributor intake flow.
 Issue-sized work that is not a public roadmap item uses
-[GitHub issue lifecycle](../how-to/github-issue-lifecycle.md) (`create-github-issue` →
-`work-github-issues`) instead of an IP.
+[GitHub issue lifecycle](../how-to/github-issue-lifecycle.md)
+(`create-github-issue` → `work-github-issues`, or `status:ready-for-dev` →
+`implement-ready-for-dev`) instead of an IP.
 
 ## How work flows (IP ↔ roadmap)
 
@@ -228,6 +229,19 @@ before applying a rewrite.
 
 [`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml) is the source of truth.
 
+Every issue on the board carries the **`roadmap`** label. That label — not a title prefix — is
+how roadmap work is filtered:
+
+```bash
+gh issue list --repo FlourishHealth/terreno --label roadmap --state all
+```
+
+`roadmap:sync` adds it to every issue it declares, so seed entries do not repeat it on their
+`**Labels:**` line. Tracking issues used to be titled `[Roadmap] <outcome>`; titles are now
+just the outcome, and `displayTitle` in
+[`scripts/generate-roadmap/lib.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/generate-roadmap/lib.ts)
+strips the legacy prefix wherever it survives.
+
 Apply or update labels with `gh` authenticated as a maintainer:
 
 ```bash
@@ -252,8 +266,11 @@ Delete unused GitHub defaults after the new taxonomy is applied (`gh label list`
 The workflow's built-in `GITHUB_TOKEN` **cannot** be used here: it is repository-scoped and
 returns no `projectV2` data for an organization project. GitHub also reserves the name
 `GITHUB_TOKEN`, so a PAT cannot be supplied under that name — hence the separate
-`ROADMAP_PROJECT_TOKEN` secret. Pushing the regenerated `ROADMAP.md` still uses the default
-token via `permissions: contents: write`.
+`ROADMAP_PROJECT_TOKEN` secret. The same PAT also pushes the regenerated `ROADMAP.md`: the
+`master` ruleset requires a pull request and the default `GITHUB_TOKEN` is not a bypass actor
+on it, so the PAT needs `repo` scope and its owner must be listed as a ruleset bypass actor.
+[`.github/scripts/git-auth-roadmap-pat.sh`](https://github.com/FlourishHealth/terreno/blob/master/.github/scripts/git-auth-roadmap-pat.sh)
+applies that credential only for the fetch/push steps, so `bun install` never sees it.
 
 Locally, export the PAT as `GITHUB_TOKEN` (for example `GITHUB_TOKEN=$(gh auth token)`), which
 is the variable the generator reads.
@@ -264,7 +281,9 @@ Five agent skills cover the recurring roadmap work. Each one researches, propose
 **stops for a maintainer to approve** before touching GitHub — roadmap decisions are the most
 human part of the process, so none of them mutate state on their own. All five are
 `disable-model-invocation`, meaning an agent will not start them on its own initiative;
-you invoke them explicitly.
+you invoke them explicitly. Unattended implementation of a roastable issue is
+[`implement-ready-for-dev`](../how-to/github-issue-lifecycle.md#unattended-pickup),
+not a sixth roadmap skill.
 
 | Skill | Use it when |
 | ----- | ----------- |
@@ -303,11 +322,12 @@ per-agent mirrors.
 The skills do not carry a copy of the taxonomy. They call:
 
 ```bash
-bun run roadmap:check --labels "area:api,type:feature" --status Planned --target Next --impact Feature --area api
+bun run roadmap:check --on-board --labels "roadmap,area:api,type:feature" --status Planned --target Next --impact Feature --area api
 ```
 
 Run it with no arguments to print every valid label and field option. It enforces exactly one
-`area:*` and one `type:*` label, rejects labels absent from
+`area:*` and one `type:*` label, requires the `roadmap` label under `--on-board` (omit the
+flag when triaging an issue that is not headed for the board), rejects labels absent from
 [`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml),
 rejects Project values absent from
 [`.github/roadmap-fields.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/roadmap-fields.yml),
@@ -360,10 +380,9 @@ do not claim completion until done.
 | Workflow | Trigger | Purpose |
 | -------- | ------- | ------- |
 | [`.github/workflows/triage.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown + `type:*` from Kind when present |
-| [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | `roadmap:sync --check` for board drift, then regenerate `ROADMAP.md` from the board |
+| [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | `roadmap:sync --check` for board drift, then regenerate `ROADMAP.md` from the board and open a pull request when it changes |
 | [`.github/workflows/roadmap-sync.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-sync.yml) | Taxonomy files change on `master` + manual | Apply labels and reconcile the board's fields and items |
 | [`.github/workflows/roadmap-reconcile.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-reconcile.yml) | IP or task files change on `master` + manual | Advance status from IP headers, push to the board, regenerate `ROADMAP.md` |
-
 All three share the `roadmap` concurrency group. They write the same board, and interleaving
 them produces confusing partial states. After the group lock is acquired, each job refreshes
 to the latest branch HEAD so a queued `roadmap-sync` cannot overwrite statuses that

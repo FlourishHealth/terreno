@@ -87,7 +87,7 @@ gh api graphql -f query='
 Validate any label or field change you intend to propose:
 
 ```bash
-bun run roadmap:check --labels "area:api,type:feature" --status "In progress"
+bun run roadmap:check --on-board --labels "roadmap,area:api,type:feature" --status "In progress"
 ```
 
 ### 3. Report

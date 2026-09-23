@@ -1,6 +1,7 @@
-import {describe, expect, it} from "bun:test";
+import {describe, it} from "bun:test";
+import {assert} from "chai";
 
-import {groupAdminModelsByGroup} from "./adminShellNav";
+import {buildAdminSidebarGroups, groupAdminModelsByGroup} from "./adminShellNav";
 import type {AdminModelConfig} from "./types";
 
 const stubModel = (name: string, displayName: string, group?: string): AdminModelConfig =>
@@ -21,9 +22,74 @@ describe("groupAdminModelsByGroup", () => {
       stubModel("B", "B"),
       stubModel("C", "C", "Alpha"),
     ]);
-    expect(groups.map((g) => g.group)).toEqual(["Alpha", "Zebra", "General"]);
-    expect(groups[0]?.models.map((m) => m.name)).toEqual(["C"]);
-    expect(groups[1]?.models.map((m) => m.name)).toEqual(["A"]);
-    expect(groups[2]?.models.map((m) => m.name)).toEqual(["B"]);
+    assert.deepEqual(
+      groups.map((g) => g.group),
+      ["Alpha", "Zebra", "General"]
+    );
+    assert.deepEqual(
+      groups[0]?.models.map((m) => m.name),
+      ["C"]
+    );
+    assert.deepEqual(
+      groups[1]?.models.map((m) => m.name),
+      ["A"]
+    );
+    assert.deepEqual(
+      groups[2]?.models.map((m) => m.name),
+      ["B"]
+    );
+  });
+
+  it("returns no groups when models is missing", () => {
+    assert.deepEqual(groupAdminModelsByGroup(undefined as unknown as AdminModelConfig[]), []);
+  });
+});
+
+describe("buildAdminSidebarGroups", () => {
+  it("places grouped custom screens in matching model groups before models", () => {
+    const {groups, ungroupedScreens} = buildAdminSidebarGroups({
+      customScreens: [
+        {displayName: "Overview", group: "Announcements", name: "announcements"},
+        {displayName: "Reports", name: "reports"},
+      ],
+      models: [
+        stubModel("Announcement", "All announcements", "Announcements"),
+        stubModel("User", "Users", "Accounts"),
+      ],
+    });
+
+    assert.deepEqual(
+      ungroupedScreens.map((screen) => screen.name),
+      ["reports"]
+    );
+    assert.deepEqual(
+      groups.map((entry) => entry.group),
+      ["Accounts", "Announcements"]
+    );
+    const announcements = groups.find((entry) => entry.group === "Announcements");
+    assert.deepEqual(
+      announcements?.customScreens.map((screen) => screen.name),
+      ["announcements"]
+    );
+    assert.deepEqual(
+      announcements?.models.map((model) => model.name),
+      ["Announcement"]
+    );
+  });
+
+  it("creates a sidebar group for grouped screens without matching models", () => {
+    const {groups, ungroupedScreens} = buildAdminSidebarGroups({
+      customScreens: [{displayName: "Insights", group: "Analytics", name: "insights"}],
+      models: [],
+    });
+
+    assert.deepEqual(ungroupedScreens, []);
+    assert.deepEqual(groups, [
+      {
+        customScreens: [{displayName: "Insights", group: "Analytics", name: "insights"}],
+        group: "Analytics",
+        models: [],
+      },
+    ]);
   });
 });

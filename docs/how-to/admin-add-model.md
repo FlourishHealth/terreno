@@ -1,5 +1,8 @@
 # Add a model to the admin
 
+Generic table/form routes are already in the host app. Do not add an Expo file per
+model. For screens and nav, see [Build admin screens](build-admin-screens.md).
+
 Add `admin` directly to the model's existing `modelRouter` options:
 
 ```ts
@@ -35,7 +38,15 @@ Common fields:
 - `searchFields`: string fields matched by the list search box (`q`) as a
   case-insensitive partial (`$regex`) query.
 - `sortableFields`: the only columns with sorting enabled.
-- `filters`: typed filter drawer controls.
+- `filters`: typed list filters rendered on `DataTable` column headers (web) or the
+  mobile **Filters** sheet. `text` filters are case-insensitive contains (`$regex`);
+  `choice` filters support multi-select (`$in`); `ref` stays a single ObjectId. The
+  backend accepts only escaped literal regex patterns and rejects extra nested operators.
+  Optional choice fields (Mongoose path not `required`) automatically expose an **Empty**
+  filter option; set `allowEmpty: false` on the filter config to hide it, or
+  `allowEmpty: true` on required fields when you intentionally want unset matching.
+  Empty filters can be combined with toolbar search or concrete choices. The wire
+  sentinel is consumed before Mongo receives the query.
 - `fieldsets`: grouped form sections.
 - `readonlyFields` / `hiddenFields`: display-only or omitted form fields.
 - `adminPermissions`: optional admin-specific permission methods.

@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, mock, setSystemTime} from "bun:test";
+import {DateTime} from "luxon";
 
 // ---------------------------------------------------------------------------
 // Controllable state that tests tweak between runs
@@ -235,7 +236,7 @@ describe("useSocketConnection", () => {
   });
 
   it("shows a reconnected toast when reconnecting after more than 10 seconds", async () => {
-    setSystemTime(new Date("2024-01-01T00:00:00Z"));
+    setSystemTime(DateTime.fromISO("2024-01-01T00:00:00Z").toJSDate());
     const {result} = renderHook(() => useSocketConnection(defaultOptions()));
     await act(async () => {
       await flushPromises();
@@ -245,7 +246,7 @@ describe("useSocketConnection", () => {
     await waitFor(() => {
       expect(result.current.isSocketConnected.lastDisconnectedAt).not.toBeNull();
     });
-    setSystemTime(new Date("2024-01-01T00:00:20Z"));
+    setSystemTime(DateTime.fromISO("2024-01-01T00:00:20Z").toJSDate());
     mockToastShow.mockClear();
     await emit("connect");
     expect(mockToastShow).toHaveBeenCalledWith("You have been reconnected.");
@@ -369,7 +370,7 @@ describe("useSocketConnection", () => {
   });
 
   it("shows and hides the disconnected toast based on connection state", async () => {
-    setSystemTime(new Date("2024-01-01T00:00:00Z"));
+    setSystemTime(DateTime.fromISO("2024-01-01T00:00:00Z").toJSDate());
     const {result} = renderHook(() => useSocketConnection(defaultOptions()));
     await act(async () => {
       await flushPromises();
@@ -381,7 +382,7 @@ describe("useSocketConnection", () => {
     });
 
     // More than 9 seconds since disconnect → the interval should show the toast.
-    setSystemTime(new Date("2024-01-01T00:00:15Z"));
+    setSystemTime(DateTime.fromISO("2024-01-01T00:00:15Z").toJSDate());
     mockToastShow.mockClear();
     await act(async () => {
       await Promise.all(intervalCallbacks.map((cb) => cb()));
@@ -406,7 +407,7 @@ describe("useSocketConnection", () => {
       await flushPromises();
     });
     getAuthToken.mockClear();
-    reduxTimestamp = Date.now();
+    reduxTimestamp = DateTime.now().toMillis();
     await act(async () => {
       rerender(defaultOptions());
       await flushPromises();

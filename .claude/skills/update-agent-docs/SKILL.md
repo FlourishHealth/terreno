@@ -11,7 +11,14 @@ Use this workflow for any document consumed by an agent. When editing a skill, a
 
 ## 1. Find the source of truth
 
-Identify generated copies before editing. In Terreno, `.rulesync/` is the source for synchronized rules and skills; `bun run rules` generates tool-specific copies. Plugin skills under `plugins/` are separate published sources. Package skills under `<package>/.ai/skills/` overlay those copies in the installable `skills/` tree via `bun run skills:sync`.
+Identify generated copies before editing. In Terreno, `.rulesync/` is the source for
+repository-only synchronized rules and skills; `bun run rules` generates tool-specific
+copies. Agent lifecycle hooks are canonical in `.rulesync/hooks.json` with commands
+under `.rulesync/hooks/`; the same command generates each tool's native hook config.
+Reusable lifecycle and Terreno app skills are canonical under
+`plugins/terreno-planning/skills/`; `bun run skills:sync` generates the installable
+`skills/` tree and Claude plugin. Package skills under `<package>/.ai/skills/` serve
+package/MCP tooling and do not overlay the installable tree.
 
 Read related documents and remove conflicting duplicates rather than adding another layer. Human-facing docs (`docs/`) remain the architecture source; agent docs point at them and do not invent a second design.
 
@@ -48,7 +55,7 @@ Delete no-ops, stale caches of the environment, and duplicate meanings.
 ## 5. Validate
 
 - check frontmatter and relative links
-- ensure referenced files exist
+- ensure referenced files and hook commands exist and are executable
 - run `bun run rules` after `.rulesync/` edits
 - run `bun run skills:sync` after skill source, plugin skill, or `<package>/.ai/skills/` edits
 - run `bun run rules:check` and the repository's agent-quiet test command

@@ -9,7 +9,14 @@ import {
   ConsentForm,
   type ConsentFormType,
   ConsentResponse,
+  findSyncEntryByModelName,
   logger,
+  Membership,
+  Notification,
+  Organization,
+  Permissions,
+  registerOrganizationSettings,
+  registerSync,
   runSeedCli,
   runSeeds,
   type SeedContext,
@@ -30,6 +37,7 @@ import mongoose from "mongoose";
 import "../api/projects";
 import "../api/todos";
 import {Configuration} from "../models/configuration";
+import {organizationSettingsSchema} from "../models/organizationSettings";
 import {Project} from "../models/project";
 import {Todo} from "../models/todo";
 import {User} from "../models/user";
@@ -38,14 +46,36 @@ import type {UserDocument} from "../types/models/userTypes";
 import {getAuthProvider} from "../utils/betterAuthConfig";
 import {seedBetterAuthUserInProcess} from "../utils/betterAuthUserSeed";
 import {connectToMongoDB} from "../utils/database";
+import {seedAnnouncements} from "./seed-announcements";
 import {seedFeatureFlags} from "./seed-feature-flags";
+
+const ensureNotificationSyncRegistered = (): void => {
+  if (findSyncEntryByModelName("Notification")) {
+    return;
+  }
+  registerSync({
+    config: {scope: {type: "owner"}},
+    model: Notification,
+    options: {
+      permissions: {
+        create: [],
+        delete: [Permissions.IsOwner],
+        list: [Permissions.IsAuthenticated],
+        read: [Permissions.IsOwner],
+        update: [Permissions.IsOwner],
+      },
+      sync: {scope: {type: "owner"}},
+    },
+    routePath: "/notifications",
+  });
+};
 
 interface SeedUser {
   admin?: boolean;
   email: string;
   name: string;
-  organizationIds: string[];
   password: string;
+  roles?: string[];
 }
 
 interface SeedConsentForm {
@@ -76,38 +106,78 @@ interface SeedCommsMessage {
   to: string;
 }
 
-// Shared organization so both seeded users demonstrate tenant-scoped project sync.
-const EXAMPLE_ORGANIZATION_ID = "org-example";
+interface SeedNotification {
+  archived?: boolean;
+  body: string;
+  minutesAgo: number;
+  read?: boolean;
+  title: string;
+}
 
 const TEST_USERS: SeedUser[] = [
   {
     email: "test@example.com",
     name: "Test User",
-    organizationIds: [EXAMPLE_ORGANIZATION_ID],
     password: "testpassword123",
   },
   {
     admin: true,
     email: "admin@example.com",
     name: "Admin User",
-    organizationIds: [EXAMPLE_ORGANIZATION_ID],
     password: "testpassword123",
   },
   {
     admin: true,
     email: "superadmin@example.com",
     name: "Super Admin",
-    organizationIds: [EXAMPLE_ORGANIZATION_ID],
+    password: "testpassword123",
+  },
+  {
+    email: "operator@example.com",
+    name: "Platform Operator",
+    password: "testpassword123",
+    roles: ["operator"],
+  },
+  {
+    email: "orgadmin-alpha@example.com",
+    name: "Alpha Org Admin",
+    password: "testpassword123",
+  },
+  {
+    email: "orgadmin-beta@example.com",
+    name: "Beta Org Admin",
     password: "testpassword123",
   },
 ];
 
-const SEED_PROJECTS = [
-  {organizationId: EXAMPLE_ORGANIZATION_ID, title: "Example Project"},
-  {organizationId: EXAMPLE_ORGANIZATION_ID, title: "Sync Rollout"},
+const SEED_PROJECT_TITLES = ["Example Project", "Sync Rollout"];
+const SEED_ORGANIZATIONS = [
+  {adminEmail: "orgadmin-alpha@example.com", name: "Alpha Workspace"},
+  {adminEmail: "orgadmin-beta@example.com", name: "Beta Workspace"},
 ];
 
 const SEED_TODOS = ["Try offline mode", "Review the sync status banner"];
+
+const SEED_NOTIFICATIONS: SeedNotification[] = [
+  {
+    body: "Open the bell to preview the notification drawer.",
+    minutesAgo: 5,
+    title: "Welcome to notifications",
+  },
+  {
+    body: "Completed items now create an activity notification.",
+    minutesAgo: 45,
+    read: true,
+    title: "Todo activity is connected",
+  },
+  {
+    archived: true,
+    body: "Archived notifications remain available on the full history page.",
+    minutesAgo: 180,
+    read: true,
+    title: "Archived example",
+  },
+];
 
 const SEED_COMMS_MESSAGES: SeedCommsMessage[] = [
   {
@@ -314,6 +384,9 @@ This consent is optional. You can decline without affecting your use of the appl
 ];
 
 const seedRolesForUser = (testUser: SeedUser): string[] => {
+  if (testUser.roles) {
+    return testUser.roles;
+  }
   return testUser.admin ? [SUPERADMIN_ROLE] : [DEFAULT_USER_ROLE];
 };
 
@@ -332,7 +405,7 @@ const applySeedRoles = (
   return {changed: true, user};
 };
 
-/** Ensure the Mongoose user doc reflects the seed's admin flag, roles, and organizations. */
+/** Ensure the Mongoose user doc reflects the seed's admin flag and roles. */
 const reconcileMongooseUser = async (testUser: SeedUser): Promise<UserDocument> => {
   const user = await User.findByEmail(testUser.email);
   if (!user) {
@@ -344,10 +417,6 @@ const reconcileMongooseUser = async (testUser: SeedUser): Promise<UserDocument> 
   let changed = false;
   if (testUser.admin && !user.admin) {
     user.admin = true;
-    changed = true;
-  }
-  if ((user.organizationIds ?? []).length === 0) {
-    user.organizationIds = testUser.organizationIds;
     changed = true;
   }
   const withRoles = applySeedRoles(user, testUser);
@@ -389,7 +458,6 @@ const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
       admin: testUser.admin ?? false,
       email: testUser.email,
       name: testUser.name,
-      organizationIds: testUser.organizationIds,
       roles: seedRolesForUser(testUser),
     },
     testUser.password
@@ -399,8 +467,52 @@ const seedUser = async (testUser: SeedUser): Promise<UserDocument> => {
   return user as UserDocument;
 };
 
+const seedOrganizations = async (context: SeedContext): Promise<void> => {
+  registerOrganizationSettings(organizationSettingsSchema);
+  const owner = seededUsers.find((user) => user.email === "operator@example.com");
+  if (!owner) {
+    throw new APIError({status: 500, title: "Seed operator not found"});
+  }
+  for (const definition of SEED_ORGANIZATIONS) {
+    await context.upsert(
+      Organization,
+      {name: definition.name},
+      {name: definition.name, ownerId: owner._id}
+    );
+    if (context.dryRun) {
+      continue;
+    }
+    const organization = await Organization.findExactlyOne({name: definition.name});
+    const orgAdmin = seededUsers.find((user) => user.email === definition.adminEmail);
+    if (!orgAdmin) {
+      throw new APIError({status: 500, title: `Seed user ${definition.adminEmail} not found`});
+    }
+    await context.upsert(
+      Membership,
+      {organizationId: organization._id, userId: orgAdmin._id},
+      {organizationId: organization._id, roleName: "org-admin", userId: orgAdmin._id}
+    );
+    const testUser = seededUsers.find((user) => user.email === "test@example.com");
+    if (definition.name === "Alpha Workspace" && testUser) {
+      await context.upsert(
+        Membership,
+        {organizationId: organization._id, userId: testUser._id},
+        {organizationId: organization._id, roleName: "member", userId: testUser._id}
+      );
+    }
+  }
+};
+
 const seedProjects = async (context: SeedContext): Promise<void> => {
-  for (const project of SEED_PROJECTS) {
+  const organization = await Organization.findOneOrNone({slug: "alpha-workspace"});
+  if (!organization) {
+    if (context.dryRun) {
+      return;
+    }
+    throw new APIError({status: 500, title: "Seed organization Alpha Workspace not found"});
+  }
+  for (const title of SEED_PROJECT_TITLES) {
+    const project = {organizationId: String(organization._id), title};
     await context.upsert(
       Project,
       {organizationId: project.organizationId, title: project.title},
@@ -412,6 +524,35 @@ const seedProjects = async (context: SeedContext): Promise<void> => {
 const seedTodos = async (context: SeedContext, owner: UserDocument): Promise<void> => {
   for (const title of SEED_TODOS) {
     await context.upsert(Todo, {ownerId: owner._id, title}, {ownerId: owner._id, title});
+  }
+};
+
+const seedNotifications = async (context: SeedContext, owner: UserDocument): Promise<void> => {
+  ensureNotificationSyncRegistered();
+  const seededAt = DateTime.utc();
+  for (const notification of SEED_NOTIFICATIONS) {
+    const values = {
+      archivedAt: notification.archived ? seededAt.toJSDate() : null,
+      body: notification.body,
+      created: seededAt.minus({minutes: notification.minutesAgo}).toJSDate(),
+      href: "/",
+      kind: "seed",
+      ownerId: owner._id,
+      readAt: notification.read ? seededAt.toJSDate() : null,
+      title: notification.title,
+    };
+    await context.upsert(Notification, {ownerId: owner._id, title: notification.title}, values);
+    if (context.dryRun) {
+      continue;
+    }
+    const seededNotification = await Notification.findExactlyOne({
+      ownerId: owner._id,
+      title: notification.title,
+    });
+    if (seededNotification.get("_syncSeq") == null) {
+      seededNotification.markModified("body");
+      await seededNotification.save();
+    }
   }
 };
 
@@ -549,6 +690,15 @@ export const seedSteps: SeedStep[] = [
   },
   {
     dependsOn: ["users"],
+    name: "organizations",
+    reset: async (context) => {
+      await context.deleteMany(Membership);
+      await context.deleteMany(Organization);
+    },
+    run: seedOrganizations,
+  },
+  {
+    dependsOn: ["organizations"],
     name: "projects",
     reset: async (context) => {
       await softDeleteAll(context, await Project.find({}), Project.modelName);
@@ -564,6 +714,22 @@ export const seedSteps: SeedStep[] = [
     run: async (context) => {
       if (seededUsers[0]) {
         await seedTodos(context, seededUsers[0]);
+      }
+    },
+  },
+  {
+    dependsOn: ["users"],
+    name: "notifications",
+    reset: async (context) => {
+      const seededNotifications = await Notification.find({
+        deleted: {$in: [false, true]},
+        kind: "seed",
+      });
+      await softDeleteAll(context, seededNotifications, Notification.modelName);
+    },
+    run: async (context) => {
+      if (seededUsers[0]) {
+        await seedNotifications(context, seededUsers[0]);
       }
     },
   },
@@ -599,9 +765,20 @@ export const seedSteps: SeedStep[] = [
     },
   },
   {
+    name: "announcements",
+    reset: async (context) => {
+      const {Announcement} = await import("@terreno/announcements");
+      await context.deleteMany(Announcement);
+    },
+    run: async (context) => {
+      await seedAnnouncements(context);
+    },
+  },
+  {
     dependsOn: ["users"],
     name: "commsMessages",
     reset: async (context) => {
+      // Intentionally does not touch terreno_migrations; seed reset is not a schema rollback.
       await context.deleteMany(CommsMessage, {"metadata.demoSeed": true});
     },
     run: async (context) => {

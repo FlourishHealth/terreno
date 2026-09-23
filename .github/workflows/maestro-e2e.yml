@@ -3,7 +3,11 @@ name: Maestro E2E Tests
 # Maestro runs against example-frontend web in Chrome (xvfb), plus demo
 # smokes when ui/demo flows change. CircleCI twin: maestro-e2e.
 # Disabled after migration to CircleCI; retained for rollback.
-on: []
+on:
+  # Retained for rollback without registering failed zero-job runs.
+  push:
+    branches-ignore:
+      - "**"
 
 concurrency:
   group: maestro-e2e-${{ github.workflow }}-${{ github.ref }}
@@ -33,21 +37,10 @@ jobs:
           bun-version: 1.4.0
 
       - name: Setup Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-${{ github.ref }}-
-            bun-${{ runner.os }}-
 
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1

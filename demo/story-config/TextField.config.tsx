@@ -2,6 +2,8 @@ import {DemoConfiguration} from "@config";
 import {
   TextFieldDemo,
   TextFieldDisabledDemo,
+  TextFieldPasswordDemo,
+  TextFieldPasswordNoToggleDemo,
   TextFieldWithErrorMsgDemo,
   TextFieldWithHelperTextDemo,
   TextFieldWithLabelDemo,
@@ -31,6 +33,7 @@ export const TextFieldConfiguration: DemoConfiguration = {
       "Use this component for shorter strings. For example, a name.",
       "If an error is returned, tell the user why.",
       "If the field is disabled, tell the user why.",
+      'Use type="password" for secrets. It masks the value and adds a show/hide control.',
     ],
     doNot: [
       "Do not use this component if a larger string is allowed or expected. Instead, use Text area.",
@@ -51,6 +54,12 @@ export const TextFieldConfiguration: DemoConfiguration = {
     },
     "Text Field with Error Message": {
       render: TextFieldWithErrorMsgDemo,
+    },
+    "Password Text Field": {
+      render: TextFieldPasswordDemo,
+    },
+    "Password Text Field without Show/Hide": {
+      render: TextFieldPasswordNoToggleDemo,
     },
     "Disabled Text Field": {
       render: TextFieldDisabledDemo,

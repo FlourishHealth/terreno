@@ -2,6 +2,7 @@ import type {AdminConfig} from "@terreno/api";
 import {logger} from "@terreno/api";
 
 import type {AdminModelConfig} from "./adminApp";
+import {enrichAdminListFilters} from "./enrichAdminListFilters";
 import type {ResolvedAdminModel} from "./resolvedAdminModel";
 import {normalizeAdminRoutePath} from "./routePath";
 
@@ -24,6 +25,8 @@ export const convertLegacyModelConfig = (config: AdminModelConfig): ResolvedAdmi
     );
   }
 
+  const filters = enrichAdminListFilters(config.filters, config.model);
+
   const admin: AdminConfig = {
     actions: config.actions,
     autocompleteFields: undefined,
@@ -34,7 +37,7 @@ export const convertLegacyModelConfig = (config: AdminModelConfig): ResolvedAdmi
     fieldOrder: config.fieldOrder,
     fieldOverrides: config.fieldOverrides,
     fieldsets: config.fieldsets,
-    filters: config.filters,
+    filters,
     group: config.group,
     hiddenFields: config.hiddenFields,
     listDisplay: config.listDisplay,
@@ -51,6 +54,7 @@ export const convertLegacyModelConfig = (config: AdminModelConfig): ResolvedAdmi
   return {
     ...config,
     admin,
+    filters,
     routePath: normalizeAdminRoutePath(config.routePath),
     source: "legacy",
     sourceLabel: config.displayName,

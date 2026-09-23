@@ -23,11 +23,12 @@ export const getSyncAppOptions = (app: express.Application): SyncAppOptions | un
  *
  * Registration also enqueues the bookkeeping-model index builds (`SyncCounter`,
  * `SyncMutation`, `SyncScopeMove`, `SyncKey`) for `ensureSyncIndexes()`, which
- * `TerrenoApp.start()` awaits before the HTTP server begins listening. Those indexes are
+ * `TerrenoApp.start()` binds the HTTP port first, then awaits `ensureSyncIndexes()`. Those indexes are
  * requirements — the unique `mutationId` index is what makes duplicate mutation deliveries
  * idempotent, and the unique `stream` index is what keeps the counter upsert race from
  * minting duplicate seqs — so an index-build failure fails startup loudly. Apps that build
  * the Express app without `TerrenoApp.start()` should await `ensureSyncIndexes()` themselves.
+ * Pass `httpServer` when the process already bound `PORT` (Cloud Run startup probe).
  */
 export class SyncApp implements TerrenoPlugin {
   private readonly options: SyncAppOptions;

@@ -22,6 +22,7 @@
  */
 import {parseArgs} from "node:util";
 
+import {displayTitle} from "../generate-roadmap/lib.ts";
 import {
   FIELDS_PATH,
   LABELS_PATH,
@@ -211,7 +212,7 @@ export const resolveSeedItems = ({
     }
 
     const title = primary.title !== "" ? primary.title : (tableRow?.title ?? "");
-    const issueNumber = tableRow?.issueNumber ?? issueNumbersByTitle.get(title) ?? null;
+    const issueNumber = tableRow?.issueNumber ?? issueNumbersByTitle.get(displayTitle(title)) ?? null;
 
     if (issueNumber === null && primary.ip === "" && !includeWithoutIp) {
       // The repo's own process opens a tracking issue only once an IP is
@@ -259,6 +260,7 @@ export const validateItems = ({
       },
       knownLabels,
       options,
+      requireRoadmapLabel: true,
     });
     for (const problem of itemProblems) {
       problems.push(`${item.slug}: ${problem}`);
@@ -668,7 +670,9 @@ export const main = async (): Promise<void> => {
 
   const seeds = await readSeedIssues();
   const {issues, repositoryId} = await fetchIssues({owner: values.owner, repo: values.repo, token});
-  const issueNumbersByTitle = new Map(issues.map((issue) => [issue.title, issue.number]));
+  // Titles are matched with the legacy `[Roadmap] ` prefix stripped from both
+  // sides, so an entry written without it still finds an issue opened with it.
+  const issueNumbersByTitle = new Map(issues.map((issue) => [displayTitle(issue.title), issue.number]));
   const {items, skipped} = resolveSeedItems({
     includeWithoutIp: values["create-missing-issues"],
     issueNumbersByTitle,

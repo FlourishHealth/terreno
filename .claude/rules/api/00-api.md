@@ -32,6 +32,8 @@ src/
   errors.ts              # APIError and error middleware
   expressServer.ts       # setupServer and middleware stack
   terrenoApp.ts          # TerrenoApp class with register pattern
+  rateLimit/             # Opt-in HTTP rate limiting (memory / redis / mongo)
+  audit/                 # Opt-in AuditApp, AuditEvent factory, recorder (no barrel)
   terrenoPlugin.ts       # TerrenoPlugin interface for extensibility
   openApiBuilder.ts      # Fluent OpenAPI middleware builder
   openApi.ts             # OpenAPI spec generation
@@ -41,6 +43,7 @@ src/
   transformers.ts        # Data serialization (deprecated, use hooks)
   utils.ts               # isValidObjectId, checkModelsStrict
   notifiers/             # Slack, Google Chat, Zoom integrations
+  webhooks/              # WebhooksApp, rawBody, verifiers, idempotency
   tests.ts               # Test models and helpers
   tests/bunSetup.ts      # Test environment setup
 ```
@@ -70,6 +73,23 @@ Methods:
 - `addMiddleware(fn)` — Add Express middleware
 - `build()` — Build Express app without listening
 - `start()` — Build and start server
+
+`rateLimit` on `TerrenoApp` is **opt-in**. Omit it to leave HTTP unlimited (Terreno 58 defaults on). Empty `{}` enables memory buckets: auth 20 / 15 min (login, signup, refresh, GitHub OAuth, Better Auth sign-in / sign-up / reset-password / OAuth callback); api 600 / 15 min. Paths ignore a trailing slash. JWT login/signup/refresh skip expired access tokens. `store: "redis"` needs `VALKEY_URL` then `REDIS_URL`. `store: "mongo"` uses `rateLimitHits`. The framework does **not** read `RATE_LIMIT_ENABLED`. Operator guide: `docs/how-to/rate-limiting.md`.
+
+Inbound HTTP callbacks use `WebhooksApp` (`webhooks.route` then `app.register(webhooks)`).
+Verify `req.rawBody` with `hmacSignature` / `stripeSignature` / `twilioSignature` /
+`sendgridEventSignature`. Do not `JSON.stringify(req.body)`. Do not put webhook POSTs in
+OpenAPI or behind JWT. Do not skip rate-limit paths. Operator guide:
+`docs/how-to/inbound-webhooks.md`.
+
+`AuditApp` is **opt-in**. Register `new AuditApp()` (optional `{retentionDays: n}` for
+`n > 0` TTL on `created`). Importing `@terreno/api` does **not** register `AuditEvent`
+on the default connection — use `createAuditEventModel(connection)` or the plugin.
+Set `audit: true` or `audit: {redact: ["ssn"]}` on `modelRouter` after successful HTTP
+CRUD and array mutations. AdminApp auto-writes when the plugin is registered.
+RBAC uses `persistRbacAuditToAuditEvent` as `createAccess({auditSink})`. HTTP handlers do not await persist. Diffs still run inline. Optional `enqueue` (Cloud Tasks when `GCP_TASKS_AUDIT_QUEUE` and `AUDIT_TASKS_URL` are set) writes Mongo off the request process via `POST /internal/audit-events`. Empty CUD perms are **405**. Never audit
+`AuditEvent`. Writes are best-effort. Default retain forever. Operator guide:
+`docs/how-to/audit-log.md`.
 
 ### setupServer (Legacy)
 
@@ -152,6 +172,9 @@ modelRouter(Model, {
   // Response Handling
   responseHandler: (value, method, req, options) => serializedValue,
 
+  // Audit log (requires AuditApp; omit to skip)
+  audit: true, // or {redact: ["ssn"]}
+
   // Custom Routes (registered before CRUD)
   endpoints: (router) => { router.get("/custom", handler); },
 
@@ -177,7 +200,7 @@ JWT + Passport-based auth with multiple strategies: Email/Password, GitHub OAuth
 Key functions:
 
 - `setupAuth(app, userModel)` — Configures Passport (JWT, Local, Anonymous strategies)
-- `addAuthRoutes(app, userModel, authOptions?)` — POST `/auth/login`, `/auth/signup`, `/auth/refresh_token`
+- `addAuthRoutes(app, userModel, authOptions?)` — POST `/auth/login`, `/auth/signup`, `/auth/refresh_token`, `/auth/forgotPassword`, `/auth/resetPassword`, `/auth/sendVerification`, `/auth/verifyEmail`
 - `addMeRoutes(app, userModel)` — GET/PATCH `/auth/me`
 - `authenticateMiddleware(anonymous?)` — Returns auth middleware
 - `signupUser(userModel, email, password, body?)` — Register user
@@ -187,6 +210,10 @@ Endpoints:
 - `POST /auth/signup` — User registration
 - `POST /auth/login` — Authenticate with email/password
 - `POST /auth/refresh_token` — Refresh access token
+- `POST /auth/forgotPassword` — Always 202; mails a reset link when the user exists
+- `POST /auth/resetPassword` — Consume a one-time token; also `POST /resetPassword`
+- `POST /auth/sendVerification` — Authenticated re-send of the verify link
+- `POST /auth/verifyEmail` — `{token}` sets `emailVerified`
 - `GET /auth/me` — Get current user profile
 - `PATCH /auth/me` — Update current user profile
 
@@ -271,13 +298,22 @@ Better Auth automatically:
 - Syncs Better Auth users to your Mongoose User model (requires `betterAuthId` field)
 - Supports email/password signup and login
 
+### In-app notifications (`NotificationsApp`)
+
+Register `NotificationsApp` for owner-scoped inbox + preference collections. Only
+`getNotificationService().notify()` inserts inbox rows (`create: []` on the notification router).
+Compose `notificationsBeforeSend` into `CommsApp({beforeSend})` for channel toggles.
+`@terreno/api` does not import `@terreno/comms` — pass `getComms` when fan-out is needed.
+
 User model fields for Better Auth:
 ```typescript
 {
-  betterAuthId: {type: String, index: true},  // Better Auth user ID
-  oauthProvider: {type: String},               // OAuth provider name
+  betterAuthId: {type: String, index: true},  // Required — Better Auth user ID
+  oauthProvider: {type: String},               // Only when using social OAuth
 }
 ```
+
+`syncBetterAuthUser` writes `oauthProvider` only when a provider string is passed. Email/password create omits the key so `strict: "throw"` schemas without the field succeed.
 
 ### Environment Variables
 
@@ -407,28 +443,25 @@ router.post("/search", [
 
 Validation errors throw `APIError` with field-level details.
 
-## Custom Routes with OpenAPI Builder
+## Custom endpoints — modelRouter actions
 
-For non-CRUD endpoints, use the fluent builder to generate OpenAPI documentation:
+Do **not** use `app.get` / `router.post` for application APIs. Use
+`collectionActions` / `instanceActions` (see `docs/explanation/model-router-actions.md`).
 
 ```typescript
-import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
-
-router.get("/stats/:id", [
-  authenticateMiddleware(),
-  createOpenApiBuilder(options)
-    .withTags(["stats"])
-    .withSummary("Get statistics")
-    .withPathParameter("id", {type: "string"})
-    .withQueryParameter("limit", {type: "number"}, {required: false})
-    .withResponse(200, {count: {type: "number"}, items: {type: "array", items: {type: "object"}}})
-    .build(),
-], asyncHandler(async (req, res) => {
-  return res.json({data: result});
-}));
+collectionActions: {
+  bulkComplete: {
+    method: "POST",
+    permissions: [Permissions.IsAuthenticated],
+    handler: async ({body, user}) => ({matched: 0, modified: 0}),
+  },
+},
 ```
 
-Builder methods: `withTags`, `withSummary`, `withDescription`, `withRequestBody`, `withResponse`, `withArrayResponse`, `withQueryParameter`, `withPathParameter`.
+`createOpenApiBuilder` is last-resort for paths that cannot be `/{action}` or
+`/:id/{action}` (not webhooks — those use `WebhooksApp`).
+
+Builder methods when you must use it: `withTags`, `withSummary`, `withDescription`, `withRequestBody`, `withResponse`, `withArrayResponse`, `withQueryParameter`, `withPathParameter`.
 
 ## Error Handling
 
@@ -483,6 +516,7 @@ Rules:
 | `isDeletedPlugin` | `deleted` | Soft delete (auto-filtered from queries) |
 | `isDisabledPlugin` | `disabled` | Returns 401 for disabled users |
 | `baseUserPlugin` | `admin`, `email` | Base user fields |
+| `emailVerificationPlugin` | `emailVerified` | Opt-in email verification flag (default false) |
 | `findExactlyOne` | static method | Throws if 0 or multiple matches |
 | `findOneOrNone` | static method | Throws if multiple matches |
 | `upsertPlugin` | static method | Create or update atomically |

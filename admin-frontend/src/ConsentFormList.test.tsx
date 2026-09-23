@@ -1,10 +1,11 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
+import {renderWithTheme} from "../../ui/src/test-utils";
+import {configureUseAdminApiDouble, resetUseAdminApiDouble} from "./testing/useAdminApiDouble";
 import type {AdminApi} from "./types";
 
 interface ListState {
@@ -14,20 +15,18 @@ interface ListState {
 }
 const listState: ListState = {data: undefined, error: null, isLoading: false};
 
-mock.module("./useAdminApi", () => ({
-  useAdminApi: () => ({
-    useListQuery: () => ({
-      data: listState.data,
-      error: listState.error,
-      isLoading: listState.isLoading,
-    }),
-  }),
-}));
-
 import {ConsentFormList} from "./ConsentFormList";
 
 describe("ConsentFormList", () => {
   beforeEach(() => {
+    resetUseAdminApiDouble();
+    configureUseAdminApiDouble({
+      useListQuery: () => ({
+        data: listState.data,
+        error: listState.error,
+        isLoading: listState.isLoading,
+      }),
+    });
     listState.data = undefined;
     listState.isLoading = false;
     listState.error = null;
@@ -86,7 +85,7 @@ describe("ConsentFormList", () => {
     };
     const onCreateNew = mock(() => undefined);
     const onRowClick = mock((_: string) => undefined);
-    const {getByTestId} = renderWithTheme(
+    const {getAllByLabelText, getByTestId} = renderWithTheme(
       <ConsentFormList
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -96,9 +95,11 @@ describe("ConsentFormList", () => {
     );
     await act(async () => {
       fireEvent.press(getByTestId("consent-form-list-create-button"));
+      fireEvent.press(getAllByLabelText("Edit")[0]);
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(onCreateNew).toHaveBeenCalled();
+    expect(onRowClick).toHaveBeenCalledWith("a");
   });
 
   it("falls back when sort column is out of range (buildSortString returns undefined)", async () => {

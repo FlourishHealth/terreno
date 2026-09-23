@@ -36,7 +36,19 @@ const {create, update, remove} = useMutate("todos");
 
 ## What syncdb replaces
 
-Do **not** use RTK Query `useGetXQuery` / `usePostXMutation` for synced collections. Keep `bun run sdk` for non-synced routes (auth/me, admin, AI).
+Do **not** use RTK Query `useGetXQuery` / `usePostXMutation` for synced
+collections. Keep `bun run sdk` for non-synced routes such as auth/me and AI.
+Built-in admin String-`_id` CRUD uses windowed syncdb; admin RPC uses its
+host-bound fetch client; ObjectId compatibility CRUD remains RTK in Terreno 57.
+
+## Local MCP debugging
+
+Create the client with `debug: true`, then use `get_syncdb_state` for debugger
+events, status, entities, outbox, conflicts, cursors, streams, and repair
+markers. Use `syncdb_snapshot` to capture and compare local state.
+`syncdb_action` can mutate/edit, flush, reconcile/resync, resolve/retry, toggle
+offline mode, clear events, and merge snapshots when the local MCP starts with
+`TERRENO_MCP_EVAL=1`.
 
 Full reference: [docs/reference/syncdb.md](https://github.com/FlourishHealth/terreno/blob/master/docs/reference/syncdb.md)
 

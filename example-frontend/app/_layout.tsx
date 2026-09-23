@@ -9,6 +9,7 @@ import "react-native-reanimated";
 import {OpenFeatureProvider} from "@openfeature/react-sdk";
 import {
   baseUrl,
+  installTerrenoDevConsoleLogger,
   selectBetterAuthIsLoading,
   selectBetterAuthUserId,
   setRealtimeSocket,
@@ -19,6 +20,7 @@ import {
 } from "@terreno/rtk";
 import {SyncDbProvider} from "@terreno/syncdb/react";
 import {
+  AnnouncementNavigator,
   Banner,
   Box,
   Button,
@@ -34,13 +36,25 @@ import {PersistGate} from "redux-persist/integration/react";
 import {SyncConflictsProvider} from "@/components/SyncConflictsController";
 import {SyncHealthToast} from "@/components/SyncHealthToast";
 import {SyncLabRuntime} from "@/components/SyncLabRuntime";
-import type {ProfileData} from "@/hooks/useReadProfile";
 import {getSessionToken} from "@/lib/betterAuth";
 import store, {persistor, syncBetterAuthSession} from "@/store/index";
 import {registerExpoPushTokenSafely} from "@/store/registerExpoPushToken";
 import {terrenoApi, useGetMeQuery, usePostCommsPushTokensMutation} from "@/store/sdk";
 import {setSyncDbReady, syncDb} from "@/store/syncdb";
 import {getCurrentExpoToken} from "@/store/utils";
+
+installTerrenoDevConsoleLogger();
+
+interface ProfileData {
+  _id: string;
+  id: string;
+  email?: string;
+  name?: string;
+  admin?: boolean;
+  emailVerified?: boolean;
+  roles?: string[];
+  permissions?: Record<string, readonly string[]>;
+}
 
 const OpenFeatureBridge: FC<{
   children: ReactNode;
@@ -237,11 +251,16 @@ const RootLayoutNav = (): React.ReactElement => {
       return;
     }
 
-    const isOnAuthPage = segments[0] === "login" || segments[0] === "signup";
+    const isLoginOrSignup = segments[0] === "login" || segments[0] === "signup";
+    const isPublicAuthPage =
+      isLoginOrSignup ||
+      segments[0] === "forgotPassword" ||
+      segments[0] === "resetPassword" ||
+      segments[0] === "verifyEmail";
 
-    if (!userId && !isOnAuthPage) {
+    if (!userId && !isPublicAuthPage) {
       router.replace("/login");
-    } else if (userId && isOnAuthPage) {
+    } else if (userId && isLoginOrSignup) {
       router.replace("/(tabs)");
     }
   }, [userId, segments, router, isAuthLoading]);
@@ -289,7 +308,12 @@ const RootLayoutNav = (): React.ReactElement => {
       <Stack.Screen name="admin" />
       <Stack.Screen name="login" />
       <Stack.Screen name="signup" />
+      <Stack.Screen name="forgotPassword" />
+      <Stack.Screen name="resetPassword" />
+      <Stack.Screen name="verifyEmail" />
       <Stack.Screen name="syncdb-debug" options={{presentation: "modal"}} />
+      <Stack.Screen name="settings" />
+      <Stack.Screen name="notifications" />
     </Stack>
   );
 
@@ -349,10 +373,30 @@ const RootLayoutNav = (): React.ReactElement => {
               />
             )}
           />
+          {stack}
         </SyncDbProvider>
-      ) : null}
-      {stack}
+      ) : (
+        stack
+      )}
     </SyncConflictsProvider>
+  );
+
+  const frequencyUserId = profile?.id ?? profile?._id ?? userId;
+
+  // skipFirstLaunch: false so seeded interrupts show on first login; default max 1/session
+  // is fine because seed archives legacy all-audience modals and targets staff vs patient.
+  const announcementWrapped = userId ? (
+    <AnnouncementNavigator
+      api={terrenoApi}
+      frequency={{
+        skipFirstLaunch: false,
+        userId: frequencyUserId,
+      }}
+    >
+      <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>
+    </AnnouncementNavigator>
+  ) : (
+    <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>
   );
 
   if (userId && !profile?.admin) {
@@ -361,11 +405,7 @@ const RootLayoutNav = (): React.ReactElement => {
       profileLoaded: !!profile,
       userId,
     });
-    return (
-      <ConsentNavigator api={terrenoApi}>
-        <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>
-      </ConsentNavigator>
-    );
+    return <ConsentNavigator api={terrenoApi}>{announcementWrapped}</ConsentNavigator>;
   }
 
   console.debug("[RootLayout] Skipping ConsentNavigator", {
@@ -373,7 +413,7 @@ const RootLayoutNav = (): React.ReactElement => {
     profileLoaded: !!profile,
     userId: userId ?? "none",
   });
-  return <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>;
+  return announcementWrapped;
 };
 
 export default RootLayout;

@@ -2,6 +2,9 @@
 
 Standalone Expo Router admin web SPA plus an Express plugin (`AdminSpaServeApp`) that serves the pre-built static export from a Terreno backend on the same origin.
 
+How screens and nav work (including `routeBase=""`): [How admin interfaces are shaped](../explanation/admin-interface.md).
+How to add a screen: [Build admin screens](../how-to/build-admin-screens.md).
+
 ## Table of Contents
 
 - [Install](#install)
@@ -47,7 +50,24 @@ admin-spa/
   dist/                # Pre-built static export (produced by build:web)
 ```
 
-Boot flow in the SPA: `AppConfigGate` fetches `${basePath}/app-config.json` → `StoreProvider` builds Better Auth + Redux → `AdminGate` redirects anonymous users to `/login` and non-admins to `/forbidden`.
+Boot flow in the SPA: `AppConfigGate` fetches `${basePath}/app-config.json` →
+`StoreProvider` builds Better Auth + Redux → `AdminGate` redirects anonymous
+users to `/login` and non-admins to `/forbidden` → the authorized provider reads
+`/admin/config`. When config contains String-`_id` models with `adminBroadcast`
+and `syncCollection`, it starts a same-origin cookie-authenticated syncdb client
+with those collections in window mode and forwards `useConflicts()` to the admin.
+ObjectId and non-broadcast models remain on RTK.
+
+When the backend enables organizations, the bundled SPA exposes:
+
+- `/orgs` — operator-only organization directory;
+- `/orgs/:orgId` — organization settings;
+- `/orgs/:orgId/members` — organization memberships.
+
+`AdminSpaShell` renders `OrgSwitcher` on every admin route. The switcher and
+directory use `/orgs` API routes while generic model CRUD continues under the
+configured `adminApiBasePath`. Org-admins do not receive the directory link.
+The default `/console` mount therefore serves these as `/console/orgs/...`.
 
 ## AdminSpaServeApp
 

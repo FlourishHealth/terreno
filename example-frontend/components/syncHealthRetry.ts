@@ -7,7 +7,7 @@ import type {SyncStatus} from "@terreno/syncdb";
 
 export const RETRY_ERROR_TOAST_ID = "sync-health-retry-error";
 
-export interface FailedOutboxRow {
+interface FailedOutboxRow {
   status?: string;
   entityId?: string;
   collection?: string;

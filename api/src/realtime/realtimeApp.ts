@@ -1,5 +1,3 @@
-// noExplicitAny: Socket.io handler signatures require dynamic args
-// biome-ignore-all lint/suspicious/noExplicitAny: Socket.io handler signatures require dynamic args
 import type http from "node:http";
 import * as Sentry from "@sentry/bun";
 import type express from "express";
@@ -45,6 +43,7 @@ export const MAX_QUERY_SUBSCRIPTIONS = 100;
  *
  * Exported for testing.
  */
+/** @internal */
 export const redactCredentials = (url: string): string => {
   try {
     const parsed = new URL(url);

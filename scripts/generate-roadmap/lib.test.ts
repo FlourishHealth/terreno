@@ -58,7 +58,7 @@ describe("renderRoadmapMarkdown", () => {
 });
 
 describe("displayTitle", (): void => {
-  it("drops the [Roadmap] tracking prefix", (): void => {
+  it("drops the legacy [Roadmap] tracking prefix", (): void => {
     assert.equal(displayTitle("[Roadmap] Deploy to GCP"), "Deploy to GCP");
   });
 

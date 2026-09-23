@@ -1,6 +1,6 @@
 import {afterEach, beforeEach, describe, it, mock} from "bun:test";
 import assert from "node:assert";
-import type {Middleware, MiddlewareAPI} from "@reduxjs/toolkit";
+import type {MiddlewareAPI} from "@reduxjs/toolkit";
 
 // Sentry Scope type - represents the Sentry scope object for error context
 type SentryScope = {
@@ -22,85 +22,12 @@ const mockSentry = {
 mock.module("@sentry/react", () => mockSentry);
 
 // Mock @/utils/sentry
+const captureException = mock(() => {});
 mock.module("@/utils/sentry", () => ({
-  captureException: mock(() => {}),
-  captureMessage: mock(() => {}),
+  captureException,
 }));
 
-// Mock terreno-ui
-mock.module("@terreno/ui", () => ({
-  useToast: () => ({
-    error: mock(() => {}),
-  }),
-}));
-
-// Now we can safely import the module under test
-// We need to inline the middleware code since we can't import from the module
-const ignoredErrors = [
-  "Account locked due to too many failed login attempts",
-  "Password or username is incorrect",
-  "No token found for",
-  "User interaction is not allowed",
-  "Token refresh failed with 401",
-  "Failed to refresh token",
-  "Auth and refresh tokens are expired",
-  "The request is not allowed by the user agent or the platform in the current context, possibly because the user denied permission.",
-  "Registration failed - permission denied",
-  "TypeError: Load failed",
-  "TypeError: Failed to fetch",
-];
-
-const rtkQueryErrorMiddleware: Middleware = () => (next) => (action: unknown) => {
-  // Type guard to check if action matches our ActionType structure
-  const typedAction = action as ActionType;
-  if (typedAction?.error && typedAction?.payload) {
-    const errorMessage =
-      typedAction.payload?.data?.title ??
-      typedAction.payload?.data?.message ??
-      typedAction.payload?.error ??
-      JSON.stringify(typedAction.payload);
-
-    let endpointInfo = "unknown endpoint";
-    if (
-      typedAction.meta?.baseQueryMeta?.request?.method &&
-      typedAction.meta?.baseQueryMeta?.request?.url
-    ) {
-      endpointInfo = `${typedAction.meta.baseQueryMeta.request.url} ${typedAction.meta.baseQueryMeta.request.method}`;
-    } else if (typedAction.meta?.arg?.endpointName) {
-      endpointInfo = `${typedAction.meta.arg.endpointName} rejected ${typedAction.meta.arg.type || ""} `;
-    }
-
-    const argsStr = typedAction.meta?.arg?.originalArgs
-      ? JSON.stringify(typedAction.meta.arg.originalArgs)
-      : "no args";
-
-    const message = `${endpointInfo.trim()}: ${errorMessage} (args: ${argsStr})`;
-    console.debug(message, JSON.stringify(typedAction));
-
-    if (typedAction.payload.status === 404 || typedAction.payload.status === 401) {
-      return next(action);
-    }
-
-    const shouldIgnore =
-      ignoredErrors.some((ignoredError) => errorMessage.includes(ignoredError)) ||
-      typedAction.payload?.data?.disableExternalErrorTracking;
-    if (!shouldIgnore) {
-      console.warn(`sending data to Sentry: ${message}\n${action}`);
-      const _error = new Error(message);
-      // Using SentryScope type defined above for proper typing of scope parameter
-      mockSentry.withScope((scope: SentryScope) => {
-        scope.setContext("request", {
-          args: typedAction.meta?.arg?.originalArgs,
-          endpointInfo,
-          fullAction: typedAction,
-        });
-        // captureException would be called here but we've mocked it
-      });
-    }
-  }
-
-  return next(action);
-};
+const {rtkQueryErrorMiddleware} = await import("./errors");
 
 type ActionType = {
   error?: boolean;

@@ -56,7 +56,8 @@ export class TwilioSmsProvider implements SmsProvider {
 
 Errors map Twilio exception codes to `SendResult.error`/`errorCode`/`errorClass`, with
 the full Twilio error payload kept in `CommsMessage.metadata` for triage. Invalid
-destination numbers fail fast with a `BadRequestError` before any API call.
+destination numbers return a permanent `SendResult` (`errorCode: twilio-invalid-destination`)
+before any API call so the facade does not retry.
 
 ### Error classification
 
@@ -102,10 +103,11 @@ None new — Phase 2 adds one webhook route via the inbound-webhooks framework.
 1. **Send path:** provider, config resolution, E.164 validation, error-code
    classification map, `withApiErrorHandling` wrapping, console deep-link metadata, tests
    with mocked Twilio client; example-backend env-gated registration; docs.
-2. **Delivery callbacks + opt-outs** *(gated on inbound-webhooks IP)*: status callback
-   route with Twilio signature verification, statuses → `DeliveryEvent` →
-   `CommsMessage.status` updates (with `errorCode`), STOP/START keyword handling →
-   `OptOutEvent` → `onOptOut`.
+2. **Delivery callbacks + opt-outs** *(owned and shipped by
+   [inbound-webhooks](inbound-webhooks.md) Task 3.2)*: status callback route with Twilio
+   signature verification, statuses → `DeliveryEvent` → `CommsMessage.status` updates
+   (with `errorCode`), STOP/START keyword handling → `OptOutEvent` → `onOptOut`. Do not
+   Pick those tasks on this adapter IP.
 
 ## Feature Flags & Migrations
 

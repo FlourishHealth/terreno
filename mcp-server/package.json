@@ -1,29 +1,10 @@
 {
-  "name": "@terreno/mcp",
-  "version": "57.2.0",
-  "description": "MCP server that gives coding agents Terreno docs, codegen tools, and prompts — part of Terreno, the batteries-included TypeScript framework for universal apps.",
-  "type": "module",
-  "main": "dist/index.js",
   "bin": {
     "terreno-mcp": "./dist/index.js",
     "terreno-mcp-local": "./dist/local/index.js"
   },
-  "scripts": {
-    "build": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
-    "dev": "bun --watch src/index.ts",
-    "start": "bun dist/index.js",
-    "lint": "biome check src/",
-    "lint:fix": "biome check --write src/",
-    "lint:unsafefix": "biome check --fix --unsafe src/",
-    "compile": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
-    "compile:watch": "tsc -w",
-    "sync-ui-docs": "cp ../demo/ui-types-documentation.json src/docs/ 2>/dev/null || true",
-    "sync-versioned-docs": "bun run scripts/sync-versioned-docs.ts",
-    "sync-package-guidelines": "bun run scripts/sync-package-guidelines.ts",
-    "test": "bun test --max-concurrency=1 src/",
-    "test:agent": "AGENT=1 bun test --only-failures --max-concurrency=1 src/",
-    "test:ci": "bun test --max-concurrency=1 src/",
-    "test:coverage": "bun run ../scripts/check-coverage.ts"
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
   },
   "dependencies": {
     "@modelcontextprotocol/express": "^2.0.0",
@@ -32,20 +13,61 @@
     "@sentry/bun": "catalog:",
     "@terreno/api": "workspace:*",
     "express": "catalog:",
+    "luxon": "catalog:",
     "minisearch": "^7.2.0",
-    "mongoose": "catalog:"
+    "mongoose": "9.7.4"
   },
+  "description": "MCP server that gives coding agents Terreno docs, codegen tools, and prompts — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@modelcontextprotocol/client": "catalog:",
     "@types/bun": "catalog:",
+    "@types/luxon": "catalog:",
     "@types/node": "catalog:",
+    "chai": "catalog:",
     "typescript": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.4.0"
+  },
+  "exports": {
+    ".": {
+      "bun": "./dist/index.js",
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./bootstrap": {
+      "bun": "./dist/bootstrap.js",
+      "default": "./dist/bootstrap.js",
+      "types": "./dist/bootstrap.d.ts"
+    },
+    "./local-tools": {
+      "bun": "./dist/local/localTools.js",
+      "default": "./dist/local/localTools.js",
+      "types": "./dist/local/localTools.d.ts"
+    },
+    "./search": {
+      "bun": "./dist/search/docIndex.js",
+      "default": "./dist/search/docIndex.js",
+      "types": "./dist/search/docIndex.d.ts"
+    },
+    "./tools": {
+      "bun": "./dist/tools.js",
+      "default": "./dist/tools.js",
+      "types": "./dist/tools.d.ts"
+    },
+    "./upgrade": {
+      "bun": "./dist/upgradeGuide.js",
+      "default": "./dist/upgradeGuide.js",
+      "types": "./dist/upgradeGuide.d.ts"
+    }
   },
   "files": [
     "LICENSE",
     "dist",
     "src/docs"
   ],
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
     "mcp",
     "terreno",
@@ -54,15 +76,33 @@
     "code-generation"
   ],
   "license": "MIT",
+  "main": "dist/index.js",
+  "name": "@terreno/mcp",
   "publishConfig": {
     "access": "public"
   },
-  "bugs": {
-    "url": "https://github.com/FlourishHealth/terreno/issues"
-  },
-  "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
-  }
+  },
+  "scripts": {
+    "build": "bun run sync-ui-docs && bun run sync-versioned-docs && bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
+    "compile": "NODE_OPTIONS=--max-old-space-size=8192 tsc",
+    "compile:watch": "tsc -w",
+    "dev": "bun --watch src/index.ts",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "lint:unsafefix": "biome check --fix --unsafe src/",
+    "prepublishOnly": "bun run build",
+    "start": "bun dist/index.js",
+    "sync-package-guidelines": "bun run scripts/sync-package-guidelines.ts",
+    "sync-ui-docs": "cp ../demo/ui-types-documentation.json src/docs/ 2>/dev/null || true",
+    "sync-versioned-docs": "bun run scripts/sync-versioned-docs.ts",
+    "test": "bun test --max-concurrency=1 src/",
+    "test:agent": "AGENT=1 bun test --only-failures --max-concurrency=1 src/",
+    "test:ci": "bun test --max-concurrency=1 src/",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
+  },
+  "type": "module",
+  "version": "57.4.0"
 }

@@ -10,12 +10,12 @@ import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
 import {Unifier} from "./Unifier";
 
-type BannerButtonProps = {
+interface BannerButtonProps {
   buttonIconName?: string;
   buttonOnClick: () => void | Promise<void>;
   buttonText: string;
   loading?: boolean;
-};
+}
 
 export const BannerButton = ({
   loading: propsLoading,

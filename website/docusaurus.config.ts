@@ -20,7 +20,7 @@ const searchTheme: [string, Record<string, unknown>] = [
 
 const config: Config = {
   baseUrl: "/",
-  favicon: "img/logo.svg",
+  favicon: "img/favicon.png",
   future: {
     faster: true,
     v4: {
@@ -77,16 +77,6 @@ const config: Config = {
     customFields: {
       demoUrl,
     },
-    metadata: [
-      {
-        content: "Terreno is Django/Rails for TypeScript — with universal app support.",
-        name: "description",
-      },
-      {
-        content: "Terreno is Django/Rails for TypeScript — with universal app support.",
-        property: "og:description",
-      },
-    ],
     footer: {
       copyright: `Copyright © ${new Date().getFullYear()} Flourish Health.`,
       links: [
@@ -120,6 +110,16 @@ const config: Config = {
       ],
       style: "dark",
     },
+    metadata: [
+      {
+        content: "Terreno is Django/Rails for TypeScript — with universal app support.",
+        name: "description",
+      },
+      {
+        content: "Terreno is Django/Rails for TypeScript — with universal app support.",
+        property: "og:description",
+      },
+    ],
     navbar: {
       items: [
         // Enable docsVersionDropdown after the first `bun run docs:version` cut on release.
@@ -136,7 +136,7 @@ const config: Config = {
       ],
       logo: {
         alt: "Terreno",
-        src: "img/logo.svg",
+        src: "img/terreno-docs-icon.png",
       },
       title: "Terreno",
     },

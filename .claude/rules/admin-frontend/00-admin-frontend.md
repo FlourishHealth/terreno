@@ -4,7 +4,12 @@ paths:
 ---
 # @terreno/admin-frontend
 
-Admin panel frontend screens for @terreno/api backends. Provides reusable React Native components for building admin interfaces with CRUD operations. This is a **frontend-only** package — no Express, no Mongoose, no backend code.
+Human architecture: `docs/explanation/admin-interface.md` and
+`docs/how-to/build-admin-screens.md`. Agent workflow: skill
+`building-admin-interfaces`.
+
+Admin panel frontend screens for `@terreno/api` backends. This is a **frontend-only**
+package — no Express, no Mongoose, no backend code.
 
 ## Commands
 
@@ -30,7 +35,8 @@ src/
   AdminFieldRenderer.tsx # Renders individual fields in table cells
   AdminRefField.tsx      # Renders reference fields as clickable links
   useAdminConfig.tsx     # Hook to fetch admin config from backend
-  useAdminApi.tsx        # Hook to generate RTK Query hooks for admin routes
+  adminRequest.ts        # Host-bound native fetch for framework admin RPC
+  useAdminApi.tsx        # Deprecated Terreno 57 RTK compatibility for ObjectId CRUD
 ```
 
 ## Key Exports
@@ -45,7 +51,7 @@ import {
   AdminFieldRenderer,    // Field renderer for table cells
   AdminRefField,         // Reference field renderer
   useAdminConfig,        // Hook to fetch admin config
-  useAdminApi,           // Hook to generate API hooks
+  useAdminApi,           // Deprecated Terreno 57 ObjectId/API-only compatibility
   SYSTEM_FIELDS,         // Fields to skip in forms
 } from "@terreno/admin-frontend";
 ```
@@ -244,9 +250,12 @@ const {config, isLoading, error} = useAdminConfig(api, baseUrl);
 // }
 ```
 
-### useAdminApi
+### useAdminApi (deprecated compatibility)
 
-Generates RTK Query hooks for admin CRUD operations on a specific model.
+Terreno 57 keeps RTK Query hooks for ObjectId model CRUD and API-only hosts.
+Do not add new `injectEndpoints`; Terreno 58 removes `useAdminApi` and the
+required admin `api` prop. String-`_id` models with `adminBroadcast` use
+windowed syncdb, and framework admin RPC uses `adminRequest`.
 
 ```typescript
 const {
@@ -313,7 +322,10 @@ export const SYSTEM_FIELDS = new Set([
 
 - Always use @terreno/ui components (Box, Button, TextField, etc.) — never raw React Native components
 - Use functional components with `React.FC` type
-- Use generated RTK Query hooks via `useAdminApi` — never use axios directly
+- Use windowed syncdb for String-`_id` models with `adminBroadcast`; keep
+  `useAdminApi` only for ObjectId/compatibility CRUD in Terreno 57
+- Use host-bound `adminRequest` for framework RPC; never use axios or add new
+  admin `injectEndpoints`
 - Handle loading, error, and empty states in all screens
 - Use `console.info/debug/warn/error` for permanent logs
 - Use Luxon for date operations

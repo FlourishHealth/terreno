@@ -24,7 +24,7 @@ It is the only skill that sets the Project `IP` field and moves an item to `Stat
   `Shaping` issue. **Update that issue** — set the `IP` field and move it
   `Shaping → Planned`. That issue was created before the IP existed, so it does **not**
   contain the IP slug; Step 2 locates it via the IP header `Roadmap issue:` link, the
-  `[Roadmap]` title, or the originating discussion, not by a slug search. Never open a
+  `roadmap` label, or the originating discussion, not by a slug search. Never open a
   second issue for the same work.
 - If the IP is internal-origin with no discussion behind it, **create** the issue here at
   `Planned`.
@@ -85,9 +85,9 @@ stop at the first real hit:
    ```bash
    gh issue list --search "\"$IP_SLUG\" in:body" --state all --json number,title,url,state
    ```
-3. **The `[Roadmap]` title or the originating discussion link** — then match by outcome:
+3. **The `roadmap` label or the originating discussion link** — then match by outcome:
    ```bash
-   gh issue list --search "\"[Roadmap]\" in:title" --state all --json number,title,url
+   gh issue list --label roadmap --state all --limit 200 --json number,title,url
    ```
 
 If a maintainer promoted this work, ask them for the issue number rather than guessing.
@@ -101,7 +101,7 @@ had a slug.
 
 House style, matching the seed issues:
 
-- **Title:** `[Roadmap] <outcome>`
+- **Title:** the outcome in plain language. **No `[Roadmap]` prefix** — the `roadmap` label marks it
 - **Body:** two or three paragraphs of plain language — what is broken or missing today, what changes when it ships, and what is explicitly out of scope. No task breakdown; that is the task list's job
 - **Links:** the IP and the task list, as full GitHub URLs (the docs site excludes `implementationPlans/` and `tasks/`, so relative links break there)
 - **Dependencies:** name them and link their issues
@@ -109,10 +109,11 @@ House style, matching the seed issues:
 ### 4. Validate
 
 ```bash
-bun run roadmap:check --labels "area:deploy,type:feature" --status Planned --target Next --impact Improvement --area deploy
+bun run roadmap:check --on-board --labels "roadmap,area:deploy,type:feature" --status Planned --target Next --impact Improvement --area deploy
 ```
 
-Run it with no arguments to list every valid option.
+Run it with no arguments to list every valid option. `--on-board` adds the board-item rules,
+including the required `roadmap` label.
 
 ### 5. Plan and confirm (required)
 
@@ -138,7 +139,7 @@ Add a `##` section in the house style above:
 ```markdown
 ## <ip-slug>
 
-**Title:** `[Roadmap] <outcome>`
+**Title:** `<outcome>`
 
 **Labels:** `area:deploy`, `type:feature`
 **Project fields:** Area=`deploy`, Target=`Next`, Impact=`Improvement`, IP=`<ip-slug>`, Status=`Planned`
@@ -152,6 +153,8 @@ Then, with a token carrying `project` scope:
 GITHUB_TOKEN=$(gh auth token) bun run roadmap:sync --dry-run   # review the plan
 GITHUB_TOKEN=$(gh auth token) bun run roadmap:sync --create-missing-issues
 ```
+
+The `roadmap` label is added by `roadmap:sync` itself, so leave it off the `**Labels:**` line.
 
 `roadmap:sync` opens the tracking issue, applies the labels, adds the board item, and sets
 every field value. It is idempotent — updating an existing entry means editing the section and

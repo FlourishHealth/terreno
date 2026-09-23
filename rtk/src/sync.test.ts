@@ -197,6 +197,35 @@ describe("useSyncConnection", () => {
     expect(invalidateTags).toHaveBeenCalledWith(["todos"]);
   });
 
+  it("invalidates tags when reading the store state throws", () => {
+    const socket = createFakeSocket(true);
+    const {store, api, invalidateTags} = createApi({
+      "getTodos(undefined)": {
+        data: {data: [{_id: "1", name: "old"}]},
+        endpointName: "getTodos",
+        originalArgs: undefined,
+        status: "fulfilled",
+      },
+    });
+    let shouldThrow = false;
+    const throwingStore = {
+      ...store,
+      getState: (): ReturnType<typeof store.getState> => {
+        if (shouldThrow) {
+          throw new Error("state unavailable");
+        }
+        return store.getState();
+      },
+    } as unknown as ReturnType<typeof configureStore>;
+    renderSync(socket, api, throwingStore);
+    shouldThrow = true;
+
+    act(() => {
+      socket.trigger("sync", syncEvent({data: {name: "new"}, method: "update"}));
+    });
+    expect(invalidateTags).toHaveBeenCalledWith(["todos"]);
+  });
+
   it("patches a matching entity inside a cached list query on update", () => {
     const socket = createFakeSocket(true);
     const queries = {

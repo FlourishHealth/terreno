@@ -1,6 +1,6 @@
 # Implementation Plan: Comms adapter — Twilio Verify (OTP)
 
-**Status:** Approved
+**Status:** Complete
 **Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1021
 **Priority:** Medium
 **Effort:** Small batch
@@ -88,12 +88,12 @@ See [docs/tasks/comms-adapter-twilio-verify.md](../tasks/comms-adapter-twilio-ve
 
 ## Acceptance Criteria
 
-- [ ] `startVerification` creates a Verify verification on the configured service for sms
+- [x] `startVerification` creates a Verify verification on the configured service for sms
       and email channels.
-- [ ] `checkVerification` returns `valid: true` only for `approved`; expired and
+- [x] `checkVerification` returns `valid: true` only for `approved`; expired and
       max-attempt states return `valid: false` with a reason.
-- [ ] Failed starts/checks record `errorCode`/`errorClass` per the classification row and
+- [x] Failed starts/checks record `errorCode`/`errorClass` per the classification row and
       fire the consumer `onError` hook; verification rows are marked non-retryable for
       the admin dashboard.
-- [ ] No OTP code ever appears in logs or `CommsMessage` rows; destinations are redacted.
-- [ ] Missing `TWILIO_VERIFY_SERVICE_SID` fails fast at registration with a clear error.
+- [x] No OTP code ever appears in logs or `CommsMessage` rows; destinations are redacted.
+- [x] Missing `TWILIO_VERIFY_SERVICE_SID` fails fast at registration with a clear error.

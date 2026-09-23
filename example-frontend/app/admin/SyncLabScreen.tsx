@@ -3,7 +3,7 @@
  *
  * Two independently controllable engines exercise the stack end to end:
  *
- *  - "Other clients" (server engine): calls the admin `/loadtest/todos/*` endpoints, which
+ *  - "Other clients" (server engine): calls the admin `/todos/loadtest*` actions, which
  *    write to the owner-scoped todos collection server-side. Those writes fire MongoDB
  *    change streams → RealtimeApp broadcasts `sync:delta` over the websocket → this device's
  *    syncdb client applies them. From the local client's perspective they are indistinguishable
@@ -24,6 +24,7 @@ import {baseUrl} from "@terreno/rtk";
 import type {SyncStatus} from "@terreno/syncdb";
 import {SyncDbProvider, useSyncDbClient} from "@terreno/syncdb/react";
 import {Badge, BooleanField, Box, Button, Card, Heading, NumberField, Text} from "@terreno/ui";
+import {DateTime} from "luxon";
 import type React from "react";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {SyncLabRateControls} from "@/components/SyncLabRateControls";
@@ -88,7 +89,7 @@ const SyncLabContent: React.FC = () => {
   const callLoadTest = useCallback(
     async (path: string, body?: Record<string, unknown>): Promise<Record<string, number>> => {
       const token = await getSessionToken();
-      const response = await fetch(`${baseUrl}/loadtest/${path}`, {
+      const response = await fetch(`${baseUrl}/todos/${path}`, {
         body: JSON.stringify(body ?? {}),
         headers: {
           "Content-Type": "application/json",
@@ -114,7 +115,7 @@ const SyncLabContent: React.FC = () => {
     setBusy("generate");
     setError(null);
     try {
-      const result = await callLoadTest("todos/generate", {count});
+      const result = await callLoadTest("loadtestGenerate", {count});
       setLastAction(`Generated ${result.created ?? 0} todos server-side`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generate failed");
@@ -127,7 +128,7 @@ const SyncLabContent: React.FC = () => {
     setBusy("clear");
     setError(null);
     try {
-      const result = await callLoadTest("todos/clear");
+      const result = await callLoadTest("loadtestClear");
       setLastAction(`Cleared ${result.deleted ?? 0} todos server-side`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Clear failed");
@@ -142,7 +143,7 @@ const SyncLabContent: React.FC = () => {
       const status = client.getSyncStatus();
       const localCount = client.store.listEntities({collection: SYNC_LAB_COLLECTION}).length;
       const stats = client.debug?.getStats();
-      const nowMs = Date.now();
+      const nowMs = DateTime.now().toMillis();
 
       let deltaRate = 0;
       let mutateRate = 0;

@@ -21,7 +21,7 @@ const SEED_DOC = `# Roadmap seed issues
 
 ## alpha-ip
 
-**Title:** \`[Roadmap] Alpha thing\`
+**Title:** \`Alpha thing\`
 
 **Labels:** \`area:api\`, \`type:feature\`
 **Project fields:** Area=\`api\`, Target=\`Next\`, Impact=\`Feature\`, IP=\`alpha-ip\`, Status=\`Planned\`
@@ -34,7 +34,7 @@ Alpha body line one.
 
 ## no-ip-yet
 
-**Title:** \`[Roadmap] Not designed yet\`
+**Title:** \`Not designed yet\`
 
 **Labels:** \`area:ui\`, \`type:feature\`
 **Project fields:** Area=\`ui\`, Target=\`Future\`, Impact=\`Feature\`, IP=*(not yet written)*, Status=\`Planned\`
@@ -113,7 +113,7 @@ describe("parseBackfillTable", () => {
       impact: "Improvement",
       ip: "shipped-thing",
       issueNumber: 43,
-      labels: ["area:dx", "type:chore"],
+      labels: ["area:dx", "type:chore", "roadmap"],
       slug: "shipped-thing",
       status: "Shipped",
       target: "Released",
@@ -129,8 +129,8 @@ describe("parseSeedIssues", () => {
     assert.equal(seeds.filter((seed) => seed.body === null).length, 2);
 
     const alpha = seeds.find((seed) => seed.slug === "alpha-ip" && seed.body !== null);
-    assert.equal(alpha?.title, "[Roadmap] Alpha thing");
-    assert.deepEqual(alpha?.labels, ["area:api", "type:feature"]);
+    assert.equal(alpha?.title, "Alpha thing");
+    assert.deepEqual(alpha?.labels, ["area:api", "type:feature", "roadmap"]);
     assert.ok(alpha?.body?.includes("Alpha body line one."));
     assert.ok(!alpha?.body?.includes("**Project fields:**"));
 
@@ -164,8 +164,19 @@ describe("resolveSeedItems", () => {
 
   it("falls back to matching an existing issue by title", () => {
     const {items} = resolveSeedItems({
-      issueNumbersByTitle: new Map([["[Roadmap] Not designed yet", 99]]),
+      issueNumbersByTitle: new Map([["Not designed yet", 99]]),
       seeds,
+    });
+    assert.equal(items.find((item) => item.slug === "no-ip-yet")?.issueNumber, 99);
+  });
+
+  it("matches a legacy [Roadmap]-prefixed entry against an unprefixed issue title", () => {
+    const legacySeeds = parseSeedIssues(
+      SEED_DOC.replace("**Title:** `Not designed yet`", "**Title:** `[Roadmap] Not designed yet`")
+    );
+    const {items} = resolveSeedItems({
+      issueNumbersByTitle: new Map([["Not designed yet", 99]]),
+      seeds: legacySeeds,
     });
     assert.equal(items.find((item) => item.slug === "no-ip-yet")?.issueNumber, 99);
   });
@@ -249,7 +260,7 @@ describe("validateItems", () => {
           impact: "Feature",
           ip: "x",
           issueNumber: 1,
-          labels: ["area:api", "type:feature"],
+          labels: ["area:api", "type:feature", "roadmap"],
           slug: "mismatched",
           status: "Planned",
           target: "Next",
@@ -262,6 +273,37 @@ describe("validateItems", () => {
 
     assert.equal(problems.length, 1);
     assert.ok(problems[0]?.startsWith("mismatched:"));
+  });
+
+  it("requires the roadmap label on every board item", async () => {
+    const knownLabels = parseLabelNames(await Bun.file(".github/labels.yml").text());
+    const options = parseFieldOptions({
+      fieldsContents: await Bun.file(".github/roadmap-fields.yml").text(),
+      labelNames: knownLabels,
+    });
+
+    const problems = validateItems({
+      items: [
+        {
+          area: "api",
+          body: null,
+          impact: "Feature",
+          ip: "x",
+          issueNumber: 1,
+          labels: ["area:api", "type:feature"],
+          slug: "unlabelled",
+          status: "Planned",
+          target: "Next",
+          title: "t",
+        },
+      ],
+      knownLabels,
+      options,
+    });
+
+    assert.deepEqual(problems, [
+      'unlabelled: Needs the "roadmap" label so board items can be filtered in the issue list',
+    ]);
   });
 });
 

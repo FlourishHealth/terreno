@@ -1,11 +1,11 @@
 // noExplicitAny: test mocks use type-erased RTK Query API doubles and dynamic mock returns
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
-import {renderWithTheme} from "../../ui/src/test-utils";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 import {Platform} from "react-native";
 import type {ReactTestInstance} from "react-test-renderer";
+import {renderWithTheme} from "../../ui/src/test-utils";
 import type {AdminApi} from "./types";
 
 mock.module("react-native-webview", () => ({

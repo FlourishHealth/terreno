@@ -39,7 +39,7 @@ const rowToEntity = <TData>(id: string, row: Partial<EntityRow>): SyncEntity<TDa
   stream: row.stream ? row.stream : undefined,
 });
 
-export interface UpsertEntityArgs {
+interface UpsertEntityArgs {
   collection: string;
   id: string;
   data: unknown;
@@ -53,7 +53,7 @@ export interface UpsertEntityArgs {
   stream?: string;
 }
 
-export interface CompactTombstonesResult {
+interface CompactTombstonesResult {
   /** Number of tombstone rows removed (across all configured collections). */
   removed: number;
 }

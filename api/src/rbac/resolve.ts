@@ -3,6 +3,7 @@ import {DateTime} from "luxon";
 
 import type {User} from "../auth";
 import {logger} from "../logger";
+import {getOrgContext} from "../orgs/orgContext";
 import {unionPermissionSets} from "./permissionUtils";
 import type {RbacRoleModel} from "./roleModel";
 import type {PermissionSet, Statements} from "./statements";
@@ -24,6 +25,23 @@ const DEFAULT_MAX_CACHE_ENTRIES = 10_000;
 const getUserRoles = (user: User): string[] => {
   const withRoles = user as User & {roles?: string[]};
   return withRoles.roles ?? [];
+};
+
+/** Include org context and roles so tenant switches and Mongo promotions are not stuck behind TTL. */
+const permissionCacheKey = (user: User): string => {
+  const ctx = getOrgContext();
+  const organizationId = ctx?.organization?._id?.toString() ?? "";
+  const membershipRole = ctx?.membership?.roleName ?? "";
+  const roles = [...getUserRoles(user)].sort().join(",");
+  return `${user.id}::org=${organizationId}::role=${membershipRole}::roles=${roles}`;
+};
+
+const deletePermissionCacheForUser = (cache: Map<string, CacheEntry>, userId: string): void => {
+  for (const key of [...cache.keys()]) {
+    if (key === userId || key.startsWith(`${userId}:`) || key.startsWith(`${userId}::`)) {
+      cache.delete(key);
+    }
+  }
 };
 
 export const createPermissionResolver = <S extends Statements>(args: {
@@ -71,15 +89,15 @@ export const createPermissionResolver = <S extends Statements>(args: {
     }
   };
 
-  const rememberPermissions = (userId: string, entry: CacheEntry): void => {
-    permissionCache.delete(userId);
-    permissionCache.set(userId, entry);
+  const rememberPermissions = (cacheKey: string, entry: CacheEntry): void => {
+    permissionCache.delete(cacheKey);
+    permissionCache.set(cacheKey, entry);
     enforceCacheBound();
   };
 
   const invalidateCache = (invalidateArgs?: {userId?: string}): void => {
     if (invalidateArgs?.userId) {
-      permissionCache.delete(invalidateArgs.userId);
+      deletePermissionCacheForUser(permissionCache, invalidateArgs.userId);
       sourceCache.delete(invalidateArgs.userId);
       return;
     }
@@ -205,10 +223,11 @@ export const createPermissionResolver = <S extends Statements>(args: {
     user: User,
     shouldCache: boolean
   ): Promise<PermissionSet> => {
+    const cacheKey = permissionCacheKey(user);
     if (shouldCache) {
-      const cached = permissionCache.get(user.id);
+      const cached = permissionCache.get(cacheKey);
       if (cached && cached.expiresAt > DateTime.now().toMillis()) {
-        rememberPermissions(user.id, cached);
+        rememberPermissions(cacheKey, cached);
         return cached.permissions;
       }
     }
@@ -251,7 +270,7 @@ export const createPermissionResolver = <S extends Statements>(args: {
     }
 
     if (shouldCache) {
-      rememberPermissions(user.id, {
+      rememberPermissions(cacheKey, {
         expiresAt: DateTime.now().plus({milliseconds: cacheTtlMs}).toMillis(),
         permissions,
       });
