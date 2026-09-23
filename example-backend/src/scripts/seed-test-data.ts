@@ -108,7 +108,6 @@ interface SeedCommsMessage {
 }
 
 // Shared organization so both seeded users demonstrate tenant-scoped project sync.
-const EXAMPLE_ORGANIZATION_ID = "org-example";
 export const EXAMPLE_SUMMARIZE_PROMPT = {
   config: {temperature: 0.3},
   folder: "examples",
