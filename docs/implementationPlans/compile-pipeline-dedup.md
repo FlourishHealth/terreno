@@ -54,33 +54,41 @@ Dependency graph (acyclic): test, syncdb, ui → (leaves); api → test,syncdb; 
 feature-flags → api,test; rtk → ui; admin-frontend → ui; admin-backend → api,jobs,test;
 example-backend → (many).
 
-## The change (3 files)
+## The change (4 files)
 
-1. `package.json` root `compile` → `bun run --filter '*' compile`
-   (drop the two explicit prefixes; Bun builds test/syncdb/api first as deps).
-2. `api/package.json` `compile` → `bun tsc`
-   (drop the `compile-workspace-deps.js` prefix; Bun builds test+syncdb first).
-3. `admin-backend/package.json` `compile` → `bun tsc`
-   (drop the prefix; Bun builds api+jobs+test first).
+The redundancy exists because the pipeline recompiles shared deps to guarantee ordering.
+Bun's `--filter '*'` already builds in dependency order, so in the **root** build the
+per-package `compile-workspace-deps.js` work is pure duplication. But **isolated** compiles
+(`cd <pkg> && bun run compile` in CircleCI per-package jobs and tag publish) have no
+`--filter '*'` ordering and genuinely need it. So we gate it by context rather than remove
+it:
+
+1. `package.json` root `compile` → `TERRENO_SKIP_WORKSPACE_DEPS=1 bun run --filter '*' compile`
+   (drop the two explicit `@terreno/test` + `@terreno/api` prefixes; set the skip flag).
+2. `.github/scripts/compile-workspace-deps.js` → early-return when
+   `TERRENO_SKIP_WORKSPACE_DEPS` is set. The flag is inherited by every `--filter '*'`
+   subprocess, so `api`/`admin-backend` skip the redundant dep rebuild while Bun's ordering
+   supplies the dists. Isolated compiles (no flag) build deps exactly as before.
+3. `api/package.json` `compile` — **unchanged** (`compile-workspace-deps.js && bun tsc`).
+4. `admin-backend/package.json` `compile` — **unchanged**.
+
+(Net: files 3–4 are unchanged vs master; the working change is files 1–2.)
 
 ## Non-goals
 
-- **No change to `.github/scripts/compile-workspace-deps.js`** — it is load-bearing for
-  isolated CI/publish jobs (11 steps in `publish-on-tag.yml`, plus CI and deploy scripts)
-  that call it **directly** before compiling a single checked-out package. It stays.
 - No TS project references / `tsc -b` (that is the deferred `no-project-references`
   finding — an alternative road to the same ordering goal; a separate slice/round).
-- No mcp-server doc-sync change (Slice A).
+- No mcp-server doc-sync change (Slice A, already merged as #1358).
 - No `tsconfig` changes, no `skipLibCheck` changes, no strictness changes.
 
 ## Why publish/CI stay green
 
-Every publish/CI job that compiles a package first runs
-`node .../compile-workspace-deps.js <pkg>` as its own step, then `bun run compile`. Since
-deps are built by that explicit step, the `compile-workspace-deps.js` prefix inside
-`api`/`admin-backend`'s `compile` is redundant there too — removing it changes nothing for
-those jobs. (Verified against `publish-on-tag.yml`, `.circleci/continue-config.yml`,
-`new-file-coverage.yml`, `rtk-ci.yml`, `example-*-ci.yml`, `scripts/ci/*.sh`.)
+Isolated per-package compiles do **not** set `TERRENO_SKIP_WORKSPACE_DEPS`, so
+`compile-workspace-deps.js` runs normally and builds sibling dists from source — exactly
+as on master. This covers CircleCI per-package jobs (`api-ci`, `compile_packages`, …), the
+`publish-on-tag.yml` steps, and `scripts/ci/publish-package.sh`. Verified: `cd api &&
+bun run compile` with a clean tree builds `@terreno/test` + `@terreno/syncdb` then `api`
+(exit 0). Only the root ordered build skips the redundant recompile.
 
 ## Acceptance criteria (observable + verification)
 

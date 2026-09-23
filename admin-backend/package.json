@@ -44,7 +44,7 @@
     "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
   },
   "scripts": {
-    "compile": "bun tsc",
+    "compile": "node ../.github/scripts/compile-workspace-deps.js && bun tsc",
     "compile:watch": "bun tsc -w",
     "dev": "bun tsc -w",
     "lint": "biome check ./src",
