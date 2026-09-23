@@ -37,11 +37,7 @@ describe("framework model names", () => {
       [McpServiceToken, "TerrenoMcpServiceToken", "mcpservicetokens"],
       [getMembershipModel(), "TerrenoMembership", "memberships"],
       [Notification, "TerrenoInboxNotification", "notifications"],
-      [
-        NotificationPreference,
-        "TerrenoNotificationPreference",
-        "notificationpreferences",
-      ],
+      [NotificationPreference, "TerrenoNotificationPreference", "notificationpreferences"],
       [getOrganizationModel(), "TerrenoOrganization", "organizations"],
       [getWebhookReceiptModel(), "TerrenoWebhookReceipt", "webhookReceipts"],
     ] as const;

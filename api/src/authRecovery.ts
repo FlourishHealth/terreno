@@ -279,10 +279,7 @@ export const addAuthRecoveryRoutes = (
     router.post("/verifyEmail", verifyEmailOpenApi, verifyEmail);
   }
   app.use("/auth", router);
-  if (
-    authOptions?.passwordReset !== false &&
-    authOptions?.legacyResetPasswordRoute !== false
-  ) {
+  if (authOptions?.passwordReset !== false && authOptions?.legacyResetPasswordRoute !== false) {
     app.post("/resetPassword", resetOpenApi, resetPassword);
   }
 };
