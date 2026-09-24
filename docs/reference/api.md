@@ -135,7 +135,7 @@ new TerrenoApp({
 
 ### Audit log (`AuditApp`)
 
-Opt-in append-only log. Register the plugin; importing `@terreno/api` does **not** compile `AuditEvent` onto the default mongoose connection.
+Opt-in append-only log. Register the plugin; importing `@terreno/api` does **not** compile `AuditEvent` onto the default mongoose connection. The compiled Mongoose name is `TerrenoAuditEvent` on collection `auditevents`. Admin UI and RBAC keep `AuditEvent` / `adminAuditEvent`.
 
 ```typescript
 import {

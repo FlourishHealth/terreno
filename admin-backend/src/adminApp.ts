@@ -27,6 +27,7 @@ import {
   type PermissionMethod,
   Permissions,
   type PopulatePath,
+  publicFrameworkModelName,
   registerAdminBroadcastScope,
   registerAdminWindowMutationScope,
   type ScriptArgDef,
@@ -263,6 +264,21 @@ interface AdminFieldMeta {
   /** For array fields of ObjectId refs: the referenced model name */
   itemRef?: string;
 }
+
+const publicFrameworkFieldMeta = (field: AdminFieldMeta): AdminFieldMeta => {
+  return {
+    ...field,
+    ...(field.ref ? {ref: publicFrameworkModelName(field.ref)} : {}),
+    ...(field.itemRef ? {itemRef: publicFrameworkModelName(field.itemRef)} : {}),
+    ...(field.items
+      ? {
+          items: Object.fromEntries(
+            Object.entries(field.items).map(([key, item]) => [key, publicFrameworkFieldMeta(item)])
+          ),
+        }
+      : {}),
+  };
+};
 
 interface AdminModelMeta {
   actions: AdminActionInput[];
@@ -556,7 +572,11 @@ const extractFieldMetaFromDescription = (
   const hiddenFieldSet = new Set(hiddenFields);
   const description = describeModel(model);
   const fields = modelDescriptionToAdminFields(description);
-  return Object.fromEntries(Object.entries(fields).filter(([key]) => !hiddenFieldSet.has(key)));
+  return Object.fromEntries(
+    Object.entries(fields)
+      .filter(([key]) => !hiddenFieldSet.has(key))
+      .map(([key, field]) => [key, publicFrameworkFieldMeta(field)])
+  );
 };
 
 const asMiddlewareList = (
@@ -708,11 +728,12 @@ export class AdminApp {
     if (explicit) {
       return explicit;
     }
-    const standard = `admin${config.model.modelName}`;
+    const publicName = publicFrameworkModelName(config.model.modelName);
+    const standard = `admin${publicName}`;
     if (accessControl?.statements[standard]) {
       return standard;
     }
-    return `${config.model.modelName.charAt(0).toLowerCase()}${config.model.modelName.slice(1)}`;
+    return `${publicName.charAt(0).toLowerCase()}${publicName.slice(1)}`;
   }
 
   private async isAdminModelOwned(
@@ -854,7 +875,7 @@ export class AdminApp {
     // Build config response with field metadata from Mongoose schemas
     const configNames = assignUniqueAdminConfigNames(
       modelConfigs.map((config) => ({
-        modelName: config.model.modelName,
+        modelName: publicFrameworkModelName(config.model.modelName),
         routePath: config.routePath,
         source: config.source,
       }))
@@ -909,7 +930,7 @@ export class AdminApp {
         listDisplay,
         listDisplayLinks: config.listDisplayLinks ?? [],
         listFields,
-        name: configNames[configIndex] ?? config.model.modelName,
+        name: configNames[configIndex] ?? publicFrameworkModelName(config.model.modelName),
         organizationScoped: isOrgScopedModel,
         pageSize: config.pageSize,
         permissions: {
@@ -1547,7 +1568,7 @@ export class AdminApp {
       const bulkPatchOpenApi = openApiMw
         ? createOpenApiBuilder({openApi: openApiMw})
             .withTags(["admin"])
-            .withSummary(`Bulk patch ${config.model.modelName} documents`)
+            .withSummary(`Bulk patch ${publicFrameworkModelName(config.model.modelName)} documents`)
             .withRequestBody<{ids: string[]; patch: Record<string, unknown>}>({
               ids: {
                 description: "Document ids to update",

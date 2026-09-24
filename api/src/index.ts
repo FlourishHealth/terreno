@@ -44,6 +44,12 @@ export * from "./consentApp";
 export * from "./envConfigurationPlugin";
 export * from "./errors";
 export * from "./expressServer";
+export {
+  FRAMEWORK_MODEL_PUBLIC_NAMES,
+  type FrameworkModelCompiledName,
+  type FrameworkModelPublicName,
+  publicFrameworkModelName,
+} from "./frameworkModelNames";
 export * from "./githubAuth";
 export * from "./httpClient";
 export * from "./logger";

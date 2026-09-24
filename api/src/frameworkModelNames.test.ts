@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 
 import {createAuditEventModel} from "./audit/auditEventModel";
 import {AuthToken} from "./authTokens";
+import {FRAMEWORK_MODEL_PUBLIC_NAMES, publicFrameworkModelName} from "./frameworkModelNames";
 import {McpServiceToken} from "./models/mcpServiceToken";
 import {Notification} from "./models/notification";
 import {NotificationPreference} from "./models/notificationPreference";
@@ -45,7 +46,12 @@ describe("framework model names", () => {
     for (const [model, modelName, collectionName] of models) {
       assert.equal(model.modelName, modelName);
       assert.equal(model.collection.collectionName, collectionName);
+      assert.equal(publicFrameworkModelName(modelName), FRAMEWORK_MODEL_PUBLIC_NAMES[modelName]);
     }
+    assert.equal(publicFrameworkModelName("Todo"), "Todo");
+    assert.equal(publicFrameworkModelName("TerrenoInboxNotification"), "Notification");
+    assert.equal(publicFrameworkModelName("TerrenoAnnouncement"), "Announcement");
+    assert.equal(publicFrameworkModelName("TerrenoJob"), "Job");
   });
 
   it("allows consumers to register the former generic model names", () => {
