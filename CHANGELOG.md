@@ -20,6 +20,34 @@ Upgrade notes for consumer action live in [`mcp-server/src/docs/upgrades/`](mcp-
 
 Unreleased changes live in [`changelog/unreleased/`](changelog/unreleased/). Add one Markdown file per feature (see that directory's README) instead of editing this section.
 
+## [57.6.0] - 2026-09-24
+
+Upgrade note: [`mcp-server/src/docs/upgrades/57.6.0.md`](mcp-server/src/docs/upgrades/57.6.0.md).
+
+### Added
+
+- `sendToSlack` accepts `mentionUserIds` (Slack member IDs) so incoming webhooks can @-mention people. Names and emails in the message text do not notify anyone. New helpers: `formatSlackUserMention`, `normalizeSlackUserId`, and `lookupSlackUserIdByEmail` (optional `SLACK_BOT_TOKEN` with `users:read.email` to resolve an id from email and store it on the staff/user record).
+- Add full SyncDB support to `terreno-mcp-local`: inspect debugger and local-store
+  state, capture/compare/merge snapshots, mutate or directly edit local entities,
+  flush the outbox, reconcile/resync, resolve conflicts, retry failures, and
+  exercise offline transitions. State-changing operations require
+  `TERRENO_MCP_EVAL=1`; returned state redacts sensitive fields.
+- Add `@terreno/cli` (`terreno`) for docs search, codegen (syncdb, RTK SDK, models, routes, screens, forms, admin), bootstrap, unified backend/browser/Metro/app logs, Redux/RTK state inspection, opt-in CDP evaluation/navigation, Bun 1.4 WebView automation and screenshot proof, read-only database tools, OpenAPI `api list|call|request`, and `generate rest-cli` to scaffold an app CLI from a backend spec.
+
+### Changed
+
+- Terreno moved to the `TerrenoLabs` GitHub organization. The repository is now `TerrenoLabs/terreno`, the roadmap board is `github.com/orgs/TerrenoLabs/projects/1`, and package `repository` URLs, docs links, and plugin/skill install commands (`/plugin marketplace add TerrenoLabs/terreno`, `npx skills add TerrenoLabs/terreno`) point at the new location. Old `FlourishHealth/terreno` URLs redirect.
+- Every tsconfig builds on TypeScript 6 without `ignoreDeprecations`. Node packages (`@terreno/api`, `ai`, `admin-backend`, `announcements`, `api-health`, `comms`, `feature-flags`, `jobs`, `test`, and the `admin-spa` server plugin) now compile with `module: nodenext` to ES2023 CommonJS instead of ES5. Their dynamic `import()` stays a real ESM import, so `loadMigrations` can load migration files by `file://` URL from compiled `dist/`. Frontend libraries (`ui`, `admin-frontend`, `rtk`, `syncdb`) emit ES2022 with bundler resolution and ship declaration maps. `@terreno/test` no longer publishes its compiled Bun tests. `create-terreno-app` scaffolds drop `ignoreDeprecations` and `moduleResolution: node`, and the generated backend moves to TypeScript 6. See `docs/explanation/typescript-configuration.md`.
+
+### Fixed
+
+- Framework Mongoose models added in 57.3 and 57.4 now use `Terreno*` model names
+  without changing their MongoDB collections, preventing collisions with consumer
+  models such as `Notification`, `Membership`, and `Job`. Admin UI keys and
+  `admin<ModelName>` RBAC resources keep the pre-namespace names. JWT recovery
+  routes can be disabled with `authOptions.passwordReset`, `emailVerification`,
+  and `legacyResetPasswordRoute`.
+
 ## [57.4.0] - 2026-09-22
 
 Upgrade note: [`mcp-server/src/docs/upgrades/57.4.0.md`](mcp-server/src/docs/upgrades/57.4.0.md).
