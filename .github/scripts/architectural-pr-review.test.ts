@@ -633,7 +633,7 @@ describe("renderFindingComment", () => {
           },
         ],
       },
-      linkContext: {headSha: "abc123", owner: "FlourishHealth", repo: "terreno"},
+      linkContext: {headSha: "abc123", owner: "TerrenoLabs", repo: "terreno"},
     });
 
     assert.include(comment, "<!-- architectural-pr-review-finding -->");
@@ -648,7 +648,7 @@ describe("renderFindingComment", () => {
 describe("parseCirclePullRequestUrl", () => {
   it("parses a GitHub pull request URL from CircleCI", (): void => {
     assert.deepEqual(parseCirclePullRequestUrl("https://github.com/TerrenoLabs/terreno/pull/1199"), {
-      owner: "FlourishHealth",
+      owner: "TerrenoLabs",
       pullRequestNumber: 1199,
       repo: "terreno",
     });
