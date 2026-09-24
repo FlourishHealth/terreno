@@ -76,6 +76,9 @@
 - name: help wanted
   color: "008672"
   description: "Maintainers welcome outside help"
+- name: hacktoberfest
+  color: "FF8AE2"
+  description: "Scoped for Hacktoberfest contributors; promoted from the Hacktoberfest discussion category"
 - name: breaking
   color: "B60205"
   description: "Breaking change for consumers"
