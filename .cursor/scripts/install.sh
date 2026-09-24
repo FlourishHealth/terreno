@@ -21,21 +21,19 @@ bun install
 bun run compile
 
 # 3. Cache a standalone mongod binary at a stable path. mongodb-memory-server
-#    downloads the exact pinned version the test suites use.
+#    downloads the exact pinned version the test suites use; MongoBinary.getPath
+#    returns the real executable path (downloading it if needed) regardless of the
+#    library's internal cache layout.
 MONGOD_DIR="$HOME/.local/mongod-bin"
 MONGOD_BIN="$MONGOD_DIR/mongod"
 mkdir -p "$MONGOD_DIR"
 if [ ! -x "$MONGOD_BIN" ]; then
-  node -e 'import("mongodb-memory-server-core").then(async ({MongoMemoryServer})=>{const s=await MongoMemoryServer.create();await s.stop();console.log("mongod binary cached");}).catch((e)=>{console.error(e);process.exit(1);})'
-  CACHED="$(ls "$REPO_ROOT"/node_modules/.cache/mongodb-memory-server/mongod-* 2>/dev/null | head -1 || true)"
-  if [ -z "$CACHED" ]; then
-    CACHED="$(find "$HOME" -type f -name 'mongod-*' -path '*mongodb-memory-server*' 2>/dev/null | head -1 || true)"
-  fi
-  if [ -z "$CACHED" ]; then
-    echo "ERROR: could not locate a downloaded mongod binary" >&2
+  RESOLVED="$(node -e 'import("mongodb-memory-server-core").then(async (m)=>{const p=await m.MongoBinary.getPath({});process.stdout.write(p);}).catch((e)=>{console.error(e);process.exit(1);})')"
+  if [ -z "$RESOLVED" ] || [ ! -x "$RESOLVED" ]; then
+    echo "ERROR: could not resolve a mongod binary via mongodb-memory-server" >&2
     exit 1
   fi
-  cp "$CACHED" "$MONGOD_BIN"
+  cp "$RESOLVED" "$MONGOD_BIN"
   chmod +x "$MONGOD_BIN"
 fi
 "$MONGOD_BIN" --version | head -1
