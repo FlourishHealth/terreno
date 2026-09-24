@@ -100,7 +100,7 @@ export const renderRoadmapMarkdown = ({
     "> truth; this file is refreshed by CI. **Target** versions are directional — no calendar",
     `> dates are promised. Last updated: ${generatedAtIso}.`,
     "",
-    "Discuss priorities in [GitHub Discussions](https://github.com/FlourishHealth/terreno/discussions).",
+    "Discuss priorities in [GitHub Discussions](https://github.com/TerrenoLabs/terreno/discussions).",
     "See [roadmap process](docs/explanation/roadmap-process.md) for how work is triaged.",
     "",
   ];

@@ -223,15 +223,15 @@ describe("generateAllFiles", () => {
     assert.include(readme, "docker build");
     assert.include(
       readme,
-      "https://github.com/FlourishHealth/terreno/blob/master/docs/explanation/deployment-baseline.md"
+      "https://github.com/TerrenoLabs/terreno/blob/master/docs/explanation/deployment-baseline.md"
     );
     assert.include(
       readme,
-      "https://github.com/FlourishHealth/terreno/blob/master/docs/how-to/deploy-backend-to-cloud-run.md"
+      "https://github.com/TerrenoLabs/terreno/blob/master/docs/how-to/deploy-backend-to-cloud-run.md"
     );
     assert.include(
       readme,
-      "https://github.com/FlourishHealth/terreno/blob/master/docs/how-to/build-for-web.md"
+      "https://github.com/TerrenoLabs/terreno/blob/master/docs/how-to/build-for-web.md"
     );
   });
 

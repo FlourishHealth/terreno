@@ -1,14 +1,14 @@
-import assert from "node:assert/strict";
 import {describe, it} from "bun:test";
+import assert from "node:assert/strict";
 
 import {
-  type IpRecord,
-  type TaskProgress,
   applyStatusFixes,
   collectFindings,
+  type IpRecord,
   isSubDocument,
   parseIpRecord,
   parseTaskProgress,
+  type TaskProgress,
   toBoardStatus,
 } from "./reconcileIps.ts";
 
@@ -63,7 +63,7 @@ describe("parseIpRecord", () => {
         "# Implementation Plan: Thing",
         "",
         "**Status:** Approved — decisions 2026-08-20",
-        "**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1018",
+        "**Roadmap issue:** https://github.com/TerrenoLabs/terreno/issues/1018",
         "**Superseded by:** [other](other.md)",
       ].join("\n"),
       slug: "thing",
@@ -244,7 +244,9 @@ describe("collectFindings", () => {
 
   it("skips a plan that names a parent IP", () => {
     const findings = collectFindings({
-      ips: [ip({boardStatus: "Shipped", parentIp: "[a](a.md)", rawStatus: "Complete", slug: "a-2"})],
+      ips: [
+        ip({boardStatus: "Shipped", parentIp: "[a](a.md)", rawStatus: "Complete", slug: "a-2"}),
+      ],
       seedStatuses: new Map(),
       taskProgress: noTasks,
     });
@@ -304,6 +306,9 @@ describe("applyStatusFixes", () => {
 
   it("returns the input unchanged when no slug matches", () => {
     const before = "**Project fields:** IP=`alpha`, Status=`Planned`";
-    assert.equal(applyStatusFixes({contents: before, fixes: [{slug: "beta", status: "Shipped"}]}), before);
+    assert.equal(
+      applyStatusFixes({contents: before, fixes: [{slug: "beta", status: "Shipped"}]}),
+      before
+    );
   });
 });

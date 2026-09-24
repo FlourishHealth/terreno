@@ -94,7 +94,7 @@ Organize the commits — never ship the raw auto-generated list. Order sections 
 - Update workspace versions in bun lockfile (#735)
 </details>
 
-**Full Changelog**: https://github.com/FlourishHealth/terreno/compare/<last-tag>...<new-version>
+**Full Changelog**: https://github.com/TerrenoLabs/terreno/compare/<last-tag>...<new-version>
 ```
 
 Rules:
@@ -148,7 +148,7 @@ gh release create "$VERSION" --target master --title "$VERSION" --notes-file /tm
 
 4. For `X.Y.0` releases (minor/major), confirm the `chore: cut docs version $VERSION` commit landed and the docs site deployed (`docs-deploy` workflow). Patch releases rebuild the current docs version in place.
 
-5. **Announce breaking changes or deprecations** — post a [Discussions → Announcements](https://github.com/FlourishHealth/terreno/discussions/categories/announcements) thread summarizing what changed, linking the `## Breaking changes` section of the release notes, the matching `CHANGELOG.md` entry, and the upgrade note in `mcp-server/src/docs/upgrades/$VERSION.md` when one exists.
+5. **Announce breaking changes or deprecations** — post a [Discussions → Announcements](https://github.com/TerrenoLabs/terreno/discussions/categories/announcements) thread summarizing what changed, linking the `## Breaking changes` section of the release notes, the matching `CHANGELOG.md` entry, and the upgrade note in `mcp-server/src/docs/upgrades/$VERSION.md` when one exists.
 
 6. After editing this skill or other `.rulesync/` sources, run `bun run rules` and confirm `bun run rules:check` passes.
 

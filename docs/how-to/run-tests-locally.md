@@ -5,7 +5,7 @@ from the last CI run with these commands before pushing.
 
 Package unit tests use in-memory Mongo from `@terreno/test`. Playwright, Maestro, and
 the example-backend **dev** server need a replica-set `mongod` (see
-[AGENTS.md](https://github.com/FlourishHealth/terreno/blob/master/AGENTS.md) Cursor Cloud
+[AGENTS.md](https://github.com/TerrenoLabs/terreno/blob/master/AGENTS.md) Cursor Cloud
 section).
 
 ## Do now — package tests

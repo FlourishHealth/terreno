@@ -142,7 +142,8 @@
         "{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/{index,cli,main}.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",
         "src/tests/fixtures/compileAuthEntry.ts",
-        "src/migrations/cli.ts"
+        "src/migrations/cli.ts",
+        "src/isolated/**/*.isolated.ts"
       ],
       "project": [
         "**/*.{js,mjs,cjs,jsx,ts,tsx,mts,cts}!",

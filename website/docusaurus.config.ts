@@ -36,7 +36,7 @@ const config: Config = {
   },
   onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
-  organizationName: "flourishhealth",
+  organizationName: "TerrenoLabs",
   plugins: [
     [
       "@docusaurus/plugin-client-redirects",
@@ -57,7 +57,7 @@ const config: Config = {
         blog: false,
         docs: {
           disableVersioning: isPreview,
-          editUrl: "https://github.com/flourishhealth/terreno/tree/master/docs/",
+          editUrl: "https://github.com/TerrenoLabs/terreno/tree/master/docs/",
           exclude: ["**/implementationPlans/**", "**/tasks/**"],
           path: "../docs",
           routeBasePath: "/",
@@ -90,17 +90,17 @@ const config: Config = {
         },
         {
           items: [
-            {href: "https://github.com/flourishhealth/terreno", label: "GitHub"},
+            {href: "https://github.com/TerrenoLabs/terreno", label: "GitHub"},
             {
-              href: "https://github.com/FlourishHealth/terreno/blob/master/ROADMAP.md",
+              href: "https://github.com/TerrenoLabs/terreno/blob/master/ROADMAP.md",
               label: "Roadmap",
             },
             {
-              href: "https://github.com/FlourishHealth/terreno/discussions",
+              href: "https://github.com/TerrenoLabs/terreno/discussions",
               label: "Discussions",
             },
             {
-              href: "https://github.com/FlourishHealth/terreno/discussions/categories/docs-feedback",
+              href: "https://github.com/TerrenoLabs/terreno/discussions/categories/docs-feedback",
               label: "Docs feedback",
             },
             {href: demoUrl, label: "Component demo"},
@@ -124,7 +124,7 @@ const config: Config = {
       items: [
         // Enable docsVersionDropdown after the first `bun run docs:version` cut on release.
         {
-          href: "https://github.com/flourishhealth/terreno",
+          href: "https://github.com/TerrenoLabs/terreno",
           label: "GitHub",
           position: "right",
         },

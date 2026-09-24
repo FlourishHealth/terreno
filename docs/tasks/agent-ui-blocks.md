@@ -5,7 +5,7 @@
 
 Every task is a vertical slice: contract + renderer or producer + docs + Bun tests. Work
 the frontier (blockers complete). Phase 2 chart/table work is additionally blocked on
-[PR #1302](https://github.com/FlourishHealth/terreno/pull/1302) merging to `master`.
+[PR #1302](https://github.com/TerrenoLabs/terreno/pull/1302) merging to `master`.
 
 ### Phase 1: Contract — `@terreno/blocks`
 

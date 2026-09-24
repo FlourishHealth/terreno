@@ -41,7 +41,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - Validation: `configureOpenApiValidator`, `validateRequestBody`, `validateQueryParams`, `createValidator`
 - Middleware: `openApiEtagMiddleware`, `sentryAppVersionMiddleware`
 - Extensibility: `TerrenoPlugin` interface
-- Notifiers: `sendSlackMessage`, `sendGoogleChatMessage`, `sendZoomMessage`
+- Notifiers: `sendToSlack`, `formatSlackUserMention`, `lookupSlackUserIdByEmail`, `sendToGoogleChat`, `sendToZoom`
 - HTTP client: `createAuthenticatedClient`, `withApiErrorHandling`, `normalizeApiError`, `markRetryUnsafe`
 
 ## Server Setup
@@ -135,7 +135,7 @@ new TerrenoApp({
 
 ### Audit log (`AuditApp`)
 
-Opt-in append-only log. Register the plugin; importing `@terreno/api` does **not** compile `AuditEvent` onto the default mongoose connection.
+Opt-in append-only log. Register the plugin; importing `@terreno/api` does **not** compile `AuditEvent` onto the default mongoose connection. The compiled Mongoose name is `TerrenoAuditEvent` on collection `auditevents`. Admin UI and RBAC keep `AuditEvent` / `adminAuditEvent`.
 
 ```typescript
 import {
@@ -223,6 +223,22 @@ export const todoRouter = modelRouter("/todos", Todo, {
 
 Do not add `endpoints: (router) => { router.get(...) }` when an action fits.
 
+## modelRouter array operations
+
+When a model has at least one array field, `modelRouter` provides subroutes for adding,
+updating, and removing array items:
+
+| Method | Path | Operation |
+| --- | --- | --- |
+| `POST` | `/:id/:field` | Append an item |
+| `PATCH` | `/:id/:field/:itemId` | Replace or merge an item |
+| `DELETE` | `/:id/:field/:itemId` | Remove an item |
+
+The `field` path must resolve to an array on the document. Requests for scalar, object,
+or unknown fields run the normal update transform and `preUpdate` hook first so consumer
+authorization remains authoritative, then return `400` with code
+`array-operation-field-not-array` if the hook allows the request.
+
 ## MCP tools
 
 Opt a model into Model Context Protocol tools with `mcp` on `modelRouter`. `TerrenoApp` mounts `POST /mcp` when any model has `mcp` or a custom tool is registered.
@@ -299,6 +315,11 @@ setupServer({
 - `POST /auth/verifyEmail` — `{token}` sets `emailVerified` true
 - `GET /auth/me` — Get current user profile
 - `PATCH /auth/me` — Update current user profile
+
+JWT recovery routes default on. In `authOptions`, set `passwordReset: false` to omit
+forgot-password and both token-reset paths, `emailVerification: false` to omit send/verify
+email, or `legacyResetPasswordRoute: false` to omit only the deprecated
+`POST /resetPassword` alias while retaining `POST /auth/resetPassword`.
 
 Signup and `PATCH /auth/me` drop privileged fields: `admin`, `roles`, `organizationIds`,
 `emailVerified`, and `tokenEpoch`. Request logs redact `password`, `newPassword`,
@@ -1403,6 +1424,10 @@ new TerrenoApp({userModel: User}).register(
 | `Notification` | `/notifications` | owner | **No** (`create: []`) |
 | `NotificationPreference` | `/notification-preferences` | owner | Yes (lazy defaults) |
 
+The exported models use collision-resistant Mongoose names
+`TerrenoInboxNotification` and `TerrenoNotificationPreference`, while retaining the
+existing `notifications` and `notificationpreferences` MongoDB collections.
+
 `Notification` fields: `ownerId`, `title`, `body`, `href?`, `kind?`, `readAt?` (null = unread),
 `archivedAt?` (null = active inbox).
 Index: `{ownerId: 1, created: -1}`.
@@ -1483,18 +1508,29 @@ nested ids (SendGrid `sg_event_id`). Operator guide: [Receive inbound webhooks](
 
 ### Slack Notifications
 
-``````typescript
-import {sendSlackMessage} from "@terreno/api";
+Incoming webhooks only notify a person when the text contains their **Slack
+member ID** as `<@U012ABCDEF>` (Enterprise Grid ids start with `W`). Putting a
+display name or email in the message does not mention them.
 
-await sendSlackMessage({
-  webhookUrl: process.env.SLACK_WEBHOOK_URL,
-  message: "Deployment complete",
-  blocks: [
-    {
-      type: "section",
-      text: {type: "mrkdwn", text: "*Deployment Status*\nVersion 1.2.3 deployed successfully"},
-    },
-  ],
+Store `slackUserId` on the staff/user record. Resolve it once with
+`lookupSlackUserIdByEmail` (needs a bot token with `users:read.email`) and pass
+the id on every send:
+
+``````typescript
+import {formatSlackUserMention, lookupSlackUserIdByEmail, sendToSlack} from "@terreno/api";
+
+const slackUserId =
+  staff.slackUserId ??
+  (await lookupSlackUserIdByEmail({email: staff.email, token: process.env.SLACK_BOT_TOKEN}));
+
+await sendToSlack("Please review this case", {
+  url: process.env.SLACK_WEBHOOK_URL,
+  mentionUserIds: slackUserId ? [slackUserId] : [],
+});
+
+// Or embed the token yourself:
+await sendToSlack(`${formatSlackUserMention("U012ABCDEF")} Deployment complete`, {
+  url: process.env.SLACK_WEBHOOK_URL,
 });
 ``````
 
@@ -1830,6 +1866,7 @@ Complete reference of environment variables used by @terreno/api:
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `SLACK_WEBHOOKS` | No | — | JSON object mapping names to Slack webhook URLs: `{"default":"https://..."}` |
+| `SLACK_BOT_TOKEN` | No | — | Bot token (`xoxb-…`) with `users:read.email` for `lookupSlackUserIdByEmail` |
 | `GOOGLE_CHAT_WEBHOOKS` | No | — | JSON object mapping names to Google Chat webhook URLs |
 | `ZOOM_CHAT_WEBHOOKS` | No | — | JSON object mapping names to Zoom webhook URLs |
 | `WEBHOOK_SECRET` | No | — | Secret for validating incoming webhook signatures |
@@ -1878,4 +1915,4 @@ SENTRY_DSN=https://...@sentry.io/...
 - [How to create a model](../how-to/create-a-model.md)
 - [Add GitHub OAuth](../how-to/add-github-oauth.md)
 - [Authentication architecture](../explanation/authentication.md)
-- [API package source](https://github.com/flourishhealth/terreno/tree/master/api/src)
+- [API package source](https://github.com/TerrenoLabs/terreno/tree/master/api/src)

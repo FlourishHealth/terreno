@@ -222,6 +222,7 @@ There is **no** `RATE_LIMIT_ENABLED` (or similar) read by `@terreno/api`. Apps t
 |----------|---------|----------|---------|--------|-------|
 | `SLACK_WEBHOOKS` | `@terreno/api` | ❌ | — | Yes | server |
 | `SLACK_WEBHOOK_URL` | scripts | ❌ | — | Yes | server |
+| `SLACK_BOT_TOKEN` | `@terreno/api` `lookupSlackUserIdByEmail` | ❌ | — | Yes | server |
 | `GOOGLE_CHAT_WEBHOOKS` | `@terreno/api` | ❌ | — | Yes | server |
 | `GOOGLE_CHAT_WEBHOOK_URL` | scripts | ❌ | — | Yes | server |
 | `ZOOM_CHAT_WEBHOOKS` | `@terreno/api` | ❌ | — | Yes | server |
@@ -311,8 +312,8 @@ example-backend **test** setup only. They are not read by `@terreno/jobs`. Use
 
 ## Example `.env` files
 
-- [`example-backend/.env.example`](https://github.com/FlourishHealth/terreno/blob/master/example-backend/.env.example)
-- [`example-frontend/.env.example`](https://github.com/FlourishHealth/terreno/blob/master/example-frontend/.env.example)
+- [`example-backend/.env.example`](https://github.com/TerrenoLabs/terreno/blob/master/example-backend/.env.example)
+- [`example-frontend/.env.example`](https://github.com/TerrenoLabs/terreno/blob/master/example-frontend/.env.example)
 
 ## Related documentation
 

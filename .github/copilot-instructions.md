@@ -61,12 +61,12 @@ Human-facing docs are the architecture source. Before changing code, read the
 explanation and reference pages for the affected area. Update those pages in the
 same slice using the `update-docs` skill. Missing docs for a user-visible or
 architectural change fails the slice. Install the published skill set with
-`npx skills add FlourishHealth/terreno`; regenerate `skills/` with
+`npx skills add TerrenoLabs/terreno`; regenerate `skills/` with
 `bun run skills:sync`. The combined lifecycle and Terreno app skill set installs as the Cursor plugin
 `terreno-planning` from `.cursor-plugin/marketplace.json` (invoke `/terreno-1-grow`),
 as the Codex plugin `terreno-planning` from `.agents/plugins/marketplace.json`
 (invoke `$terreno-1-grow`), or as the Claude Code plugin `terreno` via
-`/plugin marketplace add FlourishHealth/terreno` then
+`/plugin marketplace add TerrenoLabs/terreno` then
 `/plugin install terreno@terreno-plugins` (invoke `/terreno:1-grow`). The Claude copy under
 `plugins/terreno-claude/` is generated; never hand-edit it.
 
@@ -570,7 +570,7 @@ When present, `SENTRY_CLIENT_SECRET` is injected as an environment variable hold
 
 When present, `CIRCLECI_TOKEN` is a CircleCI personal API token (`CIRCLE_TOKEN` is the
 CLI name). Use it to list jobs and fetch logs for Taste. Project slug:
-`circleci/6UHiK7pThPXbhnNi3umQNe/W3HZeMJujyMB2sYiUXaQbs` (not `gh/FlourishHealth/terreno`).
+`circleci/6UHiK7pThPXbhnNi3umQNe/W3HZeMJujyMB2sYiUXaQbs` (not `gh/TerrenoLabs/terreno`).
 See [`docs/how-to/circleci.md`](../../docs/how-to/circleci.md).
 
 ### Gotchas

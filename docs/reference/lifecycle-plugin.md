@@ -35,16 +35,16 @@ Every stage includes:
 - Recommended next stage
 
 Results use `PASS`, `FAIL`, `BLOCKED`, or `PENDING` and the compact `v: 2` schema
-[`stage-result.schema.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/stage-result.schema.json)
+[`stage-result.schema.json`](https://github.com/TerrenoLabs/terreno/blob/master/plugins/terreno-planning/references/stage-result.schema.json)
 (`v`, `stage`, `status`, `next`, `action`; omit empty keys). Loop state follows
-[`execution-state.schema.json`](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/execution-state.schema.json).
+[`execution-state.schema.json`](https://github.com/TerrenoLabs/terreno/blob/master/plugins/terreno-planning/references/execution-state.schema.json).
 Chat and PRs show `status` / `next` / `action`; the YAML lives in a Details toggle.
 When the current PR has GitHub Deployments, those demo URLs are the last visible
 section of every wait-for-human or done chat.
 
 The outer loop owns state persistence, Taste `PENDING` reinvocation, Grow/Brew/Taste
 invocation, retries, and escalation. Pick owns the
-[pick-roast inner loop](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/pick-roast-loop.md):
+[pick-roast inner loop](https://github.com/TerrenoLabs/terreno/blob/master/plugins/terreno-planning/references/pick-roast-loop.md):
 one task, roast it, next task. Roast never invokes Pick. Do not start the next task
 until Roast PASS. Exactly one driver continues after each Roast. Brew and Taste wait
 until async review bots (Bugbot, CodeQL, and similar) on the current head have reported,
@@ -91,16 +91,16 @@ These are the only visible PR sections; optional detail is expandable; comments 
 reserved for blocked decisions or non-obvious review resolutions.
 
 Every stage follows the
-[documentation contract](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/documentation-contract.md):
+[documentation contract](https://github.com/TerrenoLabs/terreno/blob/master/plugins/terreno-planning/references/documentation-contract.md):
 read architecture docs before acting, update them in the same slice, and fail the slice
 when user-visible or architectural behavior ships without matching docs. Brew and Taste
 observe product CI per
-[product-ci.md](https://github.com/FlourishHealth/terreno/blob/master/plugins/terreno-planning/references/product-ci.md).
+[product-ci.md](https://github.com/TerrenoLabs/terreno/blob/master/plugins/terreno-planning/references/product-ci.md).
 
 Install the published skill set directly:
 
 ```bash
-npx skills add FlourishHealth/terreno
+npx skills add TerrenoLabs/terreno
 ```
 
 Or install the combined lifecycle and Terreno app plugin:
@@ -112,24 +112,24 @@ Or install the combined lifecycle and Terreno app plugin:
 | Claude Code | `terreno` | `1-grow` … `5-taste`, outer loops | `/terreno:pick-roast-loop` |
 | `npx skills` | — | Canonical stage and outer-loop names | `/terreno-pick-roast-loop` |
 
-Cursor installs `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.cursor-plugin/marketplace.json). Codex:
+Cursor installs `terreno-planning` from [`.cursor-plugin/marketplace.json`](https://github.com/TerrenoLabs/terreno/blob/master/.cursor-plugin/marketplace.json). Codex:
 
 ```text
-codex plugin marketplace add FlourishHealth/terreno
+codex plugin marketplace add TerrenoLabs/terreno
 codex plugin install terreno-planning --source terreno-plugins
 ```
 
-Codex reads [`.agents/plugins/marketplace.json`](https://github.com/FlourishHealth/terreno/blob/master/.agents/plugins/marketplace.json)
+Codex reads [`.agents/plugins/marketplace.json`](https://github.com/TerrenoLabs/terreno/blob/master/.agents/plugins/marketplace.json)
 and `.codex-plugin/plugin.json` on the canonical plugin. Claude Code:
 
 ```text
-/plugin marketplace add FlourishHealth/terreno
+/plugin marketplace add TerrenoLabs/terreno
 /plugin install terreno@terreno-plugins
 ```
 
 Claude Code resolves a plugin skill's command from the frontmatter `name`, so the short
 names ship as a generated Claude-only copy at
-[`plugins/terreno-claude/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-claude).
+[`plugins/terreno-claude/`](https://github.com/TerrenoLabs/terreno/tree/master/plugins/terreno-claude).
 Stage procedure, Terreno app skills, contracts, agents, and references are generated
 from the canonical `plugins/terreno-planning/` tree.
 

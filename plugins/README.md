@@ -164,7 +164,7 @@ under `.rulesync/skills/` and are generated for supported agent ecosystems with
 Install the generated skill set directly with:
 
 ```bash
-npx skills add FlourishHealth/terreno
+npx skills add TerrenoLabs/terreno
 bun run skills:sync
 ```
 
@@ -216,14 +216,14 @@ Codex currently consumes the combined skills without plugin-defined agents.
 Claude Code install:
 
 ```text
-/plugin marketplace add FlourishHealth/terreno
+/plugin marketplace add TerrenoLabs/terreno
 /plugin install terreno@terreno-plugins
 ```
 
 Codex install:
 
 ```text
-codex plugin marketplace add FlourishHealth/terreno
+codex plugin marketplace add TerrenoLabs/terreno
 codex plugin install terreno-planning --source terreno-plugins
 ```
 
