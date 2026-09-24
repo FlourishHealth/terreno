@@ -29,7 +29,7 @@ Charting is the headline use case: "show me signups by month" becomes a `chart` 
 bound to a dataset — inline when the agent already has a few hundred numbers, or a `ref`
 to a server-side handle a tool returned when there are thousands — rendered by the
 `BarChart` / `LineChart` / `AreaChart` / `DonutChart` components from
-[PR #1302](https://github.com/FlourishHealth/terreno/pull/1302).
+[PR #1302](https://github.com/TerrenoLabs/terreno/pull/1302).
 
 ## Non-Goals
 

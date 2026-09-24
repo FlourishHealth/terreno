@@ -125,7 +125,7 @@ jobs:
   terraform-preview:
     name: Terraform preview
     needs: [detect, terraform-format]
-    # Same-repo PRs only. Fork PRs keep repository = FlourishHealth/terreno on
+    # Same-repo PRs only. Fork PRs keep repository = TerrenoLabs/terreno on
     # the OIDC token, so WIF would otherwise accept them.
     if: |
       always() &&

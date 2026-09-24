@@ -135,8 +135,8 @@ const INSTALLABLE_README = `# Installable Terreno skills
 Install from GitHub with the skills CLI:
 
 \`\`\`bash
-npx skills add FlourishHealth/terreno
-npx skills add FlourishHealth/terreno --skill terreno-1-grow
+npx skills add TerrenoLabs/terreno
+npx skills add TerrenoLabs/terreno --skill terreno-1-grow
 \`\`\`
 
 This directory is generated. Canonical sources:

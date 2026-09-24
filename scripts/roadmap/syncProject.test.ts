@@ -1,13 +1,13 @@
-import assert from "node:assert/strict";
 import {describe, it} from "bun:test";
+import assert from "node:assert/strict";
 
 import {parseFieldOptions, parseLabelNames} from "./checkRoadmapItem.ts";
 import {parseBackfillTable, parseProjectFields, parseSeedIssues} from "./seedIssues.ts";
 import {
-  COMMUNITY_FIELD_NAME,
-  IP_FIELD_NAME,
   buildDesiredFields,
+  COMMUNITY_FIELD_NAME,
   collectPagedNodes,
+  IP_FIELD_NAME,
   planFields,
   planItemSync,
   resolveSeedItems,
@@ -47,8 +47,8 @@ Body for the undesigned item.
 
 | IP slug | GitHub issue | Status | Area | Target | Impact | Type |
 |---------|--------------|--------|------|--------|--------|------|
-| \`alpha-ip\` | https://github.com/FlourishHealth/terreno/issues/42 | \`Planned\` | \`api\` | \`Next\` | \`Feature\` | \`type:feature\` |
-| \`shipped-thing\` | https://github.com/FlourishHealth/terreno/issues/43 | \`Shipped\` | \`dx\` | \`Released\` | \`Improvement\` | \`type:chore\` |
+| \`alpha-ip\` | https://github.com/TerrenoLabs/terreno/issues/42 | \`Planned\` | \`api\` | \`Next\` | \`Feature\` | \`type:feature\` |
+| \`shipped-thing\` | https://github.com/TerrenoLabs/terreno/issues/43 | \`Shipped\` | \`dx\` | \`Released\` | \`Improvement\` | \`type:chore\` |
 `;
 
 describe("collectPagedNodes", () => {
@@ -90,14 +90,18 @@ describe("collectPagedNodes", () => {
 
 describe("parseProjectFields", () => {
   it("reads backticked values", () => {
-    const fields = parseProjectFields("**Project fields:** Area=`api`, Target=`Next`, Status=`Planned`");
+    const fields = parseProjectFields(
+      "**Project fields:** Area=`api`, Target=`Next`, Status=`Planned`"
+    );
     assert.equal(fields.Area, "api");
     assert.equal(fields.Target, "Next");
     assert.equal(fields.Status, "Planned");
   });
 
   it("treats an unwritten IP as empty", () => {
-    const fields = parseProjectFields("**Project fields:** IP=*(not yet written)*, Status=`Planned`");
+    const fields = parseProjectFields(
+      "**Project fields:** IP=*(not yet written)*, Status=`Planned`"
+    );
     assert.equal(fields.IP, "");
     assert.equal(fields.Status, "Planned");
   });
@@ -199,7 +203,12 @@ describe("buildDesiredFields", () => {
 
 describe("planFields", () => {
   const desired = buildDesiredFields({
-    options: {areas: ["api"], impact: ["Feature"], status: ["Planned", "Shipped"], target: ["Next"]},
+    options: {
+      areas: ["api"],
+      impact: ["Feature"],
+      status: ["Planned", "Shipped"],
+      target: ["Next"],
+    },
   });
 
   it("plans creation for every field on an empty board", () => {
@@ -213,7 +222,12 @@ describe("planFields", () => {
     const plan = planFields({
       desired,
       existing: [
-        {dataType: "SINGLE_SELECT", id: "F1", name: "Status", options: [{id: "o1", name: "Planned"}]},
+        {
+          dataType: "SINGLE_SELECT",
+          id: "F1",
+          name: "Status",
+          options: [{id: "o1", name: "Planned"}],
+        },
       ],
     });
     const rewrite = plan.rewriteOptions.find((entry) => entry.field.name === "Status");
@@ -226,7 +240,12 @@ describe("planFields", () => {
     const plan = planFields({
       desired: [{dataType: "SINGLE_SELECT", name: "Status", options: ["Planned"]}],
       existing: [
-        {dataType: "SINGLE_SELECT", id: "F1", name: "Status", options: [{id: "o1", name: "Planned"}]},
+        {
+          dataType: "SINGLE_SELECT",
+          id: "F1",
+          name: "Status",
+          options: [{id: "o1", name: "Planned"}],
+        },
       ],
     });
     assert.equal(plan.create.length, 0);
@@ -317,7 +336,10 @@ describe("shouldWriteBoardStatus", () => {
   });
 
   it("does not reset a dragged Status that is ahead of the seed", () => {
-    assert.equal(shouldWriteBoardStatus({boardStatus: "In progress", seedStatus: "Planned"}), false);
+    assert.equal(
+      shouldWriteBoardStatus({boardStatus: "In progress", seedStatus: "Planned"}),
+      false
+    );
   });
 
   it("does not revive a Declined card from a later seed Status", () => {
@@ -344,7 +366,17 @@ describe("planItemSync", () => {
     const plan = planItemSync({
       boardItems: [
         {fields: {Status: "Inbox"}, id: "extra", issueNumber: 99},
-        {fields: {Area: "api", Impact: "Feature", IP: "alpha-ip", Status: "Planned", Target: "Next"}, id: "keep", issueNumber: 42},
+        {
+          fields: {
+            Area: "api",
+            Impact: "Feature",
+            IP: "alpha-ip",
+            Status: "Planned",
+            Target: "Next",
+          },
+          id: "keep",
+          issueNumber: 42,
+        },
       ],
       items: [seedItem],
     });
@@ -359,7 +391,13 @@ describe("planItemSync", () => {
     const plan = planItemSync({
       boardItems: [
         {
-          fields: {Area: "api", Impact: "Feature", IP: "alpha-ip", Status: "In progress", Target: "Next"},
+          fields: {
+            Area: "api",
+            Impact: "Feature",
+            IP: "alpha-ip",
+            Status: "In progress",
+            Target: "Next",
+          },
           id: "dragged",
           issueNumber: 42,
         },
@@ -374,7 +412,13 @@ describe("planItemSync", () => {
     const plan = planItemSync({
       boardItems: [
         {
-          fields: {Area: "api", Impact: "Feature", IP: "alpha-ip", Status: "Planned", Target: "Next"},
+          fields: {
+            Area: "api",
+            Impact: "Feature",
+            IP: "alpha-ip",
+            Status: "Planned",
+            Target: "Next",
+          },
           id: "behind",
           issueNumber: 42,
         },
@@ -418,7 +462,9 @@ describe("the real seed document", () => {
 
   it("does not paste the shipped table into the last section body", async () => {
     const seeds = parseSeedIssues(await Bun.file("docs/explanation/roadmap-seed-issues.md").text());
-    const lastSection = seeds.find((seed) => seed.slug === "pluggable-database-sqlite" && seed.body !== null);
+    const lastSection = seeds.find(
+      (seed) => seed.slug === "pluggable-database-sqlite" && seed.body !== null
+    );
     assert.ok(lastSection, "expected a section body for pluggable-database-sqlite");
     assert.ok(!lastSection?.body?.includes("Shipped, umbrella, and declined IPs"));
     assert.ok(!lastSection?.body?.includes("admin-improvements"));

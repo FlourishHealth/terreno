@@ -4,7 +4,7 @@
 **Branch:** `cursor/mongodb-migrations-tooling-04f9`  
 **Owner:** —  
 **Created:** 2026-09-10  
-**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1189  
+**Roadmap issue:** https://github.com/TerrenoLabs/terreno/issues/1189  
 **Primary packages:** `@terreno/api`, `@terreno/admin-backend`, `@terreno/admin-frontend`, `admin-spa`, `example-backend`
 
 ## Goal

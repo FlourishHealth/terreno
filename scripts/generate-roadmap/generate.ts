@@ -184,7 +184,7 @@ export const main = async (): Promise<void> => {
   const missing: string[] = [];
   const token = getRequiredEnvironmentVariable("GITHUB_TOKEN");
   const projectNumberRaw = getRequiredEnvironmentVariable("TERRENO_PROJECT_NUMBER");
-  const owner = getRequiredEnvironmentVariable("GITHUB_REPOSITORY_OWNER") || "FlourishHealth";
+  const owner = getRequiredEnvironmentVariable("GITHUB_REPOSITORY_OWNER") || "TerrenoLabs";
 
   if (token === "") {
     missing.push("GITHUB_TOKEN");
@@ -194,13 +194,17 @@ export const main = async (): Promise<void> => {
   }
 
   if (missing.length > 0) {
-    console.error(`generate-roadmap: missing required environment variables: ${missing.join(", ")}`);
+    console.error(
+      `generate-roadmap: missing required environment variables: ${missing.join(", ")}`
+    );
     process.exit(1);
   }
 
   const projectNumber = Number.parseInt(projectNumberRaw, 10);
   if (Number.isNaN(projectNumber)) {
-    console.error(`generate-roadmap: TERRENO_PROJECT_NUMBER must be an integer, got "${projectNumberRaw}"`);
+    console.error(
+      `generate-roadmap: TERRENO_PROJECT_NUMBER must be an integer, got "${projectNumberRaw}"`
+    );
     process.exit(1);
   }
 

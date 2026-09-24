@@ -10,7 +10,7 @@ From the app root:
 bun pm ls --all | rg '@terreno/'
 ```
 
-Or call MCP `application_info` (`terreno-mcp-local`) and read each `package.json`. Record the lowest `@terreno/*` version as `fromVersion` and the target as `toVersion` (usually the latest tag on [GitHub Releases](https://github.com/FlourishHealth/terreno/releases)).
+Or call MCP `application_info` (`terreno-mcp-local`) and read each `package.json`. Record the lowest `@terreno/*` version as `fromVersion` and the target as `toVersion` (usually the latest tag on [GitHub Releases](https://github.com/TerrenoLabs/terreno/releases)).
 
 ## 2. Fetch notes for the range
 

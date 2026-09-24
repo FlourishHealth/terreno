@@ -312,8 +312,8 @@ example-backend **test** setup only. They are not read by `@terreno/jobs`. Use
 
 ## Example `.env` files
 
-- [`example-backend/.env.example`](https://github.com/FlourishHealth/terreno/blob/master/example-backend/.env.example)
-- [`example-frontend/.env.example`](https://github.com/FlourishHealth/terreno/blob/master/example-frontend/.env.example)
+- [`example-backend/.env.example`](https://github.com/TerrenoLabs/terreno/blob/master/example-backend/.env.example)
+- [`example-frontend/.env.example`](https://github.com/TerrenoLabs/terreno/blob/master/example-frontend/.env.example)
 
 ## Related documentation
 

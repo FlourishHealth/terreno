@@ -4,7 +4,7 @@ This guide is **AI-context-first**: it is written for an agent (or human) perfor
 
 `@terreno/syncdb` supersedes `@terreno/rtk` for **data synchronization** (CRUD reads/writes, offline queue, realtime convergence). It does not replace the generated OpenAPI SDK, Better Auth Redux wiring, or feature-flag infrastructure.
 
-`modelRouter` `realtime`, `realtimeList`, `realtimeDocument`, and `setRealtimeSocket` are **deprecated** and **will be removed in Terreno 58**. `RealtimeApp` stays as the socket host for syncdb. Removal checklist: [`docs/tasks/remove-legacy-realtime.md`](https://github.com/FlourishHealth/terreno/blob/master/docs/tasks/remove-legacy-realtime.md).
+`modelRouter` `realtime`, `realtimeList`, `realtimeDocument`, and `setRealtimeSocket` are **deprecated** and **will be removed in Terreno 58**. `RealtimeApp` stays as the socket host for syncdb. Removal checklist: [`docs/tasks/remove-legacy-realtime.md`](https://github.com/TerrenoLabs/terreno/blob/master/docs/tasks/remove-legacy-realtime.md).
 
 ## 1. Before you start
 
@@ -27,7 +27,7 @@ generated RTK hooks; admin RPC uses its host-bound fetch client.
 
 **Validation (Task 3.5):** The profile screen (`example-frontend/app/(tabs)/profile.tsx`) was reviewed against this guide. `useGetMeQuery` / `usePatchMeMutation` are **non-synced** custom SDK routes — the guide §8 explicitly says to keep them on RTK. No profile migration is required; the guide is sufficient for that case.
 
-Reference: [`docs/reference/syncdb.md`](../reference/syncdb.md), and the package [`syncdb/README.md`](https://github.com/flourishhealth/terreno/blob/release-56.0.0/syncdb/README.md).
+Reference: [`docs/reference/syncdb.md`](../reference/syncdb.md), and the package [`syncdb/README.md`](https://github.com/TerrenoLabs/terreno/blob/release-56.0.0/syncdb/README.md).
 
 ## 2. Install and configure
 
@@ -484,5 +484,5 @@ Before a collection can sync:
 ## Further reading
 
 - [`docs/reference/syncdb.md`](../reference/syncdb.md) — full API reference
-- [`syncdb/README.md`](https://github.com/flourishhealth/terreno/blob/release-56.0.0/syncdb/README.md) — architecture and protocol detail
+- [`syncdb/README.md`](https://github.com/TerrenoLabs/terreno/blob/release-56.0.0/syncdb/README.md) — architecture and protocol detail
 - [`docs/how-to/configure-better-auth.md`](configure-better-auth.md) — Better Auth setup

@@ -37,5 +37,5 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 - [Scan plugin](scan-plugin.md) — Aim/Sweep/Sift/Plot/Track goal campaigns that feed the lifecycle
 - [Install agent skills](../how-to/install-agent-skills.md) — Published `skills/` tree for `npx skills`
 - [GitHub issue lifecycle](../how-to/github-issue-lifecycle.md) — Pick-ready issues and Pick plan comments
-- Root [package.json](https://github.com/flourishhealth/terreno/blob/master/package.json) — Workspace scripts and catalog
+- Root [package.json](https://github.com/TerrenoLabs/terreno/blob/master/package.json) — Workspace scripts and catalog
 - Per-package `package.json` in each package directory — Commands and dependencies
