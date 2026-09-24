@@ -135,7 +135,7 @@ new TerrenoApp({
 
 ### Audit log (`AuditApp`)
 
-Opt-in append-only log. Register the plugin; importing `@terreno/api` does **not** compile `AuditEvent` onto the default mongoose connection.
+Opt-in append-only log. Register the plugin; importing `@terreno/api` does **not** compile `AuditEvent` onto the default mongoose connection. The compiled Mongoose name is `TerrenoAuditEvent` on collection `auditevents`. Admin UI and RBAC keep `AuditEvent` / `adminAuditEvent`.
 
 ```typescript
 import {
@@ -299,6 +299,11 @@ setupServer({
 - `POST /auth/verifyEmail` — `{token}` sets `emailVerified` true
 - `GET /auth/me` — Get current user profile
 - `PATCH /auth/me` — Update current user profile
+
+JWT recovery routes default on. In `authOptions`, set `passwordReset: false` to omit
+forgot-password and both token-reset paths, `emailVerification: false` to omit send/verify
+email, or `legacyResetPasswordRoute: false` to omit only the deprecated
+`POST /resetPassword` alias while retaining `POST /auth/resetPassword`.
 
 Signup and `PATCH /auth/me` drop privileged fields: `admin`, `roles`, `organizationIds`,
 `emailVerified`, and `tokenEpoch`. Request logs redact `password`, `newPassword`,
@@ -1402,6 +1407,10 @@ new TerrenoApp({userModel: User}).register(
 |---|---|---|---|
 | `Notification` | `/notifications` | owner | **No** (`create: []`) |
 | `NotificationPreference` | `/notification-preferences` | owner | Yes (lazy defaults) |
+
+The exported models use collision-resistant Mongoose names
+`TerrenoInboxNotification` and `TerrenoNotificationPreference`, while retaining the
+existing `notifications` and `notificationpreferences` MongoDB collections.
 
 `Notification` fields: `ownerId`, `title`, `body`, `href?`, `kind?`, `readAt?` (null = unread),
 `archivedAt?` (null = active inbox).

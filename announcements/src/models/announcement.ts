@@ -167,8 +167,12 @@ announcementSchema.pre("validate", function validatePrimaryAction() {
 });
 
 export const Announcement =
-  (mongoose.models.Announcement as AnnouncementModel) ??
-  mongoose.model<AnnouncementDocument, AnnouncementModel>("Announcement", announcementSchema);
+  (mongoose.models.TerrenoAnnouncement as AnnouncementModel) ??
+  mongoose.model<AnnouncementDocument, AnnouncementModel>(
+    "TerrenoAnnouncement",
+    announcementSchema,
+    "announcements"
+  );
 
 export const toAnnouncementPublic = (
   doc: AnnouncementDocument,
