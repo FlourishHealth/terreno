@@ -75,6 +75,8 @@ import {parseAdminListFilters} from "./filterParser";
 import type {ResolvedAdminModel} from "./resolvedAdminModel";
 import {RESERVED_SCRIPT_FLAGS} from "./scriptCli";
 
+const AUDIT_EVENT_MODEL_NAMES = new Set(["AuditEvent", "TerrenoAuditEvent"]);
+
 /**
  * Configuration for a single model in the admin panel.
  */
@@ -629,7 +631,7 @@ export class AdminApp {
     }
     // Platform audit rows may omit organizationId. Requiring a selected org hides
     // those events and skips Recent Activity / the AuditEvent changelist.
-    if (config.model.modelName === "AuditEvent") {
+    if (AUDIT_EVENT_MODEL_NAMES.has(config.model.modelName)) {
       return false;
     }
     return Boolean(config.model.schema.path("organizationId"));
@@ -835,7 +837,7 @@ export class AdminApp {
       request: express.Request;
       verb: AdminAuditEvent["verb"];
     }): Promise<void> => {
-      if (modelName === "AuditEvent") {
+      if (AUDIT_EVENT_MODEL_NAMES.has(modelName)) {
         return;
       }
       void maybeRecordAdminAudit({
