@@ -4,49 +4,49 @@
     "url": "https://github.com/TerrenoLabs/terreno/issues"
   },
   "dependencies": {
-    "@expo/vector-icons": "catalog:",
-    "@react-native-async-storage/async-storage": "catalog:",
-    "@reduxjs/toolkit": "catalog:",
-    "@terreno/admin-frontend": "workspace:*",
-    "@terreno/rtk": "workspace:*",
-    "@terreno/syncdb": "workspace:*",
-    "@terreno/ui": "workspace:*",
-    "better-auth": "catalog:",
-    "expo": "catalog:",
-    "expo-constants": "catalog:",
-    "expo-font": "catalog:",
-    "expo-linking": "catalog:",
-    "expo-router": "catalog:",
-    "expo-splash-screen": "catalog:",
-    "expo-status-bar": "catalog:",
-    "express": "catalog:",
+    "@expo/vector-icons": "^15.1.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@reduxjs/toolkit": "^2.11.1",
+    "@terreno/admin-frontend": "57.6.0",
+    "@terreno/rtk": "57.6.0",
+    "@terreno/syncdb": "57.6.0",
+    "@terreno/ui": "57.6.0",
+    "better-auth": "^1.6.25",
+    "expo": "~57.0.14",
+    "expo-constants": "~57.0.12",
+    "expo-font": "~57.0.1",
+    "expo-linking": "~57.0.6",
+    "expo-router": "~57.0.14",
+    "expo-splash-screen": "~57.0.7",
+    "expo-status-bar": "~57.0.1",
+    "express": "^5.2.1",
     "http-proxy-middleware": "^3.0.3",
-    "react": "catalog:",
-    "react-dom": "catalog:",
-    "react-native": "catalog:",
-    "react-native-gesture-handler": "catalog:",
-    "react-native-reanimated": "catalog:",
-    "react-native-safe-area-context": "catalog:",
-    "react-native-screens": "catalog:",
-    "react-native-web": "catalog:",
-    "react-native-worklets": "catalog:",
-    "react-redux": "catalog:",
-    "redux-persist": "catalog:"
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "4.26.2",
+    "react-native-web": "^0.21.2",
+    "react-native-worklets": "0.10.1",
+    "react-redux": "^9.2.0",
+    "redux-persist": "^6.0.0"
   },
   "description": "Standalone admin SPA (Expo Router web) plus Express serve plugin — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
-    "@biomejs/biome": "catalog:",
-    "@playwright/test": "catalog:",
-    "@terreno/api": "workspace:*",
-    "@types/bun": "catalog:",
-    "@types/express": "catalog:",
-    "@types/luxon": "catalog:",
-    "@types/react": "catalog:",
-    "@types/supertest": "catalog:",
-    "babel-preset-expo": "catalog:",
-    "luxon": "catalog:",
-    "supertest": "catalog:",
-    "typescript": "catalog:"
+    "@biomejs/biome": "^2.3.6",
+    "@playwright/test": "^1.58.2",
+    "@terreno/api": "57.6.0",
+    "@types/bun": "^1.4.0",
+    "@types/express": "^5.0.6",
+    "@types/luxon": "^3.7.1",
+    "@types/react": "~19.2.14",
+    "@types/supertest": "^7.2.0",
+    "babel-preset-expo": "~57.0.7",
+    "luxon": "^3.7.2",
+    "supertest": "^7.2.2",
+    "typescript": "~6.0.3"
   },
   "exports": {
     ".": {
@@ -77,7 +77,7 @@
   "main": "expo-router/entry",
   "name": "@terreno/admin-spa",
   "peerDependencies": {
-    "@terreno/api": "workspace:*"
+    "@terreno/api": "57.6.0"
   },
   "publishConfig": {
     "access": "public"
@@ -104,5 +104,5 @@
     "web": "expo start --web --port 8083"
   },
   "types": "./src/dist/index.d.ts",
-  "version": "57.4.0"
+  "version": "57.6.0"
 }
