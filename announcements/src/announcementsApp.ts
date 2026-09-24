@@ -31,6 +31,12 @@ import {
   passesMinBuildNumber,
   selectPendingAnnouncements,
 } from "./pending";
+import {
+  type AnnouncementReleaseImportInput,
+  announcementReleaseImportSchema,
+  importAnnouncementRelease,
+  requireAnnouncementUploadAccess,
+} from "./releaseImport";
 import type {
   AcknowledgementPolicy,
   AnnouncementDocument,
@@ -254,6 +260,24 @@ export class AnnouncementsApp implements TerrenoPlugin {
 
     const routerOptions: ModelRouterOptions<AnnouncementDocument> = {
       ...(openApi ? {openApi: openApi as OpenApiMiddleware} : {}),
+      allowAnonymous: true,
+      collectionActions: {
+        "import-release": {
+          body: announcementReleaseImportSchema,
+          description:
+            "Idempotently create or update a release pack. Defaults to drafts; set publish=true to publish.",
+          handler: async ({body, req}) => {
+            requireAnnouncementUploadAccess({req, uploadToken: this.options.uploadToken});
+            return importAnnouncementRelease({
+              input: body as AnnouncementReleaseImportInput,
+            });
+          },
+          method: "POST",
+          permissions: [Permissions.IsAny],
+          summary: "Import a product release announcement pack",
+          tag: "announcements",
+        },
+      },
       permissions: {
         create: [Permissions.IsAdmin],
         delete: [Permissions.IsAdmin],

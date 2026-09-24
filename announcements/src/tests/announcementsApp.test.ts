@@ -23,6 +23,7 @@ const buildApp = (options?: {
   defaultAcknowledgementPolicy?: "required" | "dismiss-only";
   isStaff?: (user: unknown) => boolean;
   matchAudience?: (user: unknown, announcement: unknown) => boolean;
+  uploadToken?: string;
 }): express.Application => {
   const app = getBaseServer();
   setupAuth(app, UserModel as unknown as UserModelType);
@@ -97,6 +98,102 @@ describe("AnnouncementsApp", () => {
     expect(pendingRes.body.data.current?.id).toBe(announcementId);
     expect(pendingRes.body.data.current?.requiresAcknowledgement).toBe(true);
     expect(pendingRes.body.data.remainingCount).toBe(0);
+  });
+
+  it("imports multiple release announcements as idempotent drafts with a bearer token", async () => {
+    const uploadApp = buildApp({uploadToken: "release-upload-secret"});
+    const request = supertest(uploadApp);
+    const pack = {
+      announcements: [
+        {
+          acknowledgementPolicy: "required",
+          body: "Staff release details",
+          displayMode: "modal",
+          slug: "staff-release",
+          title: "Staff: version 1.14.0",
+        },
+        {
+          body: "Patient release details",
+          slug: "patient-release",
+          title: "New in version 1.14.0",
+        },
+      ],
+      defaults: {
+        audienceType: "patient",
+        platforms: ["ios", "android"],
+      },
+      release: {
+        buildNumber: 1842,
+        channel: "production",
+        product: "example",
+        version: "1.14.0",
+      },
+    };
+
+    const firstResponse = await request
+      .post("/announcements/import-release")
+      .set("Authorization", "Bearer release-upload-secret")
+      .send(pack)
+      .expect(200);
+    assert.equal(firstResponse.body.data.created, 2);
+    assert.equal(firstResponse.body.data.published, 0);
+
+    const imported = await Announcement.find({}).sort({releaseSlug: 1});
+    assert.lengthOf(imported, 2);
+    assert.equal(imported[0]?.status, "draft");
+    assert.equal(imported[0]?.minBuildNumber, 1842);
+    assert.deepEqual(imported[0]?.platforms, ["ios", "android"]);
+    assert.equal(imported[0]?.release?.version, "1.14.0");
+
+    const secondResponse = await request
+      .post("/announcements/import-release")
+      .set("Authorization", "Bearer release-upload-secret")
+      .send(pack)
+      .expect(200);
+    assert.equal(secondResponse.body.data.created, 0);
+    assert.equal(await Announcement.countDocuments({}), 2);
+  });
+
+  it("publishes a release pack only when publish is explicitly true", async () => {
+    const uploadApp = buildApp({uploadToken: "release-upload-secret"});
+    const response = await supertest(uploadApp)
+      .post("/announcements/import-release")
+      .set("Authorization", "Bearer release-upload-secret")
+      .send({
+        announcements: [
+          {
+            body: "Public release details",
+            displayMode: "feed",
+            slug: "changelog",
+            title: "Version 1.14.0",
+          },
+        ],
+        publish: true,
+        release: {
+          product: "example",
+          version: "1.14.0",
+        },
+      })
+      .expect(200);
+
+    assert.equal(response.body.data.published, 1);
+    const announcement = await Announcement.findExactlyOne({releaseSlug: "changelog"});
+    assert.equal(announcement.status, "published");
+    assert.exists(announcement.publishedAt);
+    assert.equal(announcement.release?.channel, "production");
+  });
+
+  it("rejects release imports with an invalid upload token", async () => {
+    const uploadApp = buildApp({uploadToken: "release-upload-secret"});
+    await supertest(uploadApp)
+      .post("/announcements/import-release")
+      .set("Authorization", "Bearer wrong-secret")
+      .send({
+        announcements: [{body: "Details", slug: "changelog", title: "Version 1.14.0"}],
+        release: {product: "example", version: "1.14.0"},
+      })
+      .expect(401);
+    assert.equal(await Announcement.countDocuments({}), 0);
   });
 
   it("resolves requiresAcknowledgement on GET pending for each policy case", async () => {

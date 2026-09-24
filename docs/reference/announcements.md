@@ -27,6 +27,7 @@ new TerrenoApp({ userModel: User })
 | `help.enabled` | `boolean` | `false` | Registers help search/detail routes for MCP and in-app help |
 | `matchAudience` | `(user, announcement) => boolean` | always `true` | Opaque audience JSON filter composed with `audienceType` via `matchAudienceByType` |
 | `isStaff` | `(user) => boolean` | `user.admin === true` | Staff check used by `matchAudienceByType` for `audienceType` |
+| `uploadToken` | `string` | unset | Dedicated bearer token for idempotent `POST /announcements/import-release` automation |
 | `permissions` | partial CRUD overrides | admin-only | Overrides default `IsAdmin` permissions on announcement CRUD |
 
 ## Acknowledgement policy
@@ -52,7 +53,7 @@ Legacy MongoDB documents that still store `requiresAcknowledgement: true` map to
 
 ## Models
 
-- **Announcement** — `title`, `body` (markdown), `status` (`draft` | `published` | `archived`), `version`, `priority`, `displayMode` (`modal` | `banner` | `feed`, default `modal`), `audienceType` (`staff` | `patient` | `all`, default `all`), `acknowledgementPolicy`, optional `minBuildNumber`, `audience` (Mixed), `publishAt`, `expiresAt`, `platforms`, `primaryAction`
+- **Announcement** — `title`, `body` (markdown), `status` (`draft` | `published` | `archived`), `version`, `priority`, `displayMode` (`modal` | `banner` | `feed`, default `modal`), `audienceType` (`staff` | `patient` | `all`, default `all`), `acknowledgementPolicy`, optional `minBuildNumber`, `audience` (Mixed), `publishAt`, `expiresAt`, `platforms`, `primaryAction`, and optional imported `release` metadata plus `releaseSlug`
 - **AnnouncementAcknowledgement** — per-user acknowledgement at a specific `version`
 - **AnnouncementImpression** — per-view analytics row
 - **AnnouncementClickEvent** — per-click analytics row (`action: "primaryAction"`, `version` at click time, optional `platform`)
@@ -104,8 +105,11 @@ Admin CRUD is on `/announcements` via `modelRouter`. Custom actions:
 
 - `GET /announcements/config` — returns `{ data: { defaultAcknowledgementPolicy } }` from the plugin constructor (admin only; defaults to `"dismiss-only"` when omitted). Used to pre-fill the admin editor acknowledgement policy field.
 - `GET /announcements/overview` — paginated admin dashboard with per-announcement metrics and aggregate totals. Access uses `adminOverviewPermissions` (defaults to `IsAdmin`). Query: `page` (default `1`), `limit` (default `20`, max `100`).
+- `POST /announcements/import-release` — idempotently imports up to 100 announcements keyed by release product/version/channel plus slug. Admin auth or the configured `uploadToken` bearer token is required. New items default to draft; request `publish: true` to publish them.
 - `POST /announcements/:id/publish` — draft → published
 - `POST /announcements/:id/archive` — published → archived
+
+See [Announcement release packs](announcement-release-packs.md) for the Markdown/frontmatter format, JSON request shape, version rules, and draft/live behavior.
 
 ### `GET /announcements/overview`
 
