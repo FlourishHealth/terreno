@@ -222,6 +222,7 @@ There is **no** `RATE_LIMIT_ENABLED` (or similar) read by `@terreno/api`. Apps t
 |----------|---------|----------|---------|--------|-------|
 | `SLACK_WEBHOOKS` | `@terreno/api` | ❌ | — | Yes | server |
 | `SLACK_WEBHOOK_URL` | scripts | ❌ | — | Yes | server |
+| `SLACK_BOT_TOKEN` | `@terreno/api` `lookupSlackUserIdByEmail` | ❌ | — | Yes | server |
 | `GOOGLE_CHAT_WEBHOOKS` | `@terreno/api` | ❌ | — | Yes | server |
 | `GOOGLE_CHAT_WEBHOOK_URL` | scripts | ❌ | — | Yes | server |
 | `ZOOM_CHAT_WEBHOOKS` | `@terreno/api` | ❌ | — | Yes | server |
