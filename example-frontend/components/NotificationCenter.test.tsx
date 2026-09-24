@@ -92,6 +92,8 @@ mock.module("@terreno/ui", () => ({
       (renderContent as () => ReactNode)()
     ),
   Text: createHostComponent("Text"),
+  // Sibling suites import useStoredState from @terreno/ui under Bun's process-global mock.module.
+  useStoredState: () => ["", async (): Promise<void> => undefined, false],
 }));
 
 mock.module("expo-router", () => ({
@@ -110,6 +112,10 @@ mock.module("@/store/sdk", () => ({
   // mock.module; keep a stub so that named export stays resolvable.
   terrenoApi: {reducerPath: "notification-center-test-api"},
   usePostNotificationsDevNotifyMutation: () => [sendTestNotification, {isLoading: false}],
+  useSummarizeExampleTextMutation: () => [
+    () => ({unwrap: async (): Promise<{output: string}> => ({output: ""})}),
+    {isLoading: false},
+  ],
 }));
 
 mock.module("@/store/syncdb", () => ({
@@ -118,6 +124,7 @@ mock.module("@/store/syncdb", () => ({
 
 mock.module("@/store/syncDbSdk", () => ({
   useCreateNotificationPreference: () => [createPreference],
+  useTodos: () => ({data: []}),
   useUpdateNotificationPreference: () => [updatePreference],
 }));
 

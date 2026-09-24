@@ -3,7 +3,8 @@ import type React from "react";
 import {useCallback, useMemo, useState} from "react";
 import {buildTodoSummaryInput} from "@/components/todoSummaryInput";
 import {useSummarizeExampleTextMutation} from "@/store/sdk";
-import {type Todo, useTodos} from "@/store/syncDbSdk";
+import type {Todo} from "@/store/syncDbSdk";
+import * as syncDbSdk from "@/store/syncDbSdk";
 
 interface TodoSummaryDependencies {
   useApiKey: () => string | undefined;
@@ -29,7 +30,7 @@ const useSavedGeminiApiKey = (): string | undefined => {
 const defaultDependencies: TodoSummaryDependencies = {
   useApiKey: useSavedGeminiApiKey,
   useSummarize: useSummarizeExampleTextMutation,
-  useTodoList: useTodos,
+  useTodoList: syncDbSdk.useTodos,
 };
 
 const errorTitle = (error: unknown): string | undefined => {

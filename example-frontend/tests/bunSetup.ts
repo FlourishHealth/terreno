@@ -22,7 +22,7 @@ const createUiElement = (name: string): React.FC<MockUiProps> => {
   };
 };
 
-mock.module("@terreno/ui", () => ({
+const uiMocks = {
   Box: createUiElement("Box"),
   Button: ({disabled, onClick, testID, text}: MockUiProps): React.ReactElement =>
     React.createElement(
@@ -39,7 +39,11 @@ mock.module("@terreno/ui", () => ({
   Heading: createUiElement("Heading"),
   Text: createUiElement("Text"),
   useStoredState: () => ["", async (): Promise<void> => undefined, false],
-}));
+};
+
+mock.module("@terreno/ui", () => uiMocks);
+mock.module("../../ui/dist/index.js", () => uiMocks);
+mock.module("../../ui/src/index.tsx", () => uiMocks);
 
 mock.module("@/store/sdk", () => ({
   useSummarizeExampleTextMutation: () => [
@@ -48,6 +52,10 @@ mock.module("@/store/sdk", () => ({
   ],
 }));
 
-mock.module("@/store/syncDbSdk", () => ({
+const syncDbSdkMocks = {
   useTodos: () => ({data: []}),
-}));
+};
+
+mock.module("@/store/syncDbSdk", () => syncDbSdkMocks);
+mock.module("../store/syncDbSdk.ts", () => syncDbSdkMocks);
+mock.module("../store/syncDbSdk", () => syncDbSdkMocks);
