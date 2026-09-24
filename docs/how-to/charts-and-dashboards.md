@@ -35,3 +35,8 @@ export const OpsDashboard: FC = () => {
 Charts have no width prop: each one fills the container you put it in and redraws when that width changes, so size the `Card` or `Box` around it. `height` is the chart's whole height, tick row and tooltip row included, so `height={140}` fits a 140px slot; the tooltip row is always reserved so hovering never reflows the page. Long x labels truncate inside their band rather than widening the chart.
 
 Prove paint with `bun run ui:charts:compare` against `demo/rendered-snapshots/`, not with JSON snapshots. See [Compare rendered chart snapshots](compare-chart-rendered-snapshots.md).
+
+Scorecards, comparison sparklines, multi-series lines, donut hole labels, spanning
+grid items, and table chrome for an ops dashboard like “How’s it going?” are designed
+in [dashboard-chart-parity](../implementationPlans/dashboard-chart-parity.md) (not
+shipped until that IP is built).
