@@ -3,27 +3,27 @@
     "url": "https://github.com/TerrenoLabs/terreno/issues"
   },
   "dependencies": {
-    "@terreno/ui": "57.6.0",
-    "expo-router": "~57.0.14",
-    "jspdf": "^4.2.0",
-    "lodash": "^4.18.1",
-    "luxon": "^3.7.2",
-    "qs": "^6.15.0",
-    "react-native": "0.86.2",
-    "react-native-safe-area-context": "~5.7.0"
+    "@terreno/ui": "workspace:*",
+    "expo-router": "catalog:",
+    "jspdf": "catalog:",
+    "lodash": "catalog:",
+    "luxon": "catalog:",
+    "qs": "catalog:",
+    "react-native": "catalog:",
+    "react-native-safe-area-context": "catalog:"
   },
   "description": "Admin panel frontend screens for @terreno/api backends — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
-    "@biomejs/biome": "^2.3.6",
-    "@reduxjs/toolkit": "^2.11.1",
-    "@testing-library/react-native": "^13.2.0",
-    "@types/lodash": "^4.17.17",
-    "@types/luxon": "^3.7.1",
-    "@types/qs": "^6.14.0",
-    "@types/react": "~19.2.14",
-    "react": "19.2.3",
-    "react-redux": "^9.2.0",
-    "typescript": "~6.0.3"
+    "@biomejs/biome": "catalog:",
+    "@reduxjs/toolkit": "catalog:",
+    "@testing-library/react-native": "catalog:",
+    "@types/lodash": "catalog:",
+    "@types/luxon": "catalog:",
+    "@types/qs": "catalog:",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "react-redux": "catalog:",
+    "typescript": "catalog:"
   },
   "files": [
     "LICENSE",
@@ -42,10 +42,10 @@
   "main": "dist/index.js",
   "name": "@terreno/admin-frontend",
   "peerDependencies": {
-    "@reduxjs/toolkit": "^2.11.1",
-    "react": "19.2.3",
-    "react-native-webview": "13.16.1",
-    "react-redux": "^9.2.0"
+    "@reduxjs/toolkit": "catalog:",
+    "react": "catalog:",
+    "react-native-webview": "catalog:",
+    "react-redux": "catalog:"
   },
   "peerDependenciesMeta": {
     "react-native-webview": {

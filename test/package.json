@@ -4,24 +4,24 @@
     "url": "https://github.com/TerrenoLabs/terreno/issues"
   },
   "dependencies": {
-    "express": "^5.2.1",
-    "luxon": "^3.7.2",
-    "qs": "^6.15.0",
-    "winston": "^3.18.3"
+    "express": "catalog:",
+    "luxon": "catalog:",
+    "qs": "catalog:",
+    "winston": "catalog:"
   },
   "description": "Shared Bun test helpers, MongoDB preload utilities, and HTTP fixtures — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
-    "@biomejs/biome": "^2.3.6",
-    "@types/bun": "^1.4.0",
-    "@types/express": "^5.0.6",
-    "@types/luxon": "^3.7.1",
-    "@types/supertest": "^7.2.0",
-    "mongodb-memory-server": "^11.0.1",
+    "@biomejs/biome": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/express": "catalog:",
+    "@types/luxon": "catalog:",
+    "@types/supertest": "catalog:",
+    "mongodb-memory-server": "catalog:",
     "mongodb-memory-server-core": "^11.0.1",
     "mongodb-memory-server-global": "^11.0.1",
-    "mongoose": "9.7.4",
-    "supertest": "^7.2.2",
-    "typescript": "~6.0.3"
+    "mongoose": "catalog:",
+    "supertest": "catalog:",
+    "typescript": "catalog:"
   },
   "exports": {
     ".": {

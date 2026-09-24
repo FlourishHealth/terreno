@@ -5,31 +5,31 @@
   },
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.21",
-    "@google-cloud/storage": "^7.15.0",
+    "@google-cloud/storage": "catalog:",
     "@langfuse/client": "^5.0.1",
     "@langfuse/otel": "^5.0.1",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/sdk-node": "0.217.0",
-    "ai": "^6.0.97",
+    "ai": "catalog:",
     "google-auth-library": "^10.5.0",
-    "luxon": "^3.7.2",
-    "multer": "2.2.0"
+    "luxon": "catalog:",
+    "multer": "catalog:"
   },
   "description": "Provider-agnostic AI service with streaming chat, request logging, and admin tools — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
-    "@biomejs/biome": "^2.3.6",
-    "@terreno/api": "57.6.0",
-    "@terreno/test": "57.6.0",
-    "@types/bun": "^1.4.0",
-    "@types/express": "^5.0.6",
-    "@types/luxon": "^3.7.1",
-    "@types/multer": "^1.4.12",
-    "@types/supertest": "^7.2.0",
-    "express": "^5.2.1",
-    "mongoose": "9.7.4",
-    "passport-local-mongoose": "^9.0.1",
-    "supertest": "^7.2.2",
-    "typescript": "~6.0.3"
+    "@biomejs/biome": "catalog:",
+    "@terreno/api": "workspace:*",
+    "@terreno/test": "workspace:*",
+    "@types/bun": "catalog:",
+    "@types/express": "catalog:",
+    "@types/luxon": "catalog:",
+    "@types/multer": "catalog:",
+    "@types/supertest": "catalog:",
+    "express": "catalog:",
+    "mongoose": "catalog:",
+    "passport-local-mongoose": "catalog:",
+    "supertest": "catalog:",
+    "typescript": "catalog:"
   },
   "exports": {
     ".": {
@@ -69,7 +69,7 @@
   "name": "@terreno/ai",
   "peerDependencies": {
     "@ai-sdk/google-vertex": "^4.0.142",
-    "@terreno/api": "57.6.0",
+    "@terreno/api": "workspace:*",
     "mongoose": "^8.0.0 || ^9.0.0"
   },
   "peerDependenciesMeta": {
