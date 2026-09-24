@@ -260,9 +260,9 @@ export class AnnouncementsApp implements TerrenoPlugin {
 
     const routerOptions: ModelRouterOptions<AnnouncementDocument> = {
       ...(openApi ? {openApi: openApi as OpenApiMiddleware} : {}),
-      allowAnonymous: true,
       collectionActions: {
         "import-release": {
+          allowAnonymous: true,
           body: announcementReleaseImportSchema,
           description:
             "Idempotently create or update a release pack. Defaults to drafts; set publish=true to publish.",
