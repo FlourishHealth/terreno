@@ -94,6 +94,22 @@ const priorityTodoSchema = new mongoose.Schema({
 const PriorityTodoModel =
   mongoose.models.AdminPriorityTodo ?? mongoose.model("AdminPriorityTodo", priorityTodoSchema);
 
+const frameworkRefHolderSchema = new mongoose.Schema({
+  organizationId: {
+    ref: "TerrenoOrganization",
+    type: mongoose.Schema.Types.ObjectId,
+  },
+  organizationIds: [
+    {
+      ref: "TerrenoOrganization",
+      type: mongoose.Schema.Types.ObjectId,
+    },
+  ],
+});
+const FrameworkRefHolderModel =
+  mongoose.models.AdminFrameworkRefHolder ??
+  mongoose.model("AdminFrameworkRefHolder", frameworkRefHolderSchema);
+
 describe("getArrayEmbeddedSchemaType", () => {
   it("supports the legacy Mongoose 8 caster property", () => {
     const embeddedSchemaType = new mongoose.Schema({value: String}).path("value");
@@ -330,6 +346,36 @@ describe("AdminApp /admin/config", () => {
     expect(foodMeta.fields.eatenBy.type).toBe("array");
     expect(foodMeta.fields.eatenBy.itemType).toBe("objectid");
     expect(foodMeta.fields.eatenBy.itemRef).toBe("User");
+  });
+
+  it("keeps framework model refs aligned with public admin config names", async () => {
+    const refApp = buildApp([
+      {
+        displayName: "Organizations",
+        listFields: ["name"],
+        model: Organization,
+        routePath: "/organizations",
+      },
+      {
+        displayName: "Framework ref holders",
+        listFields: ["organizationId", "organizationIds"],
+        model: FrameworkRefHolderModel,
+        routePath: "/framework-ref-holders",
+      },
+    ]);
+    const refAgent = await authAsUser(refApp, "admin");
+    const res = await refAgent.get("/admin/config").expect(200);
+    const organizationMeta = res.body.models.find(
+      (model: {routePath: string}) => model.routePath === "/admin/organizations"
+    );
+    const holderMeta = res.body.models.find(
+      (model: {routePath: string}) => model.routePath === "/admin/framework-ref-holders"
+    );
+
+    assert.equal(organizationMeta?.name, "Organization");
+    assert.equal(holderMeta?.fields.organizationId.ref, "Organization");
+    assert.equal(holderMeta?.fields.organizationIds.ref, "Organization");
+    assert.equal(holderMeta?.fields.organizationIds.itemRef, "Organization");
   });
 
   it("returns 403 for non-admin users", async () => {

@@ -265,6 +265,21 @@ interface AdminFieldMeta {
   itemRef?: string;
 }
 
+const publicFrameworkFieldMeta = (field: AdminFieldMeta): AdminFieldMeta => {
+  return {
+    ...field,
+    ...(field.ref ? {ref: publicFrameworkModelName(field.ref)} : {}),
+    ...(field.itemRef ? {itemRef: publicFrameworkModelName(field.itemRef)} : {}),
+    ...(field.items
+      ? {
+          items: Object.fromEntries(
+            Object.entries(field.items).map(([key, item]) => [key, publicFrameworkFieldMeta(item)])
+          ),
+        }
+      : {}),
+  };
+};
+
 interface AdminModelMeta {
   actions: AdminActionInput[];
   bulkPatchAllowlist: string[];
@@ -557,7 +572,11 @@ const extractFieldMetaFromDescription = (
   const hiddenFieldSet = new Set(hiddenFields);
   const description = describeModel(model);
   const fields = modelDescriptionToAdminFields(description);
-  return Object.fromEntries(Object.entries(fields).filter(([key]) => !hiddenFieldSet.has(key)));
+  return Object.fromEntries(
+    Object.entries(fields)
+      .filter(([key]) => !hiddenFieldSet.has(key))
+      .map(([key, field]) => [key, publicFrameworkFieldMeta(field)])
+  );
 };
 
 const asMiddlewareList = (

@@ -150,7 +150,9 @@ Field metadata includes:
 - `description` — From schema (ensure all fields have descriptions!)
 - `enum` — Enum values if applicable
 - `default` — Default value
-- `ref` — Referenced model name for ObjectId refs
+- `ref` / `itemRef` — Referenced admin config `name` for ObjectId refs. Framework
+  compiled names such as `TerrenoOrganization` are returned as their stable public
+  admin names (`Organization`) so frontend reference pickers resolve the matching model.
 - `adminBroadcast` — Always present. `true` when the app `modelRouter` `sync` config set
   `adminBroadcast`, except organization-scoped models (forced to `false`)
 - `organizationScoped` — `true` when `AdminApp({organizations: true})` manages a model with
