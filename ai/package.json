@@ -13,7 +13,7 @@
     "ai": "^6.0.97",
     "google-auth-library": "^10.5.0",
     "luxon": "^3.7.2",
-    "multer": "2.2.0"
+    "multer": "2.3.0"
   },
   "description": "Provider-agnostic AI service with streaming chat, request logging, and admin tools — part of Terreno, the batteries-included TypeScript framework for universal apps.",
   "devDependencies": {
