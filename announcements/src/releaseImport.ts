@@ -178,14 +178,37 @@ const applyImportedValues = ({
   announcement.status = "published";
 };
 
-const hasMeaningfulChanges = (announcement: AnnouncementDocument): boolean =>
-  announcement.isModified();
+const snapshotImportedValues = (announcement: AnnouncementDocument): string =>
+  JSON.stringify({
+    acknowledgementPolicy: announcement.acknowledgementPolicy,
+    archivedAt: announcement.archivedAt,
+    audience: announcement.audience,
+    audienceType: announcement.audienceType,
+    body: announcement.body,
+    displayMode: announcement.displayMode,
+    expiresAt: announcement.expiresAt,
+    minBuildNumber: announcement.minBuildNumber,
+    platforms: announcement.platforms,
+    primaryAction: announcement.primaryAction,
+    priority: announcement.priority,
+    publishAt: announcement.publishAt,
+    publishedAt: announcement.publishedAt,
+    release: announcement.release,
+    releaseSlug: announcement.releaseSlug,
+    status: announcement.status,
+    title: announcement.title,
+  });
 
 export const importAnnouncementRelease = async ({
   input,
 }: {
   input: AnnouncementReleaseImportInput;
 }): Promise<AnnouncementReleaseImportResult> => {
+  const uniqueSlugs = new Set(input.announcements.map((item) => item.slug));
+  if (uniqueSlugs.size !== input.announcements.length) {
+    throw new APIError({status: 400, title: "Release announcement slugs must be unique"});
+  }
+
   const result: AnnouncementReleaseImportResult = {
     announcements: [],
     created: 0,
@@ -214,6 +237,7 @@ export const importAnnouncementRelease = async ({
         version: 1,
       });
     const wasCreated = announcement.isNew;
+    const previousValues = snapshotImportedValues(announcement);
 
     applyImportedValues({
       announcement,
@@ -222,7 +246,7 @@ export const importAnnouncementRelease = async ({
       publish: input.publish,
       release: input.release,
     });
-    const hasChanges = announcement.isNew || hasMeaningfulChanges(announcement);
+    const hasChanges = wasCreated || previousValues !== snapshotImportedValues(announcement);
     if (hasChanges) {
       await announcement.save();
     }

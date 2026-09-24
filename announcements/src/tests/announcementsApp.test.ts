@@ -151,6 +151,8 @@ describe("AnnouncementsApp", () => {
       .send(pack)
       .expect(200);
     assert.equal(secondResponse.body.data.created, 0);
+    assert.equal(secondResponse.body.data.unchanged, 2);
+    assert.equal(secondResponse.body.data.updated, 0);
     assert.equal(await Announcement.countDocuments({}), 2);
   });
 
@@ -193,6 +195,24 @@ describe("AnnouncementsApp", () => {
         release: {product: "example", version: "1.14.0"},
       })
       .expect(401);
+    assert.equal(await Announcement.countDocuments({}), 0);
+  });
+
+  it("rejects duplicate slugs within one release pack", async () => {
+    const uploadApp = buildApp({uploadToken: "release-upload-secret"});
+    const response = await supertest(uploadApp)
+      .post("/announcements/import-release")
+      .set("Authorization", "Bearer release-upload-secret")
+      .send({
+        announcements: [
+          {body: "First", slug: "changelog", title: "First"},
+          {body: "Second", slug: "changelog", title: "Second"},
+        ],
+        release: {product: "example", version: "1.14.0"},
+      })
+      .expect(400);
+
+    assert.equal(response.body.title, "Release announcement slugs must be unique");
     assert.equal(await Announcement.countDocuments({}), 0);
   });
 

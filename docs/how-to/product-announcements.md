@@ -11,6 +11,7 @@ import {AnnouncementsApp} from "@terreno/announcements";
 
 new AnnouncementsApp({
   defaultAcknowledgementPolicy: "dismiss-only",
+  uploadToken: process.env.ANNOUNCEMENTS_UPLOAD_TOKEN,
   // audienceType staff/patient/all is applied inside the plugin via matchAudienceByType.
   isStaff: (user) => (user as {admin?: boolean}).admin === true,
   matchAudience: (user, announcement) => {
