@@ -1,4 +1,5 @@
 import {beforeEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import type express from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
@@ -420,6 +421,49 @@ describe("array operation errors", () => {
     app = getBaseServer();
     setupAuth(app, UserModel as unknown as AuthUserModel);
     addAuthRoutes(app, UserModel as unknown as AuthUserModel);
+  });
+
+  it("rejects array operations on non-array fields with a structured error", async () => {
+    app.use(
+      "/food",
+      modelRouter(FoodModel, {
+        allowAnonymous: true,
+        permissions: {
+          create: [Permissions.IsAdmin],
+          delete: [Permissions.IsAdmin],
+          list: [Permissions.IsAdmin],
+          read: [Permissions.IsAdmin],
+          update: [Permissions.IsAdmin],
+        },
+      })
+    );
+    agent = await authAsUser(app, "admin");
+
+    const res = await agent.post(`/food/${apple._id}/name`).send({name: "Pear"}).expect(400);
+    assert.equal(res.body.code, "array-operation-field-not-array");
+    assert.equal(res.body.title, "Array operation field is not an array");
+  });
+
+  it("runs preUpdate before rejecting a non-array field", async () => {
+    app.use(
+      "/food",
+      modelRouter(FoodModel, {
+        allowAnonymous: true,
+        permissions: {
+          create: [Permissions.IsAdmin],
+          delete: [Permissions.IsAdmin],
+          list: [Permissions.IsAdmin],
+          read: [Permissions.IsAdmin],
+          update: [Permissions.IsAdmin],
+        },
+        preUpdate: () => null,
+      })
+    );
+    agent = await authAsUser(app, "admin");
+
+    const res = await agent.post(`/food/${apple._id}/name`).send({name: "Pear"}).expect(403);
+    assert.equal(res.body.code, "update-not-allowed");
+    assert.equal(res.body.title, "Update not allowed");
   });
 
   it("array operation preUpdate returning undefined throws error", async () => {
