@@ -223,6 +223,22 @@ export const todoRouter = modelRouter("/todos", Todo, {
 
 Do not add `endpoints: (router) => { router.get(...) }` when an action fits.
 
+## modelRouter array operations
+
+When a model has at least one array field, `modelRouter` provides subroutes for adding,
+updating, and removing array items:
+
+| Method | Path | Operation |
+| --- | --- | --- |
+| `POST` | `/:id/:field` | Append an item |
+| `PATCH` | `/:id/:field/:itemId` | Replace or merge an item |
+| `DELETE` | `/:id/:field/:itemId` | Remove an item |
+
+The `field` path must resolve to an array on the document. Requests for scalar, object,
+or unknown fields run the normal update transform and `preUpdate` hook first so consumer
+authorization remains authoritative, then return `400` with code
+`array-operation-field-not-array` if the hook allows the request.
+
 ## MCP tools
 
 Opt a model into Model Context Protocol tools with `mcp` on `modelRouter`. `TerrenoApp` mounts `POST /mcp` when any model has `mcp` or a custom tool is registered.

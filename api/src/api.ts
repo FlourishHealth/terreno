@@ -1152,6 +1152,57 @@ const _buildModelRouter = <T>(
     })
   );
 
+  /**
+   * Applies consumer update transforms and authorization hooks for array subroutes.
+   * Keeping this pipeline shared ensures invalid field requests cannot bypass consumer
+   * authorization before modelRouter returns its own validation error.
+   */
+  const applyArrayOperationUpdateHooks = async (
+    inputBody: Partial<T>,
+    req: Request
+  ): Promise<Partial<T>> => {
+    let body: Partial<T> | null = inputBody;
+
+    try {
+      body = transform<T>(options, body, "update", req.user) as Partial<T>;
+    } catch (error: unknown) {
+      throw passthroughOrWrap(error, {
+        code: "transform-error",
+        status: 403,
+        title: "Transform error",
+      });
+    }
+
+    if (options.preUpdate) {
+      try {
+        body = await options.preUpdate(body, req);
+      } catch (error: unknown) {
+        throw passthroughOrWrap(error, {
+          code: "pre-update-hook-error",
+          detail: `preUpdate hook error on ${req.params.id}: ${errorDetail(error)}`,
+          status: 400,
+          title: "preUpdate hook error",
+        });
+      }
+      if (body === undefined) {
+        throw new ForbiddenError({
+          code: "update-not-allowed",
+          detail: "A body must be returned from preUpdate",
+          title: "Update not allowed",
+        });
+      }
+      if (body === null) {
+        throw new ForbiddenError({
+          code: "update-not-allowed",
+          detail: `preUpdate hook on ${req.params.id} returned null`,
+          title: "Update not allowed",
+        });
+      }
+    }
+
+    return body;
+  };
+
   const arrayOperation = async (
     req: Request,
     res: Response,
@@ -1206,7 +1257,18 @@ const _buildModelRouter = <T>(
       });
     }
 
-    const array = [...(doc as unknown as Record<string, unknown[]>)[field]];
+    const currentFieldValue = (doc as unknown as Record<string, unknown>)[field];
+    if (!Array.isArray(currentFieldValue)) {
+      await applyArrayOperationUpdateHooks(req.body as Partial<T>, req);
+      throw new BadRequestError({
+        code: "array-operation-field-not-array",
+        detail: `Cannot apply an array operation to non-array field ${field}`,
+        meta: {field},
+        title: "Array operation field is not an array",
+      });
+    }
+
+    const array = [...currentFieldValue];
     if (operation === "POST") {
       array.push(req.body[field]);
     } else if (operation === "PATCH" || operation === "DELETE") {
@@ -1243,44 +1305,7 @@ const _buildModelRouter = <T>(
         title: "Invalid array operation",
       });
     }
-    let body: Partial<T> | null = {[field]: array} as unknown as Partial<T>;
-
-    try {
-      body = transform<T>(options, body, "update", req.user) as Partial<T>;
-    } catch (error: unknown) {
-      throw passthroughOrWrap(error, {
-        code: "transform-error",
-        status: 403,
-        title: "Transform error",
-      });
-    }
-
-    if (options.preUpdate) {
-      try {
-        body = await options.preUpdate(body, req);
-      } catch (error: unknown) {
-        throw passthroughOrWrap(error, {
-          code: "pre-update-hook-error",
-          detail: `preUpdate hook error on ${req.params.id}: ${errorDetail(error)}`,
-          status: 400,
-          title: "preUpdate hook error",
-        });
-      }
-      if (body === undefined) {
-        throw new ForbiddenError({
-          code: "update-not-allowed",
-          detail: "A body must be returned from preUpdate",
-          title: "Update not allowed",
-        });
-      }
-      if (body === null) {
-        throw new ForbiddenError({
-          code: "update-not-allowed",
-          detail: `preUpdate hook on ${req.params.id} returned null`,
-          title: "Update not allowed",
-        });
-      }
-    }
+    let body = await applyArrayOperationUpdateHooks({[field]: array} as unknown as Partial<T>, req);
 
     body = omitUserRolesFromWriteBody(
       model.modelName,
