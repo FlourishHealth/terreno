@@ -1767,6 +1767,7 @@ describe("AdminApp AuditEvent auto-write", () => {
       auditMeta,
       JSON.stringify(config.body.models.map((model: {name: string}) => model.name))
     );
+    assert.equal(auditMeta?.name, "AuditEvent");
     assert.deepEqual(auditMeta.permissions, {create: false, delete: false, update: false});
     const create = await agent.post("/admin/audit-events").send({
       modelName: "Todo",
@@ -1775,6 +1776,44 @@ describe("AdminApp AuditEvent auto-write", () => {
       verb: "created",
     });
     assert.equal(create.status, 405, JSON.stringify(create.body));
+  });
+
+  it("keeps AuditEvent admin name and adminAuditEvent RBAC after Mongoose rename", async () => {
+    const auditPlugin = new AuditApp();
+    const terrenoApp = {
+      getPlugins: () => [auditPlugin],
+      getRegistrations: () => [],
+    } as unknown as TerrenoApp;
+    const accessControl = createAccess({
+      connection: mongoose.connection,
+      resolvePermissions: async () => ({
+        admin: ["access"],
+        adminAuditEvent: ["list", "read"],
+      }),
+      statements: {
+        ...terrenoStatements,
+        adminAuditEvent: ["list", "read"],
+      },
+    });
+    const app = getBaseServer();
+    setupAuth(app, UserModel as unknown as UserModelType);
+    addAuthRoutes(app, UserModel as unknown as UserModelType);
+    auditPlugin.register(app);
+    new AdminApp({
+      accessControl,
+      basePath: "/admin",
+      models: [foodModelConfig],
+    }).register(app, undefined, terrenoApp);
+    app.use(apiUnauthorizedMiddleware);
+    app.use(apiErrorMiddleware);
+    const agent = await authAsUser(app, "admin");
+    const config = await agent.get("/admin/config").expect(200);
+    const auditMeta = (config.body.models as Array<{name: string; routePath: string}>).find(
+      (model) => model.routePath.includes("audit-events")
+    );
+    assert.equal(auditMeta?.name, "AuditEvent");
+    const list = await agent.get("/admin/audit-events").expect(200);
+    assert.isArray(list.body.data);
   });
 
   it("lists AuditEvent without an organization even when organizations is enabled", async () => {
@@ -1803,6 +1842,7 @@ describe("AdminApp AuditEvent auto-write", () => {
       auditMeta,
       JSON.stringify(config.body.models.map((model: {name: string}) => model.name))
     );
+    assert.equal(auditMeta?.name, "AuditEvent");
     assert.strictEqual(auditMeta?.organizationScoped, false);
     const list = await agent.get("/admin/audit-events").expect(200);
     assert.isArray(list.body.data);

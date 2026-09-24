@@ -222,7 +222,10 @@ new AdminApp({
 });
 ```
 
-`adminAccess.resource` overrides the default `admin<ModelName>` name. Use
+`adminAccess.resource` overrides the default `admin<ModelName>` name. Framework
+models compiled as `Terreno*` still use the pre-namespace `admin<ModelName>`
+resource (`adminAuditEvent`, `adminAnnouncement`, `adminMcpServiceToken`) and
+the same `/admin/<PublicName>` UI key (`/admin/AuditEvent`). Use
 `adminAccess.authorize({action, instance, user})` when a model or screen needs a completely
 custom decision. The callback replaces the standard read/write/write-owned decision, while
 `admin:access` still protects the admin shell. Every action is authorized without an instance
