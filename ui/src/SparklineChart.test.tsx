@@ -1,7 +1,9 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
 
+import {SparklineChart as RootSparklineChart} from "./index";
 import {SparklineChart} from "./SparklineChart";
+import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
 
 const CURRENT = [
@@ -16,14 +18,24 @@ const COMPARISON = [
   {label: "Wed", value: 15},
 ];
 
+const getPathXCoordinates = (path: string): number[] => {
+  return Array.from(path.matchAll(/[ML]([0-9.]+),/g), (match) => Number(match[1]));
+};
+
 describe("SparklineChart", () => {
   it("renders current and dotted comparison paths without chart chrome", () => {
-    const {getByTestId, queryByTestId} = renderWithTheme(
+    const {getByTestId, queryByTestId, UNSAFE_queryAllByType} = renderWithTheme(
       <SparklineChart comparisonData={COMPARISON} data={CURRENT} testID="revenue-sparkline" />
     );
 
-    assert.exists(getByTestId("revenue-sparkline.current"));
-    assert.equal(getByTestId("revenue-sparkline.comparison").props.strokeDasharray, "4 4");
+    const current = getByTestId("revenue-sparkline.current");
+    const comparison = getByTestId("revenue-sparkline.comparison");
+
+    assert.isUndefined(current.props.strokeDasharray);
+    assert.isString(comparison.props.strokeDasharray);
+    assert.deepEqual(getPathXCoordinates(current.props.d), getPathXCoordinates(comparison.props.d));
+    assert.lengthOf(getPathXCoordinates(current.props.d), CURRENT.length);
+    assert.lengthOf(UNSAFE_queryAllByType(Text), 0);
     assert.notExists(queryByTestId("revenue-sparkline.tooltip"));
     assert.notExists(queryByTestId("revenue-sparkline.legend"));
   });
@@ -35,5 +47,10 @@ describe("SparklineChart", () => {
 
     assert.exists(getByTestId("empty-sparkline"));
     assert.notExists(queryByTestId("empty-sparkline.current"));
+    assert.notExists(queryByTestId("empty-sparkline.comparison"));
+  });
+
+  it("is available from the package root lazy boundary", () => {
+    assert.isFunction(RootSparklineChart);
   });
 });
