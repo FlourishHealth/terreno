@@ -18,7 +18,7 @@ pipeline.
 
 ## Project setup (maintainers)
 
-1. Link `FlourishHealth/terreno` in CircleCI (GitHub App).
+1. Link `TerrenoLabs/terreno` in CircleCI (GitHub App).
 2. Default branch: `master`.
 3. Enable **dynamic config** / setup workflows for the project (required for
    `.circleci/config.yml` `setup: true`).
@@ -35,7 +35,7 @@ pipeline.
 GitHub App org/project slug (API and CLI):
 `circleci/6UHiK7pThPXbhnNi3umQNe/W3HZeMJujyMB2sYiUXaQbs`.
 
-Do not query `gh/FlourishHealth/terreno` — that slug returns `404 Project not found`.
+Do not query `gh/TerrenoLabs/terreno` — that slug returns `404 Project not found`.
 Cloud agents use `CIRCLECI_TOKEN` (accepted alias of CircleCI's `CIRCLE_TOKEN`). Send
 it as the `Circle-Token` header. Confirm with `GET https://circleci.com/api/v2/me`, then
 list pipelines on the slug above.
@@ -182,7 +182,10 @@ Backend previews prune not-Ready tagged revisions from traffic
 (`rebuild-cloud-run-ready-traffic.sh`), deploy untagged with
 `--revision-suffix`, then point the `pr-N` tag at that revision. Terraform
 preview always describes the Infra Manager preview (state, `errorCode`,
-`errorLogs`) before delete, including when `previews create` fails.
+`errorLogs`) before delete, including when `previews create` fails. Fork PRs
+still present `repository: TerrenoLabs/terreno` on the OIDC token, so WIF
+would accept them if those jobs ran. Preview jobs halt on fork PRs, where
+CircleCI withholds contexts.
 
 ### GitHub Deployment records
 
@@ -201,12 +204,16 @@ workflows, so history stays continuous:
 | `gcp-cd-prod` backend / `gcp-cd-preview` | `example-backend-production` / `example-backend-preview-pr-N` | Cloud Run URL / `pr-N---` tag URL |
 | `gcp-cd-prod` MCP | `mcp-production` | Cloud Run `terreno-mcp` URL |
 
-Recording is best-effort: an unset `GITHUB_DEPLOYMENTS_TOKEN` or a GitHub API
-error prints a warning and never fails the deploy. Terraform applies are not
-recorded. PR close deactivates the preview environments
-(`preview-cleanup.yml`). The token lives in its own context so the GitHub
-write scope is limited to deployments. Same-repo PR pipelines can read every
-context their jobs attach, so keep this token scoped to deployments.
+Records are posted to `GITHUB_REPOSITORY` when that is set, otherwise
+`TerrenoLabs/terreno`. CircleCI does not set `GITHUB_REPOSITORY`, and
+`CIRCLE_PROJECT_USERNAME` can still be the pre-transfer `FlourishHealth`
+project link, so the script does not use it. Recording is best-effort: an
+unset `GITHUB_DEPLOYMENTS_TOKEN` or a GitHub API error prints a warning and
+never fails the deploy. Terraform applies are not recorded. PR close
+deactivates the preview environments (`preview-cleanup.yml`). The token lives
+in its own context so the GitHub write scope is limited to deployments.
+Same-repo PR pipelines can read every context their jobs attach, so keep this
+token scoped to deployments.
 
 Each deploy job has a `serial-group`: production jobs queue per target, and
 previews queue per branch, so two master merges never apply terraform or roll

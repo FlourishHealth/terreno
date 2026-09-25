@@ -150,7 +150,9 @@ Field metadata includes:
 - `description` — From schema (ensure all fields have descriptions!)
 - `enum` — Enum values if applicable
 - `default` — Default value
-- `ref` — Referenced model name for ObjectId refs
+- `ref` / `itemRef` — Referenced admin config `name` for ObjectId refs. Framework
+  compiled names such as `TerrenoOrganization` are returned as their stable public
+  admin names (`Organization`) so frontend reference pickers resolve the matching model.
 - `adminBroadcast` — Always present. `true` when the app `modelRouter` `sync` config set
   `adminBroadcast`, except organization-scoped models (forced to `false`)
 - `organizationScoped` — `true` when `AdminApp({organizations: true})` manages a model with
@@ -222,7 +224,10 @@ new AdminApp({
 });
 ```
 
-`adminAccess.resource` overrides the default `admin<ModelName>` name. Use
+`adminAccess.resource` overrides the default `admin<ModelName>` name. Framework
+models compiled as `Terreno*` still use the pre-namespace `admin<ModelName>`
+resource (`adminAuditEvent`, `adminAnnouncement`, `adminMcpServiceToken`) and
+the same `/admin/<PublicName>` UI key (`/admin/AuditEvent`). Use
 `adminAccess.authorize({action, instance, user})` when a model or screen needs a completely
 custom decision. The callback replaces the standard read/write/write-owned decision, while
 `admin:access` still protects the admin shell. Every action is authorized without an instance

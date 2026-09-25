@@ -5,7 +5,7 @@ body:
       value: |
         Share a feature idea or improvement before it is shaped into an issue.
         Maintainers review Ideas discussions and promote promising ones to
-        tracked issues on the [Terreno Roadmap](https://github.com/FlourishHealth/terreno/blob/master/ROADMAP.md).
+        tracked issues on the [Terreno Roadmap](https://github.com/TerrenoLabs/terreno/blob/master/ROADMAP.md).
 
   - type: textarea
     id: problem

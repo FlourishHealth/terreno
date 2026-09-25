@@ -2,7 +2,7 @@
 
 Local-first data layer for @terreno apps: TinyBase MergeableStore, durable outbox, websocket delta sync, encrypted web persistence.
 
-Local-first data layer for Terreno apps. A TinyBase `MergeableStore` (encrypted IndexedDB on web, expo-sqlite on native) is the UI's source of truth: reads come from the local store, writes apply optimistically and enqueue in a durable outbox, and the server reconciles asynchronously over a socket delta protocol with HTTP snapshot catch-up. Every mutation executes the existing `@terreno/api` modelRouter write path — identical permissions, hooks, and validation as REST. Supersedes `@terreno/rtk` for data-synchronization concerns (see [the migration guide](https://github.com/flourishhealth/terreno/blob/master/docs/how-to/migrate-rtk-to-syncdb.md)).
+Local-first data layer for Terreno apps. A TinyBase `MergeableStore` (encrypted IndexedDB on web, expo-sqlite on native) is the UI's source of truth: reads come from the local store, writes apply optimistically and enqueue in a durable outbox, and the server reconciles asynchronously over a socket delta protocol with HTTP snapshot catch-up. Every mutation executes the existing `@terreno/api` modelRouter write path — identical permissions, hooks, and validation as REST. Supersedes `@terreno/rtk` for data-synchronization concerns (see [the migration guide](https://github.com/TerrenoLabs/terreno/blob/master/docs/how-to/migrate-rtk-to-syncdb.md)).
 
 ## Architecture
 
@@ -455,8 +455,8 @@ This writes `store/syncDbSdk.ts` with `SYNC_COLLECTIONS`, entity types, and hook
 
 ## Documentation
 
-Full API reference: [docs/reference/syncdb.md](https://github.com/flourishhealth/terreno/blob/master/docs/reference/syncdb.md)
+Full API reference: [docs/reference/syncdb.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/reference/syncdb.md)
 
 ## License and Contributing
 
-Licensed under the [MIT License](https://github.com/flourishhealth/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/flourishhealth/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.
+Licensed under the [MIT License](https://github.com/TerrenoLabs/terreno/blob/master/LICENSE). See [CONTRIBUTING.md](https://github.com/TerrenoLabs/terreno/blob/master/CONTRIBUTING.md) for contribution guidelines.

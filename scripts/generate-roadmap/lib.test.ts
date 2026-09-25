@@ -1,7 +1,7 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
 
-import {displayTitle, filterRoadmapItems, renderRoadmapMarkdown, type RoadmapItem} from "./lib";
+import {displayTitle, filterRoadmapItems, type RoadmapItem, renderRoadmapMarkdown} from "./lib";
 
 const sampleItems: RoadmapItem[] = [
   {
@@ -11,7 +11,7 @@ const sampleItems: RoadmapItem[] = [
     status: "Shipped",
     target: "Next",
     title: "OSS governance baseline",
-    url: "https://github.com/FlourishHealth/terreno/issues/1",
+    url: "https://github.com/TerrenoLabs/terreno/issues/1",
   },
   {
     area: "docs",
@@ -20,7 +20,7 @@ const sampleItems: RoadmapItem[] = [
     status: "Planned",
     target: "Future",
     title: "AI-first tutorials",
-    url: "https://github.com/FlourishHealth/terreno/issues/2",
+    url: "https://github.com/TerrenoLabs/terreno/issues/2",
   },
   {
     area: "deploy",
@@ -29,7 +29,7 @@ const sampleItems: RoadmapItem[] = [
     status: "Declined",
     target: "Next",
     title: "Declined item",
-    url: "https://github.com/FlourishHealth/terreno/issues/3",
+    url: "https://github.com/TerrenoLabs/terreno/issues/3",
   },
 ];
 

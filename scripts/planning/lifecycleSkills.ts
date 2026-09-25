@@ -969,7 +969,7 @@ export const validateLifecyclePlugin = ({
   if (!pluginReadme.includes("documentation-contract.md")) {
     errors.push("plugins/README.md must document the documentation contract");
   }
-  if (!pluginReadme.includes("npx skills add FlourishHealth/terreno")) {
+  if (!pluginReadme.includes("npx skills add TerrenoLabs/terreno")) {
     errors.push("plugins/README.md must document npx skills installation");
   }
   if (!pluginReadme.includes("product-ci.md")) {
@@ -984,7 +984,7 @@ export const validateLifecyclePlugin = ({
   if (!pluginReadme.includes(".claude-plugin/marketplace.json")) {
     errors.push("plugins/README.md must document the Claude Code marketplace");
   }
-  if (!pluginReadme.includes("/plugin marketplace add FlourishHealth/terreno")) {
+  if (!pluginReadme.includes("/plugin marketplace add TerrenoLabs/terreno")) {
     errors.push("plugins/README.md must document Claude Code marketplace install");
   }
   if (!pluginReadme.includes("/plugin install terreno@terreno-plugins")) {
@@ -993,7 +993,7 @@ export const validateLifecyclePlugin = ({
   if (!pluginReadme.includes(".agents/plugins/marketplace.json")) {
     errors.push("plugins/README.md must document the Codex marketplace");
   }
-  if (!pluginReadme.includes("codex plugin marketplace add FlourishHealth/terreno")) {
+  if (!pluginReadme.includes("codex plugin marketplace add TerrenoLabs/terreno")) {
     errors.push("plugins/README.md must document Codex marketplace install");
   }
   if (!pluginReadme.includes("codex plugin install terreno-planning --source terreno-plugins")) {

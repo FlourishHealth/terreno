@@ -144,11 +144,11 @@ const generateRootGitignore = (): string => {
 };
 
 const DEPLOYMENT_BASELINE_DOC =
-  "https://github.com/FlourishHealth/terreno/blob/master/docs/explanation/deployment-baseline.md";
+  "https://github.com/TerrenoLabs/terreno/blob/master/docs/explanation/deployment-baseline.md";
 const DEPLOY_BACKEND_CLOUD_RUN_DOC =
-  "https://github.com/FlourishHealth/terreno/blob/master/docs/how-to/deploy-backend-to-cloud-run.md";
+  "https://github.com/TerrenoLabs/terreno/blob/master/docs/how-to/deploy-backend-to-cloud-run.md";
 const BUILD_FOR_WEB_DOC =
-  "https://github.com/FlourishHealth/terreno/blob/master/docs/how-to/build-for-web.md";
+  "https://github.com/TerrenoLabs/terreno/blob/master/docs/how-to/build-for-web.md";
 
 const generateRootReadme = (args: BootstrapArgs): string => {
   const {appDisplayName, appName} = args;

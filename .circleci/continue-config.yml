@@ -1994,7 +1994,9 @@ jobs:
             git config user.name "terreno-circleci"
             git config user.email "josh@nang.io"
             git fetch origin master
-            git checkout -B release-master origin/master
+            # Publish rewrites catalog:/workspace:* specifiers in the working tree;
+            # --force drops those edits so only the version bump is committed.
+            git checkout --force -B release-master origin/master
             for package in api test ui rtk admin-backend admin-frontend admin-spa ai api-health announcements comms feature-flags jobs create-terreno-app mcp-server syncdb; do
               [ -d "$package" ] || continue
               node -e "
@@ -2006,11 +2008,17 @@ jobs:
               "
             done
             git add -- '*/package.json'
+            unexpected="$(git diff --cached -U0 | grep -E '^[-+] ' | grep -vE '^[-+] +"version": ' || true)"
+            if [ -n "$unexpected" ]; then
+              echo "Version bump staged changes other than \"version\":"
+              echo "$unexpected"
+              exit 1
+            fi
             if ! git diff --cached --quiet; then
               # Pre-commit biome useSortedKeys fails on existing package.json key
               # order when the whole file is staged. This commit only bumps version.
               git commit --no-verify -m "chore: bump package versions to ${CIRCLE_TAG}"
-              git remote set-url origin "https://x-access-token:${REPO_ADMIN_TOKEN}@github.com/FlourishHealth/terreno.git"
+              git remote set-url origin "https://x-access-token:${REPO_ADMIN_TOKEN}@github.com/TerrenoLabs/terreno.git"
               git pull --rebase origin master
               git push origin HEAD:master
             fi

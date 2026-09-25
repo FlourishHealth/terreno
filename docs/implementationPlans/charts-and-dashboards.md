@@ -4,7 +4,7 @@
 **Branch:** `cursor/charts-and-dashboards-2bc3`  
 **Owner:** —  
 **Created:** 2026-09-10  
-**Roadmap issue:** https://github.com/FlourishHealth/terreno/issues/1175 (this feature **closes** that issue; implementation PRs use `Fixes #1175`)  
+**Roadmap issue:** https://github.com/TerrenoLabs/terreno/issues/1175 (this feature **closes** that issue; implementation PRs use `Fixes #1175`)  
 **Task list:** [charts-and-dashboards.md](../tasks/charts-and-dashboards.md)  
 **Depends on:** —  
 **RTK deprecation flag:** None  

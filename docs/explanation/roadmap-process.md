@@ -5,11 +5,11 @@ Implementation plans in `docs/implementationPlans/` remain the design source of 
 both.
 
 - **GitHub** — discussions, triaged issues, the Terreno Roadmap project board, generated
-  [`ROADMAP.md`](https://github.com/FlourishHealth/terreno/blob/master/ROADMAP.md)
+  [`ROADMAP.md`](https://github.com/TerrenoLabs/terreno/blob/master/ROADMAP.md)
 - **Linear** — estimates, assignees, sprint workflow (internal)
 - **IPs** — approved design docs before substantial cross-package work
 
-See also [CONTRIBUTING.md](https://github.com/FlourishHealth/terreno/blob/master/CONTRIBUTING.md) for the contributor intake flow.
+See also [CONTRIBUTING.md](https://github.com/TerrenoLabs/terreno/blob/master/CONTRIBUTING.md) for the contributor intake flow.
 Issue-sized work that is not a public roadmap item uses
 [GitHub issue lifecycle](../how-to/github-issue-lifecycle.md)
 (`create-github-issue` → `work-github-issues`, or `status:ready-for-dev` →
@@ -88,10 +88,11 @@ half applies:
 | 1 | Announcements | Announcement | Maintainers only | Official release notes, breaking changes, deprecations, and launch updates from the Terreno team. |
 | 2 | Q&A | Question / Answer | Anyone | Ask how to use Terreno. Search existing threads first; accepted answers may become how-to guides in `docs/how-to/`. |
 | 3 | Ideas | Open-ended | Anyone | Feature ideas and improvements before they are shaped. This is the intake funnel — do not open a tracking issue until a maintainer promotes your idea. |
-| 4 | Agents & AI | Open-ended | Anyone | MCP setup, Cursor/Claude skills, agent workflows, and prompt patterns for building with Terreno. |
-| 5 | RFCs | Open-ended | Anyone | Substantial proposals that change public API or add packages. Use the RFC discussion template; accepted RFCs become IPs. |
-| 6 | Show and tell | Open-ended | Anyone | Apps and experiments built with Terreno. Share what you shipped and what friction you hit. |
-| 7 | Docs feedback | Open-ended | Anyone | Report missing or confusing documentation. Link the page URL; recurring feedback becomes docs PRs. |
+| 4 | Hacktoberfest | Open-ended | Anyone | Pitch something to build during Hacktoberfest and upvote the ideas you want. Popular, well-scoped ideas become `hacktoberfest` issues anyone can pick up. |
+| 5 | Agents & AI | Open-ended | Anyone | MCP setup, Cursor/Claude skills, agent workflows, and prompt patterns for building with Terreno. |
+| 6 | RFCs | Open-ended | Anyone | Substantial proposals that change public API or add packages. Use the RFC discussion template; accepted RFCs become IPs. |
+| 7 | Show and tell | Open-ended | Anyone | Apps and experiments built with Terreno. Share what you shipped and what friction you hit. |
+| 8 | Docs feedback | Open-ended | Anyone | Report missing or confusing documentation. Link the page URL; recurring feedback becomes docs PRs. |
 
 ### Pinned posts
 
@@ -102,8 +103,8 @@ Pin one intro post per category after creation. Bodies below are ready to paste.
 ```markdown
 Release announcements, breaking changes, and deprecation notices land here.
 
-- Do **not** file support bugs as announcements — use [Issues](https://github.com/FlourishHealth/terreno/issues/new/choose) or Q&A.
-- Security issues: see [SECURITY.md](https://github.com/FlourishHealth/terreno/blob/master/SECURITY.md) (private report only).
+- Do **not** file support bugs as announcements — use [Issues](https://github.com/TerrenoLabs/terreno/issues/new/choose) or Q&A.
+- Security issues: see [SECURITY.md](https://github.com/TerrenoLabs/terreno/blob/master/SECURITY.md) (private report only).
 ```
 
 #### Q&A
@@ -111,9 +112,9 @@ Release announcements, breaking changes, and deprecation notices land here.
 ```markdown
 Ask **how** to use Terreno — setup, APIs, deployment, agents.
 
-1. Search [existing Q&A](https://github.com/FlourishHealth/terreno/discussions/categories/q-a) and the [docs site](https://terreno-docs.netlify.app/).
-2. For step-by-step guides, start with [`docs/how-to/`](https://github.com/FlourishHealth/terreno/tree/master/docs/how-to).
-3. Bug reports belong in [Bug report issues](https://github.com/FlourishHealth/terreno/issues/new?template=bug_report.yml), not here.
+1. Search [existing Q&A](https://github.com/TerrenoLabs/terreno/discussions/categories/q-a) and the [docs site](https://terreno-docs.netlify.app/).
+2. For step-by-step guides, start with [`docs/how-to/`](https://github.com/TerrenoLabs/terreno/tree/master/docs/how-to).
+3. Bug reports belong in [Bug report issues](https://github.com/TerrenoLabs/terreno/issues/new?template=bug_report.yml), not here.
 
 When an answer repeats, maintainers turn it into a how-to doc via PR.
 ```
@@ -123,19 +124,36 @@ When an answer repeats, maintainers turn it into a how-to doc via PR.
 ```markdown
 **Ideas are the intake funnel.** Share problems and rough solutions before they become roadmap items.
 
-- Do **not** open a feature issue directly — maintainers promote accepted ideas to tracked issues on the [Terreno Roadmap](https://github.com/FlourishHealth/terreno/projects) board.
+- Do **not** open a feature issue directly — maintainers promote accepted ideas to tracked issues on the [Terreno Roadmap](https://github.com/TerrenoLabs/terreno/projects) board.
 - For API/package-level design, use the **RFCs** category instead.
-- Bugs → [Bug report](https://github.com/FlourishHealth/terreno/issues/new?template=bug_report.yml).
+- Bugs → [Bug report](https://github.com/TerrenoLabs/terreno/issues/new?template=bug_report.yml).
 ```
+
+#### Hacktoberfest
+
+```markdown
+**Pitch Hacktoberfest ideas here, and 👍 the ones you want built.**
+
+1. [Start a Hacktoberfest discussion](https://github.com/TerrenoLabs/terreno/discussions/new?category=hacktoberfest) — the form asks for the idea, area, rough size, and what "done" looks like.
+2. Upvote and comment on other pitches. Upvotes are how maintainers rank them.
+3. Maintainers turn popular, well-scoped ideas into issues labeled [`hacktoberfest`](https://github.com/TerrenoLabs/terreno/issues?q=is%3Aissue+is%3Aopen+label%3Ahacktoberfest) and link them back here. Pick one up by commenting on the issue.
+
+Longer-term feature ideas → **Ideas**. Bugs → [Bug report](https://github.com/TerrenoLabs/terreno/issues/new?template=bug_report.yml).
+```
+
+Promotion follows the Ideas path, with one change: a Hacktoberfest idea small enough to finish
+in a weekend becomes a `hacktoberfest` + `good first issue` work item directly (see
+[GitHub issue lifecycle](../how-to/github-issue-lifecycle.md)) instead of a `Shaping` roadmap
+item. Larger ones go through `roadmap-promote` like any other idea.
 
 #### Agents & AI
 
 ```markdown
 MCP server setup, Cursor/Claude skills, and agent-driven workflows.
 
-- MCP package: [`mcp-server/`](https://github.com/FlourishHealth/terreno/tree/master/mcp-server) and hosted `terreno-mcp`.
-- Agent skills: [`.rulesync/skills/`](https://github.com/FlourishHealth/terreno/tree/master/.rulesync/skills) (mirrored into editor-specific copies).
-- Terreno planning plugin: [`plugins/terreno-planning/`](https://github.com/FlourishHealth/terreno/tree/master/plugins/terreno-planning).
+- MCP package: [`mcp-server/`](https://github.com/TerrenoLabs/terreno/tree/master/mcp-server) and hosted `terreno-mcp`.
+- Agent skills: [`.rulesync/skills/`](https://github.com/TerrenoLabs/terreno/tree/master/.rulesync/skills) (mirrored into editor-specific copies).
+- Terreno planning plugin: [`plugins/terreno-planning/`](https://github.com/TerrenoLabs/terreno/tree/master/plugins/terreno-planning).
 
 General feature ideas → **Ideas**. Doc typos → **Docs feedback** or a docs PR.
 ```
@@ -145,7 +163,7 @@ General feature ideas → **Ideas**. Doc typos → **Docs feedback** or a docs P
 ```markdown
 Propose changes to **public API**, **new published packages**, or **cross-package architecture**.
 
-Use the [RFC template](https://github.com/FlourishHealth/terreno/discussions/new?category=rfcs) (Summary, Motivation, Design, Alternatives).
+Use the [RFC template](https://github.com/TerrenoLabs/terreno/discussions/new?category=rfcs) (Summary, Motivation, Design, Alternatives).
 
 Accepted RFCs become implementation plans in `docs/implementationPlans/` before large code changes. Small bugs and docs fixes do not need an RFC.
 ```
@@ -170,7 +188,7 @@ Every docs page also has a **Discuss this page** link in the footer.
 
 ### Project board
 
-The board must be an **organization** project under `FlourishHealth`. The generator queries
+The board must be an **organization** project under `TerrenoLabs`. The generator queries
 `organization(login:).projectV2`, so a repo-level project returns no data.
 
 `bun run roadmap:sync` creates the project, its fields, and its items from repo data — no
@@ -187,8 +205,8 @@ What it reads, and therefore what you edit to change the board:
 
 | Source | Drives |
 | ------ | ------ |
-| [`.github/roadmap-fields.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/roadmap-fields.yml) | `Status`, `Target`, `Impact` options |
-| `area:*` labels in [`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml) | `Area` options |
+| [`.github/roadmap-fields.yml`](https://github.com/TerrenoLabs/terreno/blob/master/.github/roadmap-fields.yml) | `Status`, `Target`, `Impact` options |
+| `area:*` labels in [`.github/labels.yml`](https://github.com/TerrenoLabs/terreno/blob/master/.github/labels.yml) | `Area` options |
 | [`roadmap-seed-issues.md`](roadmap-seed-issues.md) | one item per roadmap entry, plus its field values and issue labels |
 
 **Fields** (single-select unless noted):
@@ -205,7 +223,7 @@ What it reads, and therefore what you edit to change the board:
 `Target` answers *which release*, never *what state* — `Status` carries state. Already-shipped
 work uses `Target = Released` so it groups at the bottom of `ROADMAP.md` instead of inflating
 an upcoming version. `TARGET_ORDER` in
-[`scripts/generate-roadmap/lib.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/generate-roadmap/lib.ts)
+[`scripts/generate-roadmap/lib.ts`](https://github.com/TerrenoLabs/terreno/blob/master/scripts/generate-roadmap/lib.ts)
 must stay deep-equal to the yaml list; a test enforces it.
 
 **Views** — still UI-only; there is no GitHub API for creating project views.
@@ -227,29 +245,29 @@ before applying a rewrite.
 
 ### Labels
 
-[`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml) is the source of truth.
+[`.github/labels.yml`](https://github.com/TerrenoLabs/terreno/blob/master/.github/labels.yml) is the source of truth.
 
 Every issue on the board carries the **`roadmap`** label. That label — not a title prefix — is
 how roadmap work is filtered:
 
 ```bash
-gh issue list --repo FlourishHealth/terreno --label roadmap --state all
+gh issue list --repo TerrenoLabs/terreno --label roadmap --state all
 ```
 
 `roadmap:sync` adds it to every issue it declares, so seed entries do not repeat it on their
 `**Labels:**` line. Tracking issues used to be titled `[Roadmap] <outcome>`; titles are now
 just the outcome, and `displayTitle` in
-[`scripts/generate-roadmap/lib.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/generate-roadmap/lib.ts)
+[`scripts/generate-roadmap/lib.ts`](https://github.com/TerrenoLabs/terreno/blob/master/scripts/generate-roadmap/lib.ts)
 strips the legacy prefix wherever it survives.
 
 Apply or update labels with `gh` authenticated as a maintainer:
 
 ```bash
-bun run labels:sync --repo FlourishHealth/terreno --dry-run   # preview
-bun run labels:sync --repo FlourishHealth/terreno             # apply
+bun run labels:sync --repo TerrenoLabs/terreno --dry-run   # preview
+bun run labels:sync --repo TerrenoLabs/terreno             # apply
 ```
 
-[`scripts/sync-labels.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/sync-labels.ts)
+[`scripts/sync-labels.ts`](https://github.com/TerrenoLabs/terreno/blob/master/scripts/sync-labels.ts)
 parses the YAML and passes each description to `gh` as a single argument, so descriptions
 containing commas or quotes survive intact. It refuses to run on a malformed color,
 a missing description, or a duplicate name.
@@ -269,7 +287,7 @@ returns no `projectV2` data for an organization project. GitHub also reserves th
 `ROADMAP_PROJECT_TOKEN` secret. The same PAT also pushes the regenerated `ROADMAP.md`: the
 `master` ruleset requires a pull request and the default `GITHUB_TOKEN` is not a bypass actor
 on it, so the PAT needs `repo` scope and its owner must be listed as a ruleset bypass actor.
-[`.github/scripts/git-auth-roadmap-pat.sh`](https://github.com/FlourishHealth/terreno/blob/master/.github/scripts/git-auth-roadmap-pat.sh)
+[`.github/scripts/git-auth-roadmap-pat.sh`](https://github.com/TerrenoLabs/terreno/blob/master/.github/scripts/git-auth-roadmap-pat.sh)
 applies that credential only for the fetch/push steps, so `bun install` never sees it.
 
 Locally, export the PAT as `GITHUB_TOKEN` (for example `GITHUB_TOKEN=$(gh auth token)`), which
@@ -328,9 +346,9 @@ bun run roadmap:check --on-board --labels "roadmap,area:api,type:feature" --stat
 Run it with no arguments to print every valid label and field option. It enforces exactly one
 `area:*` and one `type:*` label, requires the `roadmap` label under `--on-board` (omit the
 flag when triaging an issue that is not headed for the board), rejects labels absent from
-[`.github/labels.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/labels.yml),
+[`.github/labels.yml`](https://github.com/TerrenoLabs/terreno/blob/master/.github/labels.yml),
 rejects Project values absent from
-[`.github/roadmap-fields.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/roadmap-fields.yml),
+[`.github/roadmap-fields.yml`](https://github.com/TerrenoLabs/terreno/blob/master/.github/roadmap-fields.yml),
 and catches an `Area` field that disagrees with the issue's `area:` label.
 
 Those two files are the single source for the taxonomy: labels in `labels.yml`, Status/Target/
@@ -379,10 +397,10 @@ do not claim completion until done.
 
 | Workflow | Trigger | Purpose |
 | -------- | ------- | ------- |
-| [`.github/workflows/triage.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown + `type:*` from Kind when present |
-| [`.github/workflows/roadmap-generate.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | `roadmap:sync --check` for board drift, then regenerate `ROADMAP.md` from the board and open a pull request when it changes |
-| [`.github/workflows/roadmap-sync.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-sync.yml) | Taxonomy files change on `master` + manual | Apply labels and reconcile the board's fields and items |
-| [`.github/workflows/roadmap-reconcile.yml`](https://github.com/FlourishHealth/terreno/blob/master/.github/workflows/roadmap-reconcile.yml) | IP or task files change on `master` + manual | Advance status from IP headers, push to the board, regenerate `ROADMAP.md` |
+| [`.github/workflows/triage.yml`](https://github.com/TerrenoLabs/terreno/blob/master/.github/workflows/triage.yml) | Issue opened | `status:needs-triage` + `area:*` from package dropdown + `type:*` from Kind when present |
+| [`.github/workflows/roadmap-generate.yml`](https://github.com/TerrenoLabs/terreno/blob/master/.github/workflows/roadmap-generate.yml) | Daily + manual | `roadmap:sync --check` for board drift, then regenerate `ROADMAP.md` from the board and open a pull request when it changes |
+| [`.github/workflows/roadmap-sync.yml`](https://github.com/TerrenoLabs/terreno/blob/master/.github/workflows/roadmap-sync.yml) | Taxonomy files change on `master` + manual | Apply labels and reconcile the board's fields and items |
+| [`.github/workflows/roadmap-reconcile.yml`](https://github.com/TerrenoLabs/terreno/blob/master/.github/workflows/roadmap-reconcile.yml) | IP or task files change on `master` + manual | Advance status from IP headers, push to the board, regenerate `ROADMAP.md` |
 All three share the `roadmap` concurrency group. They write the same board, and interleaving
 them produces confusing partial states. After the group lock is acquired, each job refreshes
 to the latest branch HEAD so a queued `roadmap-sync` cannot overwrite statuses that
@@ -445,7 +463,7 @@ Two headers keep a plan out of that accounting:
 | Task file `**Status:** Closed` | The checklist is history — the IP finished by another route, so its unchecked boxes are not outstanding work and never contradict a `Shipped` status |
 
 Triage resolves the `area:*` label with
-[`scripts/issueAreaLabels.ts`](https://github.com/FlourishHealth/terreno/blob/master/scripts/issueAreaLabels.ts),
+[`scripts/issueAreaLabels.ts`](https://github.com/TerrenoLabs/terreno/blob/master/scripts/issueAreaLabels.ts),
 which owns the package-to-area table. Add new packages there, not in the workflow.
 
 Run the generator locally against the real board:
