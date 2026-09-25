@@ -78,7 +78,7 @@ IP: [dashboard-chart-parity.md](../implementationPlans/dashboard-chart-parity.md
 
 ## Phase 4 — Spanning grid
 
-- [ ] **Task 4.1**: `DashboardGridItem` spans
+- [x] **Task 4.1**: `DashboardGridItem` spans
   - Delivers: eager `DashboardGridItem` with `span` per breakpoint; default span 1; children without a wrapper keep current equal-column behavior
   - Files: `ui/src/DashboardGrid.tsx` and/or `ui/src/DashboardGridItem.tsx`, `ui/src/DashboardGrid.test.tsx`, `ui/src/index.tsx` (eager)
   - Blocked by: 1.2
