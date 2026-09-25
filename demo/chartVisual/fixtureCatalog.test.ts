@@ -22,6 +22,9 @@ describe("chart visual fixture catalog", () => {
     for (let index = 1; index < ranks.length; index += 1) {
       expect(ranks[index] ?? 0).toBeGreaterThanOrEqual(ranks[index - 1] ?? 0);
     }
+    for (const id of ids) {
+      assert.isTrue(existsSync(join(import.meta.dir, `../rendered-snapshots/${id}.png`)));
+    }
   });
 
   it("uses a stable test id prefix for Playwright", () => {

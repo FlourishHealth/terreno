@@ -67,13 +67,33 @@ describe("chart visual fixtures", () => {
 
   it("binds donut parity fixtures to center copy and share legends", async (): Promise<void> => {
     const shared = renderWithTheme(<Host id="donut-center-and-share" />);
-    assert.exists(await shared.findByTestId("donut-center-and-share.center.value"));
-    assert.exists(await shared.findByTestId("donut-center-and-share.center.title"));
-    assert.exists(await shared.findByTestId("donut-center-and-share.share.0"));
-    assert.exists(await shared.findByTestId("donut-center-and-share.share.1"));
+    assert.equal(
+      (await shared.findByTestId("donut-center-and-share.center.value")).props.children,
+      "$1.15K"
+    );
+    assert.equal(
+      (await shared.findByTestId("donut-center-and-share.center.title")).props.children,
+      "Cost"
+    );
+    assert.equal(
+      (await shared.findByTestId("donut-center-and-share.share.0")).props.children,
+      "80%"
+    );
+    assert.equal(
+      (await shared.findByTestId("donut-center-and-share.share.1")).props.children,
+      "20%"
+    );
 
     const single = renderWithTheme(<Host id="donut-single-slice" />);
     assert.isNotEmpty((await single.findByTestId("donut-single-slice.slice.0")).props.d);
     assert.equal((await single.findByTestId("donut-single-slice.share.0")).props.children, "100%");
+    assert.equal(
+      (await single.findByTestId("donut-single-slice.center.value")).props.children,
+      "7.00"
+    );
+    assert.equal(
+      (await single.findByTestId("donut-single-slice.center.title")).props.children,
+      "Conversions"
+    );
   });
 });
