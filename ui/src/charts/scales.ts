@@ -32,12 +32,14 @@ export const getYTickValues = (points: ChartPoint[]): number[] => {
 export const createCartesianScales = ({
   plot,
   points,
+  xLabels,
 }: {
   plot: ChartPlot;
   points: ChartPoint[];
+  xLabels?: string[];
 }): ChartScales => {
   const bottom = plot.top + plot.height;
-  const labels = points.map((point) => point.label);
+  const labels = xLabels ?? points.map((point) => point.label);
   const xScale = scaleBand<string>()
     .domain(labels)
     .range([plot.left, plot.left + plot.width]);

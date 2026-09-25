@@ -90,7 +90,11 @@ export const LineChart: FC<LineChartProps> = ({
   });
   const plot = getChartPlot({chartWidth, height: plotHeight});
   const plotWidth = chartWidth - axisWidth;
-  const scales = createCartesianScales({plot, points: allPoints});
+  const scales = createCartesianScales({
+    plot,
+    points: allPoints,
+    xLabels: axisPoints.map((point) => point.label),
+  });
   const comparisonPath = getLinePath({points: comparisonData, scales});
   const yTicks = getYTickValues(allPoints);
   const activeSeries = activePoint ? coloredSeries[activePoint.seriesIndex] : undefined;

@@ -35,8 +35,14 @@ describe("LineChart", () => {
     for (let index = 0; index < SERIES.length; index += 1) {
       assert.exists(getByTestId(`chart.series.${index}.path`));
       assert.exists(getByTestId(`chart.series.${index}.marker.0`));
+      assert.exists(getByTestId(`chart.legend.${index}`));
+      assert.exists(getByTestId(`chart.legend.${index}.swatch`));
       assert.exists(getByText(SERIES[index]?.label ?? ""));
     }
+    assert.isBelow(
+      getByTestId("chart.series.0.marker.2").props.cy,
+      getByTestId("chart.series.2.marker.2").props.cy
+    );
   });
 
   it("identifies the active series in a multi-series tooltip", async (): Promise<void> => {
@@ -58,6 +64,23 @@ describe("LineChart", () => {
     );
 
     assert.isString(getByTestId("chart.comparison").props.strokeDasharray);
+  });
+
+  it("renders comparison-only data instead of the empty state", () => {
+    const {getByTestId, queryByText} = renderWithTheme(
+      <LineChart comparisonData={POINTS} data={[]} testID="chart" />
+    );
+
+    assert.exists(getByTestId("chart.comparison"));
+    assert.notExists(queryByText("No data"));
+  });
+
+  it("shows the empty state when every named series is empty", () => {
+    const {getByText} = renderWithTheme(
+      <LineChart data={POINTS} series={[{data: [], id: "empty", label: "Empty"}]} />
+    );
+
+    assert.exists(getByText("No data"));
   });
 
   it("renders one mark testID per point", () => {
