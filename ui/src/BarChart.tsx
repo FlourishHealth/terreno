@@ -176,7 +176,7 @@ export const BarChart: FC<BarChartProps> = ({
                   />
                 );
               })}
-              {chartData.map((point) => {
+              {chartData.map((point, index) => {
                 const layout = getBarLayout({
                   barWidth,
                   baselineY,
@@ -192,6 +192,7 @@ export const BarChart: FC<BarChartProps> = ({
                     fill={point.color ?? seriesColor}
                     height={layout.height}
                     key={`bar-${point.label}`}
+                    testID={resolveTestID(testID, `current.${index}`)}
                     width={layout.width}
                     x={layout.x}
                     y={layout.y}

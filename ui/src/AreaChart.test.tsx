@@ -21,6 +21,28 @@ const SERIES = [
 ];
 
 describe("AreaChart", () => {
+  it("applies explicit tick truncation and chart-card title", () => {
+    const densePoints = Array.from({length: 10}, (_, index) => ({
+      label: `Week ${index + 1}`,
+      value: index + 1,
+    }));
+    const {getByTestId, getByText} = renderWithTheme(
+      <AreaChart
+        data={densePoints}
+        periodLabel="Quarter to date"
+        testID="chart"
+        title="Revenue"
+        xTickPolicy="truncate"
+      />
+    );
+    const tickStyle = getByTestId("chart.xtick.0").props.style;
+    const tickStyles = Array.isArray(tickStyle) ? tickStyle : [tickStyle];
+
+    assert.isFalse(tickStyles.some((style) => Array.isArray(style?.transform)));
+    assert.exists(getByText("Revenue"));
+    assert.exists(getByText("Quarter to date"));
+  });
+
   it("renders an area, line, and legend for each named series", () => {
     const {getByTestId, getByText} = renderWithTheme(
       <AreaChart data={[]} series={SERIES} testID="chart" />

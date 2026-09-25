@@ -49,6 +49,59 @@ describe("BarChart", () => {
     assert.isBelow(getByTestId("chart.comparison.1").props.opacity, 1);
   });
 
+  it("scales current and comparison bars against the same y domain", () => {
+    const currentOnly = renderWithTheme(
+      <BarChart data={[{label: "A", value: 10}]} testID="current-only" />
+    );
+    const compared = renderWithTheme(
+      <BarChart
+        comparisonData={[{label: "A", value: 100}]}
+        data={[{label: "A", value: 10}]}
+        testID="compared"
+      />
+    );
+
+    assert.isAbove(
+      currentOnly.getByTestId("current-only.current.0").props.height,
+      compared.getByTestId("compared.current.0").props.height
+    );
+    assert.isAbove(
+      compared.getByTestId("compared.comparison.0").props.height,
+      compared.getByTestId("compared.current.0").props.height
+    );
+  });
+
+  it("uses only the first named series for bars and legend", () => {
+    const firstSeries = [
+      {label: "A", value: 10},
+      {label: "B", value: 20},
+    ];
+    const {getByTestId, getByText, queryByTestId, queryByText} = renderWithTheme(
+      <BarChart
+        data={POINTS}
+        series={[
+          {data: firstSeries, id: "first", label: "Series A"},
+          {data: [{label: "C", value: 30}], id: "second", label: "Series B"},
+        ]}
+        testID="chart"
+      />
+    );
+
+    assert.exists(getByText("Series A"));
+    assert.notExists(queryByText("Series B"));
+    assert.exists(getByTestId("chart.point.1-clickable"));
+    assert.notExists(queryByTestId("chart.point.2-clickable"));
+  });
+
+  it("renders comparison-only data instead of the empty state", () => {
+    const {getByTestId, queryByText} = renderWithTheme(
+      <BarChart comparisonData={POINTS} data={[]} testID="chart" />
+    );
+
+    assert.exists(getByTestId("chart.comparison.1"));
+    assert.notExists(queryByText("No data"));
+  });
+
   it("renders chart-card header shortcuts and invokes the period action", async (): Promise<void> => {
     let pressCount = 0;
     const handlePeriodPress = (): void => {
@@ -65,9 +118,16 @@ describe("BarChart", () => {
     );
 
     assert.exists(getByText("Cost / conv. over time"));
+    assert.exists(getByText("Last 14 days"));
     fireEvent.press(getByTestId("chart.card.period-clickable"));
     await new Promise((resolve) => setTimeout(resolve, 0));
     assert.equal(pressCount, 1);
+  });
+
+  it("does not add ChartCard chrome when title is omitted", () => {
+    const {queryByTestId} = renderWithTheme(<BarChart data={POINTS} testID="chart" />);
+
+    assert.notExists(queryByTestId("chart.card"));
   });
 
   it("renders one mark testID per point", () => {

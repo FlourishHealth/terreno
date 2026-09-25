@@ -27,6 +27,31 @@ const SERIES = [
 ];
 
 describe("LineChart", () => {
+  it("applies explicit tick rotation and chart-card header shortcuts", async (): Promise<void> => {
+    let pressCount = 0;
+    const {getByTestId, getByText} = renderWithTheme(
+      <LineChart
+        data={POINTS}
+        onPeriodPress={(): void => {
+          pressCount += 1;
+        }}
+        periodLabel="Last 30 days"
+        testID="chart"
+        title="Search share"
+        xTickPolicy="rotate"
+      />
+    );
+    const tickStyle = getByTestId("chart.xtick.0").props.style;
+    const tickStyles = Array.isArray(tickStyle) ? tickStyle : [tickStyle];
+
+    assert.isTrue(tickStyles.some((style) => Array.isArray(style?.transform)));
+    assert.exists(getByText("Search share"));
+    assert.exists(getByText("Last 30 days"));
+    fireEvent.press(getByTestId("chart.card.period-clickable"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(pressCount, 1);
+  });
+
   it("renders one path and legend item per named series", () => {
     const {getByTestId, getByText} = renderWithTheme(
       <LineChart data={[]} series={SERIES} testID="chart" />
