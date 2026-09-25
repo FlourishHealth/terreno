@@ -34,7 +34,7 @@ IP: [dashboard-chart-parity.md](../implementationPlans/dashboard-chart-parity.md
 
 ## Phase 2 — Cartesian additive facades
 
-- [ ] **Task 2.1**: `series` + `comparisonData` on `LineChart` / `AreaChart`
+- [x] **Task 2.1**: `series` + `comparisonData` on `LineChart` / `AreaChart`
   - Delivers: multi-series lines from `series`; single `data` still works; dotted comparison overlay; per-series legend; markers stay
   - Files: `ui/src/LineChart.tsx`, `ui/src/AreaChart.tsx`, matching tests, `ui/src/charts/scales.ts` (shared x domain across series)
   - Blocked by: 1.2
