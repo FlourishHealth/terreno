@@ -105,7 +105,7 @@ Admin CRUD is on `/announcements` via `modelRouter`. Custom actions:
 
 - `GET /announcements/config` — returns `{ data: { defaultAcknowledgementPolicy } }` from the plugin constructor (admin only; defaults to `"dismiss-only"` when omitted). Used to pre-fill the admin editor acknowledgement policy field.
 - `GET /announcements/overview` — paginated admin dashboard with per-announcement metrics and aggregate totals. Access uses `adminOverviewPermissions` (defaults to `IsAdmin`). Query: `page` (default `1`), `limit` (default `20`, max `100`).
-- `POST /announcements/import-release` — idempotently imports up to 100 announcements keyed by release product/version/channel plus slug. Admin auth or the configured `uploadToken` bearer token is required. New items default to draft; request `publish: true` to publish them.
+- `POST /announcements/import-release` — idempotently imports up to 100 announcements keyed by release product/version/channel plus slug. Admin auth or the configured `uploadToken` bearer token is required. New items default to draft; request `publish: true` to publish them. The example deployment's token is `terreno-example-announcement-upload`, seeded by Terraform.
 - `POST /announcements/:id/publish` — draft → published
 - `POST /announcements/:id/archive` — published → archived
 

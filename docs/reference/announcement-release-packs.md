@@ -89,6 +89,8 @@ new AnnouncementsApp({
 });
 ```
 
+The example Cloud Run backend seeds `ANNOUNCEMENTS_UPLOAD_TOKEN` from Terraform (`announcements_upload_token`, default `terreno-example-announcement-upload`). Use that bearer token against the example preview or production URL. Preview deploys use the same default until the secret exists.
+
 Send the parsed manifest and Markdown files as JSON:
 
 ```bash
