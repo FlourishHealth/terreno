@@ -41,7 +41,7 @@ The reusable planning plugin uses five bounded transitions:
 **Brew** (submit) → **Taste** (react once). Pick owns the inner loop: one task, roast
 it, next task. Roast never invokes Pick. The outer loop owns state persistence,
 retry, stop, and escalation. Taste waits in-process for review bots and for product
-CI (`gh` / `circleci` watch loop). Before any push it always pulls latest `master`,
+CI (`gh` / `circleci` watch loop). Before any push it fetches latest `master` (merging it only when needed),
 records last-run failed tests and re-verifies them locally, then
 spawns a no-context subagent to run the root `prepush` package script when present
 (otherwise lint, typecheck, and locally affected tests in affected packages), then
@@ -546,7 +546,7 @@ bun run test:agent        # same suites; passing cases suppressed
 bun run frontend:test     # example-frontend unit tests
 bun run frontend:e2e      # Playwright (needs replica-set mongod; starts backend+web)
 bun run maestro:test      # Maestro web flows
-bun run prepush           # lint + compile + analyze:full
+bun run prepush           # local mirror of every CI job this branch triggers
 ```
 
 Install Playwright browsers once: `cd example-frontend && bunx playwright install --with-deps chromium`.

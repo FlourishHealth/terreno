@@ -253,9 +253,21 @@ export const validateStageContent = ({
     if (!content.includes("task-scoped briefing")) {
       errors.push(`${prefix}: must pass a task-scoped briefing to Roast and reviewers`);
     }
+    if (!content.includes("**Commit once.**")) {
+      errors.push(`${prefix}: Pick must make one commit per task after Roast PASS`);
+    }
+    if (!content.includes("List its edge cases before writing code")) {
+      errors.push(`${prefix}: Pick must enumerate edge cases before implementing`);
+    }
+    if (!content.includes("Do not start or continue another slice on a red head")) {
+      errors.push(`${prefix}: Pick must fix branch-caused CI failures before the next slice`);
+    }
   }
 
   if (definition.stage === "roast") {
+    if (!content.includes("passes alone but fails in the package suite")) {
+      errors.push(`${prefix}: Roast must run the CI-equivalent package gate`);
+    }
     if (!content.includes("Exactly one driver continues")) {
       errors.push(`${prefix}: must name a single inner-loop driver`);
     }
@@ -349,7 +361,10 @@ export const validateStageContent = ({
       errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);
     }
     if (!content.includes("latest `master`")) {
-      errors.push(`${prefix}: Taste must pull latest master before the local gate and push`);
+      errors.push(`${prefix}: Taste must fetch latest master before the local gate and push`);
+    }
+    if (!content.includes("Otherwise skip the merge")) {
+      errors.push(`${prefix}: Taste must merge the base only when needed`);
     }
     if (!content.includes("Before any push, in this order")) {
       errors.push(
@@ -1118,6 +1133,12 @@ export const validateLifecyclePlugin = ({
   }
   if (!pickRoastLoop.includes("subagent-briefing.md")) {
     errors.push("pick-roast loop must load the subagent briefing contract");
+  }
+  if (!pickRoastLoop.includes("## Commits and pushes")) {
+    errors.push("pick-roast loop must define commit and push rules");
+  }
+  if (!pickRoastLoop.includes("Pick and Roast do not push")) {
+    errors.push("pick-roast loop must keep pushes out of the inner loop");
   }
   if (!pickRoastLoop.includes("Do not ask Roast or its children to rediscover")) {
     errors.push("pick-roast loop must forbid Roast children from rediscovering the repo");

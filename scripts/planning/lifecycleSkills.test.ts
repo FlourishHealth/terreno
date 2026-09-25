@@ -48,15 +48,12 @@ describe("lifecycle skill architecture", (): void => {
     assert.deepEqual(validateLifecyclePlugin({rootDirectory: ROOT_DIRECTORY}), []);
   });
 
-  it("defines the Terreno prepush gate with lint, typecheck, and static analysis", (): void => {
+  it("defines the Terreno prepush gate as the local mirror of CI", (): void => {
     const packageJson = JSON.parse(
       readFileSync(resolve(ROOT_DIRECTORY, "package.json"), "utf8")
     ) as {scripts?: Record<string, string>};
 
-    assert.equal(
-      packageJson.scripts?.prepush,
-      "bun run lint && bun run compile && bun run analyze:full"
-    );
+    assert.equal(packageJson.scripts?.prepush, "bun run scripts/ci/prepush/run.ts");
   });
 
   it("validates the Claude Code plugin host", (): void => {
@@ -298,7 +295,7 @@ describe("lifecycle skill architecture", (): void => {
 
   it("rejects Pick that skips Roast or the inner loop", (): void => {
     const content = readStage("terreno-2-pick")
-      .replace("../../references/pick-roast-loop.md", "missing-loop")
+      .replaceAll("../../references/pick-roast-loop.md", "missing-loop")
       .replaceAll("Do not start the next task until Roast PASS", "Start the next task immediately")
       .replaceAll("Pick never skips Roast", "Pick may skip Roast");
     const errors = validateStageContent({

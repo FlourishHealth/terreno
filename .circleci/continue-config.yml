@@ -1195,6 +1195,11 @@ jobs:
             bun run check:source-rules
             bun test scripts/check-source-rules/
       - run:
+          name: Test isolation (no new mock.module in shared suites)
+          command: |
+            git fetch origin master
+            bun run check:test-isolation
+      - run:
           name: Explicit any baseline
           command: bun run check:explicit-any:baseline
       - run:
