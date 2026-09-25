@@ -1,36 +1,12 @@
 name: CD
 
-# Dual-run with CircleCI until `terreno-gcp` has WIF/OIDC values.
-# Do not leave both applying terraform once CircleCI GCP deploys succeed.
+# Disabled after CD moved to CircleCI (deploy-*, gcp-cd-*); retained for rollback.
+# Never re-enable alongside CircleCI: both would deploy and apply terraform.
 on:
+  # Retained for rollback without registering failed zero-job runs.
   push:
-    branches:
-      - master
-  pull_request:
-    paths:
-      - "terraform/**"
-      - "example-backend/**"
-      - "example-frontend/**"
-      - "api/**"
-      - "api-health/**"
-      - "admin-backend/**"
-      - "admin-frontend/**"
-      - "ai/**"
-      - "comms/**"
-      - "jobs/**"
-      - "mcp-server/**"
-      - "rtk/**"
-      - "ui/**"
-      - "bun.lock"
-      - ".github/workflows/cd.yml"
-      - ".github/workflows/frontend-example-deploy.yml"
-  workflow_dispatch:
-    inputs:
-      run_terraform:
-        description: "Force-run terraform jobs even if terraform/ unchanged"
-        required: false
-        type: boolean
-        default: false
+    branches-ignore:
+      - "**"
 
 # Fork PRs still receive repository variables and can request an OIDC token.
 # Do not grant id-token at the workflow; only jobs that mint GCP identity
