@@ -113,7 +113,10 @@ grid, legend, tooltip row, or empty-state copy.
 
 ### LineChart
 
-Single-series line chart drawn with `react-native-svg`. Empty data shows `emptyText` (default `"No data"`). `loading` shows a `Spinner`. Press or hover a point for `{label}: {value}`.
+Line chart drawn with `react-native-svg`. Keep the simple `data` + `legendLabel` path for
+one series, or pass named `series` for multiple lines and legend items.
+`comparisonData` adds a dotted previous-period overlay on the shared scale. Empty data
+shows `emptyText` (default `"No data"`). `loading` shows a `Spinner`.
 
 ```tsx
 <LineChart
@@ -140,6 +143,8 @@ Single-series bar chart on the same owned-SVG contract as `LineChart` (empty, lo
 ### AreaChart
 
 Filled area plus line on the same owned-SVG contract as `LineChart`.
+Named `series` render one fill/line pair and legend item each; `comparisonData` stays a
+dotted line rather than a filled area.
 
 ```tsx
 <AreaChart

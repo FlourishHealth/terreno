@@ -1,5 +1,6 @@
 import {describe, expect, it, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import {Linking} from "react-native";
 
 import {LineChart} from "./LineChart";
@@ -11,7 +12,54 @@ const POINTS = [
   {label: "C", value: 100},
 ];
 
+const SERIES = [
+  {data: POINTS, id: "rank", label: "Search lost IS (rank)"},
+  {
+    data: POINTS.map((point) => ({...point, value: point.value / 2})),
+    id: "share",
+    label: "Search impr. share",
+  },
+  {
+    data: POINTS.map((point) => ({...point, value: point.value / 4})),
+    id: "budget",
+    label: "Search lost IS (budget)",
+  },
+];
+
 describe("LineChart", () => {
+  it("renders one path and legend item per named series", () => {
+    const {getByTestId, getByText} = renderWithTheme(
+      <LineChart data={[]} series={SERIES} testID="chart" />
+    );
+
+    for (let index = 0; index < SERIES.length; index += 1) {
+      assert.exists(getByTestId(`chart.series.${index}.path`));
+      assert.exists(getByTestId(`chart.series.${index}.marker.0`));
+      assert.exists(getByText(SERIES[index]?.label ?? ""));
+    }
+  });
+
+  it("identifies the active series in a multi-series tooltip", async (): Promise<void> => {
+    const {getByTestId, getByText} = renderWithTheme(
+      <LineChart data={[]} series={SERIES} testID="chart" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("chart.series.1.point.1-clickable"));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    assert.exists(getByText("Search impr. share — B: 25"));
+  });
+
+  it("renders a dotted comparison path on the shared scale", () => {
+    const {getByTestId} = renderWithTheme(
+      <LineChart comparisonData={POINTS} data={POINTS} testID="chart" />
+    );
+
+    assert.isString(getByTestId("chart.comparison").props.strokeDasharray);
+  });
+
   it("renders one mark testID per point", () => {
     const {getByTestId, queryByTestId} = renderWithTheme(
       <LineChart data={POINTS} testID="chart" />

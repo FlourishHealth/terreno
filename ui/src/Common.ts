@@ -19,6 +19,7 @@ import type {
   FontAwesome6RegularNames,
   FontAwesome6SolidNames,
 } from "./CommonIconTypes";
+import type {ChartPoint, ChartSeries} from "./charts/types/chartTypes";
 import type {
   DataTableTestIDs,
   FieldTestIDs,
@@ -2646,8 +2647,10 @@ export interface PaginationProps extends WithTestID {
 export interface LineChartProps extends WithTestID {
   /** Summary announced for the whole chart. */
   accessibilityLabel?: string;
+  /** Optional previous-period values drawn as a dotted overlay. */
+  comparisonData?: ChartPoint[];
   /** Single series of labeled numeric points. */
-  data: Array<{color?: string; label: string; value: number}>;
+  data: ChartPoint[];
   /** Copy shown when `data` is empty. */
   emptyText?: string;
   /** Formats the numeric value in tooltips. */
@@ -2658,6 +2661,8 @@ export interface LineChartProps extends WithTestID {
   legendLabel?: string;
   /** When true, shows a spinner instead of the plot. */
   loading?: boolean;
+  /** Named series. When non-empty, these replace the single `data` series. */
+  series?: ChartSeries[];
 }
 
 export interface SparklineChartProps extends WithTestID {

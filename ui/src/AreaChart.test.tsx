@@ -1,5 +1,6 @@
 import {describe, expect, it} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 
 import {AreaChart} from "./AreaChart";
 import {renderWithTheme} from "./test-utils";
@@ -11,6 +12,27 @@ const POINTS = [
 ];
 
 describe("AreaChart", () => {
+  it("renders an area, line, and legend for each named series", () => {
+    const series = [
+      {data: POINTS, id: "current", label: "Current"},
+      {
+        data: POINTS.map((point) => ({...point, value: point.value / 2})),
+        id: "previous",
+        label: "Previous",
+      },
+    ];
+    const {getByTestId, getByText} = renderWithTheme(
+      <AreaChart data={[]} series={series} testID="chart" />
+    );
+
+    for (let index = 0; index < series.length; index += 1) {
+      assert.exists(getByTestId(`chart.series.${index}.area`));
+      assert.exists(getByTestId(`chart.series.${index}.path`));
+      assert.exists(getByTestId(`chart.series.${index}.marker.0`));
+      assert.exists(getByText(series[index]?.label ?? ""));
+    }
+  });
+
   it("renders one mark testID per point", () => {
     const {getByTestId, queryByTestId} = renderWithTheme(
       <AreaChart data={POINTS} testID="chart" />
