@@ -50,7 +50,7 @@ IP: [dashboard-chart-parity.md](../implementationPlans/dashboard-chart-parity.md
   - Docs: tick policy in `docs/explanation/charts.md`
   - Acceptance: bun tests — 14 long date labels with `auto` → rotated tick style; 7 weekday labels stay horizontal; facade title renders when set and `ChartCard` is not wrapping (documented exclusive use)
 
-- [ ] **Task 2.3**: Cartesian goldens
+- [x] **Task 2.3**: Cartesian goldens
   - Delivers: fixtures `bar-time-rotated-ticks`, `line-three-series`, `bar-day-of-week`
   - Files: `demo/chartVisual/**`, `demo/rendered-snapshots/*.png`
   - Blocked by: 2.2
