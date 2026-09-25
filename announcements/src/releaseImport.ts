@@ -3,17 +3,9 @@ import {APIError, findOneOrNoneFor, z} from "@terreno/api";
 import type {Request} from "express";
 import {DateTime} from "luxon";
 import {Announcement} from "./models/announcement";
-import type {
-  AcknowledgementPolicy,
-  AnnouncementAudienceType,
-  AnnouncementDisplayMode,
-  AnnouncementDocument,
-  AnnouncementPlatform,
-  AnnouncementPrimaryAction,
-  AnnouncementRelease,
-} from "./types";
+import {announcementPlatformSchema, parseAnnouncementBody} from "./requestBodies";
+import type {AnnouncementDocument, AnnouncementRelease} from "./types";
 
-const announcementPlatformSchema = z.enum(["ios", "android", "web"]);
 const announcementDefaultsSchema = z
   .object({
     acknowledgementPolicy: z.enum(["required", "dismiss-only"]).optional(),
@@ -58,33 +50,26 @@ export const announcementReleaseImportSchema = z
       })
       .strict(),
   })
-  .strict();
+  .strict()
+  .superRefine((input, context) => {
+    const seenSlugs = new Set<string>();
+    for (const [index, item] of input.announcements.entries()) {
+      if (seenSlugs.has(item.slug)) {
+        context.addIssue({
+          code: "custom",
+          message: "Release announcement slugs must be unique",
+          path: ["announcements", index, "slug"],
+        });
+      }
+      seenSlugs.add(item.slug);
+    }
+  });
 
-type AnnouncementDefaultsInput = {
-  acknowledgementPolicy?: AcknowledgementPolicy;
-  audience?: unknown;
-  audienceType?: AnnouncementAudienceType;
-  displayMode?: AnnouncementDisplayMode;
-  expiresAt?: string;
-  minBuildNumber?: number;
-  platforms?: AnnouncementPlatform[];
-  priority?: number;
-  publishAt?: string;
-};
+type AnnouncementDefaultsInput = z.output<typeof announcementDefaultsSchema>;
 
-export interface AnnouncementReleaseItemInput extends AnnouncementDefaultsInput {
-  body: string;
-  primaryAction?: AnnouncementPrimaryAction;
-  slug: string;
-  title: string;
-}
+export type AnnouncementReleaseImportInput = z.output<typeof announcementReleaseImportSchema>;
 
-export interface AnnouncementReleaseImportInput {
-  announcements: AnnouncementReleaseItemInput[];
-  defaults?: AnnouncementDefaultsInput;
-  publish: boolean;
-  release: AnnouncementRelease;
-}
+export type AnnouncementReleaseItemInput = AnnouncementReleaseImportInput["announcements"][number];
 
 export interface AnnouncementReleaseImportResult {
   created: number;
@@ -201,14 +186,11 @@ const snapshotImportedValues = (announcement: AnnouncementDocument): string =>
   });
 
 export const importAnnouncementRelease = async ({
-  input,
+  input: rawInput,
 }: {
-  input: AnnouncementReleaseImportInput;
+  input: unknown;
 }): Promise<AnnouncementReleaseImportResult> => {
-  const uniqueSlugs = new Set(input.announcements.map((item) => item.slug));
-  if (uniqueSlugs.size !== input.announcements.length) {
-    throw new APIError({status: 400, title: "Release announcement slugs must be unique"});
-  }
+  const input = parseAnnouncementBody({body: rawInput, schema: announcementReleaseImportSchema});
 
   const result: AnnouncementReleaseImportResult = {
     announcements: [],

@@ -127,3 +127,5 @@ The request shape is:
 `publish` defaults to `false`, so new rows are drafts. Pass `"publish": true` only for an intentional live import. Draft re-imports do not unpublish an existing live announcement. An authenticated admin may also call the endpoint without the dedicated upload token.
 
 The response reports `created`, `updated`, `unchanged`, and `published` counts plus the ID, slug, status, and content version of each row.
+
+The body is validated with the exported Zod schema `announcementReleaseImportSchema` before any row is written. Unknown keys, malformed slugs, empty titles or bodies, invalid enum values, missing `release.product` / `release.version`, and duplicate slugs return **400** `Validation failed` with per-field messages in `meta.fields`. `importAnnouncementRelease` runs the same schema when called directly from server code.
