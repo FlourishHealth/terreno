@@ -42,7 +42,7 @@ IP: [dashboard-chart-parity.md](../implementationPlans/dashboard-chart-parity.md
   - Docs: `docs/reference/ui.md` Line/Area props
   - Acceptance: bun tests — three `series` → three paths + three legend labels; `{label,value}[]` only still draws one series; comparison path exists when set
 
-- [ ] **Task 2.2**: `xTickPolicy` + bar comparison + header shortcuts
+- [x] **Task 2.2**: `xTickPolicy` + bar comparison + header shortcuts
   - Delivers: `"auto"` rotates when labels would truncate, stays horizontal for ≤7 categories; `BarChart` accepts `series` (grouped later if >1 — this slice: first series only unless a second is comparison) and `comparisonData`; `title` / `periodLabel` / `onPeriodPress` on cartesian facades
   - Files: `ui/src/BarChart.tsx`, `ui/src/LineChart.tsx`, `ui/src/charts/layout.ts`, `ui/src/BarChart.test.tsx`, `ui/src/LineChart.test.tsx`
   - Blocked by: 2.1
