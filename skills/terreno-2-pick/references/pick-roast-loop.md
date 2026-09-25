@@ -79,7 +79,8 @@ not loop bookkeeping:
 - Pick and Roast do not push. Brew pushes once after the whole list has Roast `PASS`.
   Taste pushes at most once per reaction.
 - Do not start the next task while product CI on the pushed head reports a
-  branch-caused failure. Fix it first.
+  branch-caused failure. Fix it first. Never wait on pending CI, and record
+  failures the branch did not cause for Taste instead of blocking on them.
 
 ## Independence
 

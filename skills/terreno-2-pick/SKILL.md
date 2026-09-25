@@ -39,8 +39,10 @@ Read the shared [`lifecycle contract`](references/lifecycle-contract.md),
    next unblocked incomplete task, or at the same task when retrying a Roast `FAIL`.
    When a harness pushed earlier slices automatically and product CI on that pushed
    head reports a branch-caused failure, fixing it is the current task.
-   Do not start or continue another slice on a red head. After Brew, CI reactions
-   belong to Taste.
+   Do not start or continue another slice on a red head. Never wait on pending CI;
+   read the latest terminal results and keep building. Record flaky, infrastructure,
+   or other failures the branch did not cause in execution state for Taste; they do
+   not block the next slice. After Brew, CI reactions belong to Taste.
 2. **Read architecture docs.** Load the current architecture and domain docs for the
    files/seams in this slice. Implement against that design; if the slice changes it,
    update those docs in the same slice.

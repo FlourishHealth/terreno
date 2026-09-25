@@ -262,6 +262,9 @@ export const validateStageContent = ({
     if (!content.includes("Do not start or continue another slice on a red head")) {
       errors.push(`${prefix}: Pick must fix branch-caused CI failures before the next slice`);
     }
+    if (!content.includes("Never wait on pending CI")) {
+      errors.push(`${prefix}: Pick must not wait on pending CI`);
+    }
   }
 
   if (definition.stage === "roast") {
