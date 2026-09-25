@@ -2671,6 +2671,31 @@ export interface SparklineChartProps extends WithTestID {
   height?: number;
 }
 
+export interface ChartCardProps extends WithTestID {
+  children: React.ReactNode;
+  /** Optional context shown below the title row. */
+  filterSummary?: string;
+  /** Makes the period badge pressable when provided. */
+  onPeriodPress?: () => void;
+  /** Date range or relative period shown in the header. */
+  periodLabel?: string;
+  /** Card heading. */
+  title: string;
+}
+
+export interface ScorecardProps extends WithTestID {
+  /** Optional previous-period sparkline values. */
+  comparisonData?: Array<{label: string; value: number}>;
+  /** Formats numeric values. String values render unchanged. */
+  formatValue?: (value: number) => string;
+  onPeriodPress?: () => void;
+  periodLabel?: string;
+  /** Current-period sparkline values. */
+  sparklineData?: Array<{label: string; value: number}>;
+  title: string;
+  value: number | string;
+}
+
 export interface AreaChartProps extends LineChartProps {}
 export interface BarChartProps extends LineChartProps {}
 

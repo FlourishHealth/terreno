@@ -4,9 +4,9 @@ React Native UI component library (a large component library). Layout (Box, Page
 
 ## Key exports
 
-- Layout: `Box`, `Page`, `SplitPage`, `Card`, `DashboardGrid`
+- Layout: `Box`, `Page`, `SplitPage`, `Card`, `ChartCard`, `DashboardGrid`
 - Forms: `TextField`, `SelectField`, `DateTimeField`, `CheckBox`
-- Display: `Text`, `Heading`, `Badge`, `DataTable`, `SparklineChart`, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`
+- Display: `Text`, `Heading`, `Badge`, `DataTable`, `Scorecard`, `SparklineChart`, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`
 - Actions: `Button`, `IconButton`, `Link`
 - Feedback: `Spinner`, `Modal`, `Toast`
 - Notifications: `NotificationBell`, `NotificationInbox`, `NotificationPreferences`
@@ -32,7 +32,7 @@ supported and is convenient when startup cost is not material:
 import {Box, DataTable, Icon} from "@terreno/ui";
 ```
 
-Heavy optional widgets (`GPTChat`, `EmojiSelector`, `MarkdownEditor`, consent flows, `SparklineChart`, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`, and related admin tools) are
+Heavy optional widgets (`GPTChat`, `EmojiSelector`, `MarkdownEditor`, consent flows, `ChartCard`, `Scorecard`, `SparklineChart`, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`, and related admin tools) are
 re-exported from the root entry through lazy boundaries. Importing them from `@terreno/ui` stays type-compatible, but
 their implementation modules load on first render instead of during the initial root import. `DashboardGrid` stays eager.
 `MarkdownView` and `DataTable` header info defer `react-native-markdown-display`;
@@ -70,6 +70,32 @@ Eager layout-only wrapping grid. Default columns `{sm: 1, md: 2, lg: 3}`. Childr
     <LineChart data={points} legendLabel="Signups" />
   </Card>
 </DashboardGrid>
+```
+
+### ChartCard
+
+Card chrome for a chart or table: title, optional filter summary, and an optional period
+badge. Pass `onPeriodPress` to make the badge a button; omit it for display-only copy.
+
+```tsx
+<ChartCard title="Cost by Device" periodLabel="Last 30 days">
+  <DonutChart data={points} />
+</ChartCard>
+```
+
+### Scorecard
+
+Compact KPI tile with a title, formatted value, and optional current/comparison
+sparkline. Numeric values use `formatValue`; string values render unchanged.
+
+```tsx
+<Scorecard
+  title="Cost"
+  value={569}
+  formatValue={(value) => `$${value}`}
+  sparklineData={current}
+  comparisonData={previous}
+/>
 ```
 
 ### SparklineChart
