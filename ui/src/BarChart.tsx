@@ -251,6 +251,7 @@ export const BarChart: FC<BarChartProps> = ({
                 <Text
                   align="center"
                   color="secondaryDark"
+                  numberOfLines={1}
                   size="sm"
                   skipLinking
                   truncate={!isXTickRotated}

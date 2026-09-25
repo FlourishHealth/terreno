@@ -2,7 +2,7 @@ import type {ChartPlot} from "./types/chartTypes";
 
 export const CHART_Y_AXIS_MAX_WIDTH = 40;
 export const CHART_X_AXIS_HEIGHT = 18;
-export const CHART_ROTATED_X_AXIS_HEIGHT = 56;
+export const CHART_ROTATED_X_AXIS_HEIGHT = 72;
 export const CHART_FOOTER_ROW_HEIGHT = 18;
 
 const Y_AXIS_WIDTH_RATIO = 0.3;
@@ -96,13 +96,13 @@ export const getXTickStyle = ({
   xCenter: number;
 }): ChartTickStyle => {
   const width = isRotated
-    ? Math.max(bandwidth * 2, CHART_ROTATED_X_AXIS_HEIGHT)
+    ? Math.max(bandwidth * 1.5, CHART_ROTATED_X_AXIS_HEIGHT)
     : Math.max(bandwidth, 1);
   return {
-    left: xCenter - width / 2,
+    left: isRotated ? xCenter - bandwidth / 4 : xCenter - width / 2,
     position: "absolute",
-    top: isRotated ? 4 : 0,
-    ...(isRotated ? {transform: [{rotate: "45deg"}]} : {}),
+    top: 0,
+    ...(isRotated ? {transform: [{rotate: "45deg"}], transformOrigin: "left top"} : {}),
     width,
   };
 };

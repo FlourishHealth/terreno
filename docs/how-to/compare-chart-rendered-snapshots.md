@@ -35,5 +35,7 @@ PNGs, not only the code diff.
 
 Hard fixture `scorecard-sparkline-comparison` renders five KPI tiles with solid current
 and dotted previous-period sparklines.
+Cartesian parity fixtures are `bar-time-rotated-ticks`, `bar-day-of-week`, and
+`line-three-series`.
 
 `CHART_VISUAL_BASE_URL` overrides the demo origin when the gallery is already hosted.

@@ -43,4 +43,13 @@ describe("chart visual fixture catalog", () => {
       existsSync(join(import.meta.dir, "../rendered-snapshots/scorecard-sparkline-comparison.png"))
     );
   });
+
+  it("registers the cartesian parity fixtures", () => {
+    const expectedIds = ["bar-time-rotated-ticks", "line-three-series", "bar-day-of-week"];
+
+    for (const id of expectedIds) {
+      assert.exists(CHART_VISUAL_FIXTURES.find((fixture) => fixture.id === id));
+      assert.isTrue(existsSync(join(import.meta.dir, `../rendered-snapshots/${id}.png`)));
+    }
+  });
 });

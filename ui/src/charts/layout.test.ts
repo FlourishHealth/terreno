@@ -22,7 +22,7 @@ describe("chart layout", () => {
   });
 
   it("reserves a custom x-axis height for rotated labels", () => {
-    assert.equal(getPlotHeight({hasLegend: false, height: 200, xAxisHeight: 56}), 126);
+    assert.equal(getPlotHeight({hasLegend: false, height: 200, xAxisHeight: 72}), 110);
   });
 
   it("keeps a drawable plot when the requested height is smaller than the rows", () => {
@@ -82,6 +82,7 @@ describe("chart layout", () => {
     assert.isFalse(shouldRotateChartXTicks({labelCount: 20, policy: "truncate"}));
     assert.deepInclude(getXTickStyle({bandwidth: 10, isRotated: true, xCenter: 20}), {
       transform: [{rotate: "45deg"}],
+      transformOrigin: "left top",
     });
   });
 

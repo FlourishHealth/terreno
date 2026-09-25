@@ -272,6 +272,7 @@ export const AreaChart: FC<AreaChartProps> = ({
                 <Text
                   align="center"
                   color="secondaryDark"
+                  numberOfLines={1}
                   size="sm"
                   skipLinking
                   truncate={!isXTickRotated}

@@ -25,6 +25,21 @@ const WEEKDAY_POINTS = [
   {label: "Wed", value: 9},
 ];
 
+const DAY_OF_WEEK_POINTS = [
+  {label: "Monday", value: 6},
+  {label: "Tuesday", value: 9},
+  {label: "Wednesday", value: 5},
+  {label: "Thursday", value: 6},
+  {label: "Friday", value: 4},
+  {label: "Saturday", value: 6},
+  {label: "Sunday", value: 5},
+];
+
+const DATE_POINTS = Array.from({length: 14}, (_, index) => ({
+  label: `Sep ${index + 1}, 2026`,
+  value: [0, 0, 0, 20, 0, 35, 45, 48, 0, 35, 0, 33, 0, 0][index] ?? 0,
+}));
+
 const SIGNUP_POINTS = [
   {label: "Mon", value: 12},
   {label: "Tue", value: 18},
@@ -39,6 +54,40 @@ const PREVIOUS_POINTS = [
   {label: "Wed", value: 14},
   {label: "Thu", value: 13},
   {label: "Fri", value: 16},
+];
+
+const SHARE_SERIES = [
+  {
+    data: DATE_POINTS.map((point, index) => ({
+      ...point,
+      value:
+        [0.55, 0.72, 0.25, 0.62, 0.68, 0.64, 0.69, 0.76, 0.66, 0.66, 0.65, 0.56, 0.61, 0.42][
+          index
+        ] ?? 0,
+    })),
+    id: "rank",
+    label: "Search lost IS (rank)",
+  },
+  {
+    data: DATE_POINTS.map((point, index) => ({
+      ...point,
+      value:
+        [0.18, 0.09, 0.2, 0.12, 0.16, 0.14, 0.14, 0.15, 0.2, 0.15, 0.16, 0.16, 0.1, 0.14][index] ??
+        0,
+    })),
+    id: "share",
+    label: "Search impr. share",
+  },
+  {
+    data: DATE_POINTS.map((point, index) => ({
+      ...point,
+      value:
+        [0.24, 0.2, 0.45, 0.2, 0.15, 0.22, 0.12, 0.04, 0.14, 0.15, 0.15, 0.26, 0.23, 0.41][index] ??
+        0,
+    })),
+    id: "budget",
+    label: "Search lost IS (budget)",
+  },
 ];
 
 const SIGNUP_WITH_GAPS = [
@@ -179,6 +228,33 @@ const renderFixture = (fixture: (typeof CHART_VISUAL_FIXTURES)[number]): ReactEl
           </Box>
         </FixtureFrame>
       );
+    case "bar-time-rotated-ticks":
+      return (
+        <FixtureFrame fixture={fixture}>
+          <BarChart
+            data={DATE_POINTS}
+            formatValue={formatUsd}
+            height={300}
+            legendLabel="Cost / conv."
+            periodLabel="Last 14 days"
+            testID={fixture.id}
+            title="Cost / conv. over time"
+          />
+        </FixtureFrame>
+      );
+    case "bar-day-of-week":
+      return (
+        <FixtureFrame fixture={fixture}>
+          <BarChart
+            data={DAY_OF_WEEK_POINTS}
+            height={260}
+            legendLabel="Conversions"
+            periodLabel="Jun 25, 2026 – Sep 23, 2026"
+            testID={fixture.id}
+            title="Conv. by day of week"
+          />
+        </FixtureFrame>
+      );
     case "scorecard-sparkline-comparison":
       return (
         <FixtureFrame fixture={fixture}>
@@ -224,6 +300,20 @@ const renderFixture = (fixture: (typeof CHART_VISUAL_FIXTURES)[number]): ReactEl
               value={57.75}
             />
           </DashboardGrid>
+        </FixtureFrame>
+      );
+    case "line-three-series":
+      return (
+        <FixtureFrame fixture={fixture}>
+          <LineChart
+            data={[]}
+            formatValue={(value): string => value.toFixed(1)}
+            height={320}
+            periodLabel="Jun 25, 2026 – Sep 23, 2026"
+            series={SHARE_SERIES}
+            testID={fixture.id}
+            title="Imp. share over time"
+          />
         </FixtureFrame>
       );
     case "dashboard-mixed-cards":
