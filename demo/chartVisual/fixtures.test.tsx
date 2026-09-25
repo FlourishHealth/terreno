@@ -42,4 +42,26 @@ describe("chart visual fixtures", () => {
       assert.exists(await findByTestId(`scorecard-fixture.${index}.sparkline.comparison`));
     }
   });
+
+  it("binds cartesian parity fixture ids to their intended paint behavior", async (): Promise<void> => {
+    const timeBars = renderWithTheme(<Host id="bar-time-rotated-ticks" />);
+    const timeTickStyle = (await timeBars.findByTestId("bar-time-rotated-ticks.xtick.0")).props
+      .style;
+    const timeTickStyles = Array.isArray(timeTickStyle) ? timeTickStyle : [timeTickStyle];
+    assert.isTrue(timeTickStyles.some((style) => Array.isArray(style?.transform)));
+
+    const weekdayBars = renderWithTheme(<Host id="bar-day-of-week" />);
+    const weekdayTickStyle = (await weekdayBars.findByTestId("bar-day-of-week.xtick.0")).props
+      .style;
+    const weekdayTickStyles = Array.isArray(weekdayTickStyle)
+      ? weekdayTickStyle
+      : [weekdayTickStyle];
+    assert.isFalse(weekdayTickStyles.some((style) => Array.isArray(style?.transform)));
+
+    const threeLines = renderWithTheme(<Host id="line-three-series" />);
+    for (let index = 0; index < 3; index += 1) {
+      assert.exists(await threeLines.findByTestId(`line-three-series.series.${index}.path`));
+      assert.exists(await threeLines.findByTestId(`line-three-series.legend.${index}`));
+    }
+  });
 });
