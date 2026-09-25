@@ -1,9 +1,10 @@
 import {describe, expect, it} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 
 import {Box} from "./Box";
 import {getSpacing} from "./Common";
-import {DashboardGrid} from "./DashboardGrid";
+import {DashboardGrid, DashboardGridItem} from "./DashboardGrid";
 import {getDashboardCellWidth} from "./dashboardGridLayout";
 import {renderWithTheme} from "./test-utils";
 
@@ -71,5 +72,34 @@ describe("DashboardGrid", () => {
       maxWidth: expectedWidth,
       width: expectedWidth,
     });
+  });
+
+  it("lets an item span responsive column units without changing plain children", async () => {
+    const {getByTestId} = renderWithTheme(
+      <DashboardGrid columns={{lg: 4, md: 4, sm: 4}} gap={4} testID="grid">
+        <DashboardGridItem span={{lg: 2, md: 2, sm: 2}} testID="wide-item">
+          <Box>Wide</Box>
+        </DashboardGridItem>
+        <Box testID="plain-item">Plain</Box>
+      </DashboardGrid>
+    );
+
+    await act(async () => {
+      fireEvent(getByTestId("grid"), "layout", {
+        nativeEvent: {layout: {height: 80, width: 332}},
+      });
+    });
+
+    const baseWidth = getDashboardCellWidth({
+      columnCount: 4,
+      gapPx: getSpacing(4),
+      rowWidth: 332,
+    });
+    assert.include(getByTestId("grid.cell.0").props.style, {
+      width: baseWidth * 2 + getSpacing(4),
+    });
+    assert.include(getByTestId("grid.cell.1").props.style, {width: baseWidth});
+    assert.exists(getByTestId("wide-item"));
+    assert.exists(getByTestId("plain-item"));
   });
 });

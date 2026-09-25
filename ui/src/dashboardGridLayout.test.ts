@@ -1,7 +1,12 @@
 import {afterEach, describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import {Platform} from "react-native";
 
-import {getDashboardCellBoxStyle, getDashboardCellWidth} from "./dashboardGridLayout";
+import {
+  getDashboardCellBoxStyle,
+  getDashboardCellWidth,
+  getDashboardSpanCellBoxStyle,
+} from "./dashboardGridLayout";
 
 const originalOS = Platform.OS;
 
@@ -62,6 +67,18 @@ describe("getDashboardCellBoxStyle", () => {
         rowWidth: 0,
       }).width
     ).toBe("calc((100% - 32px) / 3)");
+  });
+
+  it("adds the internal gap when a measured cell spans two columns", () => {
+    assert.deepInclude(
+      getDashboardSpanCellBoxStyle({
+        columnCount: 4,
+        gapPx: 16,
+        rowWidth: 332,
+        span: 2,
+      }),
+      {width: 156}
+    );
   });
 
   it("falls back to a full-width cell on native, which has no calc", () => {

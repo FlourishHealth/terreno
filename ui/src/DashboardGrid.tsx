@@ -1,10 +1,10 @@
 import type {FC, ReactNode} from "react";
-import {Children, useCallback, useState} from "react";
+import {Children, isValidElement, useCallback, useState} from "react";
 
 import {Box} from "./Box";
-import type {DashboardGridProps, LayoutChangeEvent} from "./Common";
+import type {DashboardGridItemProps, DashboardGridProps, LayoutChangeEvent} from "./Common";
 import {getSpacing} from "./Common";
-import {getDashboardCellBoxStyle} from "./dashboardGridLayout";
+import {getDashboardSpanCellBoxStyle} from "./dashboardGridLayout";
 import {useResponsiveBreakpoint} from "./ResponsiveBreakpoint";
 import {resolveTestID} from "./testing/resolveTestId";
 
@@ -26,6 +26,33 @@ const resolveColumnCount = ({
   return columns.sm;
 };
 
+const resolveItemSpan = ({
+  breakpoint,
+  span,
+}: {
+  breakpoint: "xs" | "sm" | "md" | "lg" | "xl";
+  span?: DashboardGridItemProps["span"];
+}): number => {
+  if (!span) {
+    return 1;
+  }
+  if (breakpoint === "lg" || breakpoint === "xl") {
+    return span.lg ?? span.md ?? span.sm ?? 1;
+  }
+  if (breakpoint === "md") {
+    return span.md ?? span.sm ?? 1;
+  }
+  return span.sm ?? 1;
+};
+
+export const DashboardGridItem: FC<DashboardGridItemProps> = ({children, testID}) => {
+  return (
+    <Box minWidth={0} testID={testID} width="100%">
+      {children}
+    </Box>
+  );
+};
+
 export const DashboardGrid: FC<DashboardGridProps> = ({
   children,
   columns = DEFAULT_COLUMNS,
@@ -36,11 +63,7 @@ export const DashboardGrid: FC<DashboardGridProps> = ({
   const breakpoint = useResponsiveBreakpoint({enabled: true});
   const [rowWidth, setRowWidth] = useState(0);
   const columnCount = Math.max(resolveColumnCount({breakpoint, columns}), 1);
-  const cellStyle = getDashboardCellBoxStyle({
-    columnCount,
-    gapPx: getSpacing(gap),
-    rowWidth,
-  });
+  const gapPx = getSpacing(gap);
 
   const handleLayout = useCallback((event: LayoutChangeEvent): void => {
     const nextWidth = event.nativeEvent.layout.width;
@@ -51,19 +74,32 @@ export const DashboardGrid: FC<DashboardGridProps> = ({
 
   return (
     <Box direction="row" gap={gap} onLayout={handleLayout} testID={testID} width="100%" wrap>
-      {renderedChildren.map((child: ReactNode, index: number) => (
-        <Box
-          dangerouslySetInlineStyle={{
-            __style: cellStyle,
-          }}
-          key={`dashboard-cell-${index}`}
-          testID={resolveTestID(testID, `cell.${index}`)}
-        >
-          {child}
-        </Box>
-      ))}
+      {renderedChildren.map((child: ReactNode, index: number) => {
+        const itemSpan =
+          isValidElement<DashboardGridItemProps>(child) && child.type === DashboardGridItem
+            ? child.props.span
+            : undefined;
+        const span = resolveItemSpan({breakpoint, span: itemSpan});
+        const cellStyle = getDashboardSpanCellBoxStyle({
+          columnCount,
+          gapPx,
+          rowWidth,
+          span,
+        });
+        return (
+          <Box
+            dangerouslySetInlineStyle={{
+              __style: cellStyle,
+            }}
+            key={`dashboard-cell-${index}`}
+            testID={resolveTestID(testID, `cell.${index}`)}
+          >
+            {child}
+          </Box>
+        );
+      })}
     </Box>
   );
 };
 
-export type {DashboardGridProps} from "./Common";
+export type {DashboardGridItemProps, DashboardGridProps} from "./Common";

@@ -2728,6 +2728,12 @@ export interface DashboardGridProps extends WithTestID {
   gap?: UnsignedUpTo12;
 }
 
+export interface DashboardGridItemProps extends WithTestID {
+  children?: React.ReactNode;
+  /** Number of grid columns occupied at each breakpoint. Defaults to one. */
+  span?: {lg?: number; md?: number; sm?: number};
+}
+
 /**
  * Data Table
  */

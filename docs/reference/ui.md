@@ -60,12 +60,19 @@ const customStyle: StyleProp<ViewStyle> = {
 - Ensures type compatibility when passing styles to @terreno/ui components
 - Simplifies imports (one package instead of two)
 
-### DashboardGrid
+### DashboardGrid and DashboardGridItem
 
 Eager layout-only wrapping grid. Default columns `{sm: 1, md: 2, lg: 3}`. Children stay caller-supplied `Card`s. Cell width is `(rowWidth - gap × (columns - 1)) / columns` so flex `gap` does not wrap extra columns.
+Wrap a child in `DashboardGridItem` when it must span more than one responsive column.
+Plain children remain one column.
 
 ```tsx
-<DashboardGrid>
+<DashboardGrid columns={{sm: 1, md: 2, lg: 4}}>
+  <DashboardGridItem span={{sm: 1, md: 2, lg: 2}}>
+    <Card>
+      <LineChart data={points} legendLabel="Signups" />
+    </Card>
+  </DashboardGridItem>
   <Card>
     <LineChart data={points} legendLabel="Signups" />
   </Card>
