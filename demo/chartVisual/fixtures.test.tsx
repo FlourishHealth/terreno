@@ -64,4 +64,16 @@ describe("chart visual fixtures", () => {
       assert.exists(await threeLines.findByTestId(`line-three-series.legend.${index}`));
     }
   });
+
+  it("binds donut parity fixtures to center copy and share legends", async (): Promise<void> => {
+    const shared = renderWithTheme(<Host id="donut-center-and-share" />);
+    assert.exists(await shared.findByTestId("donut-center-and-share.center.value"));
+    assert.exists(await shared.findByTestId("donut-center-and-share.center.title"));
+    assert.exists(await shared.findByTestId("donut-center-and-share.share.0"));
+    assert.exists(await shared.findByTestId("donut-center-and-share.share.1"));
+
+    const single = renderWithTheme(<Host id="donut-single-slice" />);
+    assert.isNotEmpty((await single.findByTestId("donut-single-slice.slice.0")).props.d);
+    assert.equal((await single.findByTestId("donut-single-slice.share.0")).props.children, "100%");
+  });
 });

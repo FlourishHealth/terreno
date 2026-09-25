@@ -52,4 +52,13 @@ describe("chart visual fixture catalog", () => {
       assert.isTrue(existsSync(join(import.meta.dir, `../rendered-snapshots/${id}.png`)));
     }
   });
+
+  it("registers the donut center fixtures and goldens", () => {
+    const expectedIds = ["donut-center-and-share", "donut-single-slice"];
+
+    for (const id of expectedIds) {
+      assert.exists(CHART_VISUAL_FIXTURES.find((fixture) => fixture.id === id));
+      assert.isTrue(existsSync(join(import.meta.dir, `../rendered-snapshots/${id}.png`)));
+    }
+  });
 });

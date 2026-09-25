@@ -26,6 +26,12 @@ export const CHART_VISUAL_FIXTURES = [
   },
   {difficulty: "medium", id: "bar-day-of-week", title: "Day-of-week category bars"},
   {
+    difficulty: "medium",
+    id: "donut-center-and-share",
+    title: "Donut center and share legend",
+  },
+  {difficulty: "medium", id: "donut-single-slice", title: "Donut single 100% slice"},
+  {
     difficulty: "hard",
     id: "scorecard-sparkline-comparison",
     title: "Scorecards with comparison sparklines",

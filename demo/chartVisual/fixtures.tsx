@@ -110,6 +110,13 @@ const DONUT_HEX_POINTS = [
   {color: "#543C00", label: "Done", value: 20},
 ];
 
+const DEVICE_COST_POINTS = [
+  {label: "Mobile phones", value: 79},
+  {label: "Computers", value: 20},
+];
+
+const DEVICE_CONVERSION_POINTS = [{label: "Mobile phones", value: 7}];
+
 const DENSE_POINTS = [
   {label: "Week of Aug 04", value: 4},
   {label: "Week of Aug 11", value: 9},
@@ -252,6 +259,34 @@ const renderFixture = (fixture: (typeof CHART_VISUAL_FIXTURES)[number]): ReactEl
             periodLabel="Jun 25, 2026 – Sep 23, 2026"
             testID={fixture.id}
             title="Conv. by day of week"
+          />
+        </FixtureFrame>
+      );
+    case "donut-center-and-share":
+      return (
+        <FixtureFrame fixture={fixture}>
+          <DonutChart
+            centerTitle="Cost"
+            centerValue="$1.15K"
+            data={DEVICE_COST_POINTS}
+            height={280}
+            periodLabel="Last 30 days"
+            testID={fixture.id}
+            title="Cost by Device"
+          />
+        </FixtureFrame>
+      );
+    case "donut-single-slice":
+      return (
+        <FixtureFrame fixture={fixture}>
+          <DonutChart
+            centerTitle="Conversions"
+            centerValue="7.00"
+            data={DEVICE_CONVERSION_POINTS}
+            height={260}
+            periodLabel="Last 14 days"
+            testID={fixture.id}
+            title="Conversions by Device"
           />
         </FixtureFrame>
       );
