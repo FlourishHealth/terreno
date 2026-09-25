@@ -4,7 +4,7 @@ import {
   type AnnouncementReleaseImportInput,
   announcementReleaseImportSchema,
 } from "@terreno/announcements";
-import {logger} from "@terreno/api";
+import {APIError, logger} from "@terreno/api";
 
 const PACK_SCHEMA = "terreno.announcement-pack/v1";
 const DEFAULT_UPLOAD_TOKEN = "terreno-example-announcement-upload";
@@ -26,11 +26,14 @@ const parseAnnouncementFile = ({
 }): Record<string, unknown> => {
   const match = FRONTMATTER_PATTERN.exec(contents);
   if (!match) {
-    throw new Error(`${fileName} must start with YAML frontmatter delimited by ---`);
+    throw new APIError({
+      status: 400,
+      title: `${fileName} must start with YAML frontmatter delimited by ---`,
+    });
   }
   const frontmatter = Bun.YAML.parse(match[1] ?? "");
   if (!frontmatter || typeof frontmatter !== "object" || Array.isArray(frontmatter)) {
-    throw new Error(`${fileName} frontmatter must be a YAML object`);
+    throw new APIError({status: 400, title: `${fileName} frontmatter must be a YAML object`});
   }
   return {...(frontmatter as Record<string, unknown>), body: (match[2] ?? "").trim()};
 };
@@ -46,13 +49,16 @@ export const loadAnnouncementPack = async ({
     await readFile(join(directory, "pack.yaml"), "utf8")
   ) as PackManifest;
   if (manifest?.schema !== PACK_SCHEMA) {
-    throw new Error(`pack.yaml schema must be ${PACK_SCHEMA}`);
+    throw new APIError({status: 400, title: `pack.yaml schema must be ${PACK_SCHEMA}`});
   }
   if (
     !Array.isArray(manifest.announcements) ||
     !manifest.announcements.every((file) => typeof file === "string")
   ) {
-    throw new Error("pack.yaml announcements must be a list of Markdown file names");
+    throw new APIError({
+      status: 400,
+      title: "pack.yaml announcements must be a list of Markdown file names",
+    });
   }
 
   const announcements = await Promise.all(
@@ -87,7 +93,11 @@ const uploadAnnouncementPack = async ({
   });
   const result = await response.json();
   if (!response.ok) {
-    throw new Error(`Upload failed with ${response.status}: ${JSON.stringify(result)}`);
+    throw new APIError({
+      detail: JSON.stringify(result),
+      status: 502,
+      title: `Upload failed with ${response.status}`,
+    });
   }
   return result;
 };
@@ -105,9 +115,10 @@ export const runAnnouncementPackCli = async ({
     (arg, index) => !arg.startsWith("--") && (uploadIndex === -1 || index !== uploadIndex + 1)
   );
   if (!directory || (uploadIndex !== -1 && !apiUrl)) {
-    throw new Error(
-      "Usage: bun run announcements:pack <pack-directory> [--publish] [--upload <api-url>]"
-    );
+    throw new APIError({
+      status: 400,
+      title: "Usage: bun run announcements:pack <pack-directory> [--publish] [--upload <api-url>]",
+    });
   }
 
   const body = await loadAnnouncementPack({
@@ -131,7 +142,10 @@ if (import.meta.main) {
       write: process.stdout.write.bind(process.stdout),
     });
   } catch (error: unknown) {
-    logger.error("Announcement pack failed", {error: String(error)});
+    logger.error("Announcement pack failed", {
+      detail: error instanceof APIError ? error.detail : undefined,
+      error: String(error),
+    });
     process.exitCode = 1;
   }
 }
