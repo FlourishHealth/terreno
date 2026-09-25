@@ -3,6 +3,7 @@ import {
   createdUpdatedPlugin,
   findExactlyOne,
   findOneOrNone,
+  findOneOrNoneFor,
   isDeletedPlugin,
 } from "@terreno/api";
 import mongoose from "mongoose";
@@ -175,7 +176,12 @@ announcementSchema.pre("save", async function bumpVersionOnPublishedEdit() {
     return;
   }
 
-  const previous = await Announcement.findById(this._id).select("title body status version");
+  // A restored import clears `deleted` on this document while the stored row is still
+  // soft-deleted, so the default filter would hide the version being edited.
+  const previous = await findOneOrNoneFor(Announcement, {
+    _id: this._id,
+    deleted: {$in: [true, false]},
+  });
   if (previous?.status !== "published") {
     return;
   }

@@ -212,6 +212,33 @@ describe("AnnouncementsApp", () => {
     assert.equal(await Announcement.countDocuments({}), 1);
   });
 
+  it("bumps the content version when a restored published import changes its body", async () => {
+    const uploadApp = buildApp({uploadToken: "release-upload-secret"});
+    const buildPack = (body: string): Record<string, unknown> => ({
+      announcements: [{body, slug: "changelog", title: "Version 1.14.0"}],
+      publish: true,
+      release: {product: "example", version: "1.14.0"},
+    });
+    await supertest(uploadApp)
+      .post("/announcements/import-release")
+      .set("Authorization", "Bearer release-upload-secret")
+      .send(buildPack("Original published details"))
+      .expect(200);
+    const original = await Announcement.findExactlyOne({releaseSlug: "changelog"});
+    original.deleted = true;
+    await original.save();
+
+    await supertest(uploadApp)
+      .post("/announcements/import-release")
+      .set("Authorization", "Bearer release-upload-secret")
+      .send(buildPack("Revised published details"))
+      .expect(200);
+
+    const restored = await Announcement.findExactlyOne({releaseSlug: "changelog"});
+    assert.equal(restored.version, 2);
+    assert.equal(restored.body, "Revised published details");
+  });
+
   it("rejects release imports with an invalid upload token", async () => {
     const uploadApp = buildApp({uploadToken: "release-upload-secret"});
     await supertest(uploadApp)
