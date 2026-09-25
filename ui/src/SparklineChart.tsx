@@ -40,7 +40,7 @@ export const SparklineChart: FC<SparklineChartProps> = ({
     top: PLOT_INSET,
     width: Math.max(chartWidth - PLOT_INSET * 2, 1),
   };
-  const scales = createCartesianScales({plot, points: allPoints});
+  const scales = createCartesianScales({includeZero: false, plot, points: allPoints});
   const currentPath = getLinePath({points: data, scales});
   const comparisonPath = getLinePath({points: comparisonData, scales});
 

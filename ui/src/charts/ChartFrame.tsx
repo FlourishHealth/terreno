@@ -68,10 +68,12 @@ export const ChartFrame: FC<ChartFrameProps> = ({
           {legendItems.map((item, index) => (
             <Box
               alignItems="center"
+              dangerouslySetInlineStyle={{__style: {flexBasis: 0, flexGrow: 1, flexShrink: 1}}}
               direction="row"
               gap={1}
               key={`${item.label}-${index}`}
               minWidth={0}
+              testID={resolveTestID(testID, `legend.${index}.item`)}
             >
               <Box
                 dangerouslySetInlineStyle={{

@@ -22,6 +22,9 @@ row even when no tooltip is showing keeps hovering from reflowing the page.
 
 Cartesian facades use `xTickPolicy="auto"` by default: up to seven categorical labels
 stay horizontal, while denser sets rotate 45 degrees and reserve a taller axis row.
+That taller row comes out of `height`; the plot shrinks so the chart still fits the
+requested slot. `SparklineChart` scales to the data range so a small period-over-period
+change stays visible.
 Callers may force `"truncate"` or `"rotate"`. `title` and `periodLabel` are convenience
 props backed by the same `ChartCard` used for explicit chart/table composition.
 

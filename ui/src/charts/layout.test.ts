@@ -26,7 +26,11 @@ describe("chart layout", () => {
   });
 
   it("keeps a drawable plot when the requested height is smaller than the rows", () => {
-    expect(getPlotHeight({hasLegend: true, height: 20})).toBe(40);
+    expect(getPlotHeight({hasLegend: true, height: 20})).toBe(1);
+  });
+
+  it("keeps rotated charts inside the requested height", () => {
+    assert.equal(getPlotHeight({hasLegend: true, height: 140, xAxisHeight: 72}), 32);
   });
 
   it("fits a donut inside the height left by tooltip and padded, gapped legend rows", () => {

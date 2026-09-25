@@ -62,6 +62,14 @@ describe("LineChart", () => {
       assert.exists(getByTestId(`chart.series.${index}.marker.0`));
       assert.exists(getByTestId(`chart.legend.${index}`));
       assert.exists(getByTestId(`chart.legend.${index}.swatch`));
+      const legendStyle = getByTestId(`chart.legend.${index}.item`).props.style;
+      const legendStyles = Array.isArray(legendStyle) ? legendStyle : [legendStyle];
+      assert.isTrue(
+        legendStyles.some(
+          (style: {flexGrow?: number; minWidth?: number} | undefined) =>
+            style?.flexGrow === 1 && style.minWidth === 0
+        )
+      );
       assert.exists(getByText(SERIES[index]?.label ?? ""));
     }
     assert.isBelow(

@@ -47,7 +47,11 @@ export const getPlotHeight = ({
   xAxisHeight?: number;
 }): number => {
   const footer = xAxisHeight + CHART_FOOTER_ROW_HEIGHT * (hasLegend ? 2 : 1);
-  return Math.max(height - footer, MIN_PLOT_HEIGHT);
+  const remaining = height - footer;
+  if (remaining >= MIN_PLOT_HEIGHT) {
+    return remaining;
+  }
+  return Math.max(remaining, 1);
 };
 
 export const getDonutSize = ({

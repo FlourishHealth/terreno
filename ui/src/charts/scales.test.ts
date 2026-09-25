@@ -28,6 +28,21 @@ describe("createCartesianScales", () => {
     expect(scales.y(50)).toBe(50);
   });
 
+  it("scales a sparkline to the data range instead of forcing zero", () => {
+    const points = [
+      {label: "A", value: 100},
+      {label: "B", value: 110},
+    ];
+    const scales = createCartesianScales({
+      includeZero: false,
+      plot: PLOT,
+      points,
+    });
+
+    assert.equal(scales.y(100), 100);
+    assert.equal(scales.y(110), 0);
+  });
+
   it("uses the explicit shared x labels while scaling all series values on y", () => {
     const points = [
       ...FIXTURE_POINTS,

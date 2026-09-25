@@ -20,6 +20,7 @@ import {ConflictSheetConfiguration} from "@story-config/ConflictSheet.config";
 import {ConsentFormScreenConfiguration} from "@story-config/ConsentFormScreen.config";
 import {CustomSelectFieldConfiguration} from "@story-config/CustomSelectField.config";
 import {DashboardGridConfiguration} from "@story-config/DashboardGrid.config";
+import {DashboardGridItemConfiguration} from "@story-config/DashboardGridItem.config";
 import {DataTableConfiguration} from "@story-config/DataTable.config";
 import {DateTimeFieldConfiguration} from "@story-config/DateTimeField.config";
 import {DecimalRangeActionSheetConfiguration} from "@story-config/DecimalRangeActionSheet.config";
@@ -82,6 +83,7 @@ import {SignUpScreenConfiguration} from "@story-config/SignUpScreen.config";
 import {SimpleContentConfiguration} from "@story-config/SimpleContent.config";
 import {SliderConfiguration} from "@story-config/Slider.config";
 import {SocialLoginButtonConfiguration} from "@story-config/SocialLoginButton.config";
+import {SparklineChartConfiguration} from "@story-config/SparklineChart.config";
 import {SpinnerConfiguration} from "@story-config/Spinner.config";
 import {SplitPageConfiguration} from "@story-config/SplitPage.config";
 import {SwiperConfiguration} from "@story-config/Swiper.config";
@@ -290,6 +292,7 @@ const Config: DemoConfigurationBase[] = [
   ConsentFormScreenConfiguration,
   CustomSelectFieldConfiguration,
   DashboardGridConfiguration,
+  DashboardGridItemConfiguration,
   DataTableConfiguration,
   DateTimeFieldConfiguration,
   DecimalRangeActionSheetConfiguration,
@@ -352,6 +355,7 @@ const Config: DemoConfigurationBase[] = [
   SignatureFieldConfiguration,
   SliderConfiguration,
   SocialLoginButtonConfiguration,
+  SparklineChartConfiguration,
   SpinnerConfiguration,
   SplitPageConfiguration,
   SwiperConfiguration,
