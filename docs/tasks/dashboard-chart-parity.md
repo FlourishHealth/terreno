@@ -68,7 +68,7 @@ IP: [dashboard-chart-parity.md](../implementationPlans/dashboard-chart-parity.md
   - Docs: `docs/reference/ui.md` Donut props
   - Acceptance: bun tests — center copy present; legend includes `%`; one-slice data still has one path; existing slice color override still works
 
-- [ ] **Task 3.2**: Donut goldens
+- [x] **Task 3.2**: Donut goldens
   - Delivers: `donut-center-and-share`, `donut-single-slice`
   - Files: `demo/chartVisual/**`, goldens
   - Blocked by: 3.1
