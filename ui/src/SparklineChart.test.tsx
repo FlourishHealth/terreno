@@ -1,4 +1,5 @@
 import {describe, it} from "bun:test";
+import {fireEvent} from "@testing-library/react-native";
 import {assert} from "chai";
 
 import {SparklineChart as RootSparklineChart} from "./index";
@@ -52,5 +53,17 @@ describe("SparklineChart", () => {
 
   it("is available from the package root lazy boundary", () => {
     assert.isFunction(RootSparklineChart);
+  });
+
+  it("redraws from the measured container width", () => {
+    const {getByTestId} = renderWithTheme(
+      <SparklineChart comparisonData={COMPARISON} data={CURRENT} testID="measured-sparkline" />
+    );
+
+    fireEvent(getByTestId("measured-sparkline"), "layout", {
+      nativeEvent: {layout: {height: 48, width: 80}},
+    });
+
+    assert.exists(getByTestId("measured-sparkline.current"));
   });
 });
