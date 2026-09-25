@@ -101,6 +101,20 @@ describe("GitHub deployment records", (): void => {
     });
   });
 
+  it("posts to TerrenoLabs when CircleCI still names the old org", async (): Promise<void> => {
+    const result = await runWithFakeGitHub({
+      command: ["bash", deploymentScript, "start", "demo", "demo"],
+      env: {
+        CIRCLE_PROJECT_REPONAME: "terreno",
+        CIRCLE_PROJECT_USERNAME: "FlourishHealth",
+        GITHUB_REPOSITORY: "",
+      },
+    });
+
+    assert.equal(result.exitCode, 0, result.stderr);
+    assert.equal(result.requests[0].path, "/repos/TerrenoLabs/terreno/deployments");
+  });
+
   it("marks production environments as production", async (): Promise<void> => {
     const result = await runWithFakeGitHub({
       command: ["bash", deploymentScript, "start", "example-backend-production", "backend"],

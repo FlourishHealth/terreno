@@ -10,6 +10,9 @@
 set -uo pipefail
 
 api_base="${GITHUB_API_URL:-https://api.github.com}"
+# CircleCI does not set GITHUB_REPOSITORY. Do not fall back to
+# CIRCLE_PROJECT_USERNAME: that project can still be the pre-transfer
+# FlourishHealth link, while deployment records belong on TerrenoLabs/terreno.
 repository="${GITHUB_REPOSITORY:-TerrenoLabs/terreno}"
 token="${GITHUB_DEPLOYMENTS_TOKEN:-}"
 
