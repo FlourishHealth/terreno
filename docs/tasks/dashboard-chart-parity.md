@@ -16,7 +16,7 @@ IP: [dashboard-chart-parity.md](../implementationPlans/dashboard-chart-parity.md
   - Docs: stub `SparklineChart` on `docs/reference/ui.md` Display list
   - Acceptance: bun tests — N points → path present; comparison path present when `comparisonData` set; empty data shows nothing / emptyText if provided; `ui` compile green
 
-- [ ] **Task 1.2**: `Scorecard` + `ChartCard`
+- [x] **Task 1.2**: `Scorecard` + `ChartCard`
   - Delivers: KPI tile with title, formatted value, optional sparkline; `ChartCard` with title, period badge, optional `onPeriodPress`, optional `filterSummary`
   - Files: `ui/src/Scorecard.tsx`, `ui/src/Scorecard.test.tsx`, `ui/src/ChartCard.tsx`, `ui/src/ChartCard.test.tsx`, lazy exports
   - Blocked by: 1.1
