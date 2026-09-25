@@ -158,6 +158,16 @@ follow-ups, and `ui-ci` stayed red on every commit after the first.
 - Taste fetches `master` before every push but merges it only when the PR conflicts, a
   failure traces to base drift, or the branch is otherwise merge-ready.
 
+## Direct invocation
+
+Outer loops (`terreno-planning-loop`, `terreno-taste-sweep`) consume Taste `PENDING`
+and invoke Taste again. When a human invokes Taste directly, no loop is waiting, so a
+`PENDING` would only tell them to come back later. In that case Taste uses
+**standalone entry**: it waits in-process with native watches and reacts again. It
+stops on `PASS`, `BLOCKED`, or `FAIL`, or after 3 fix pushes or 3 hours of waiting,
+which ends as `BLOCKED` with one concrete human action. A directly invoked Brew
+starts Taste as its next stage instead of exiting.
+
 ## Retry and stop rules
 
 - Pick implements one task, Roast proves it, then Pick takes the next unblocked task.

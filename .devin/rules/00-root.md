@@ -41,7 +41,8 @@ deploy.
 
 The reusable planning plugin uses five bounded transitions:
 **Grow** (shape) → **Pick** (build) ⇄ **Roast** (prove) until tasks are done →
-**Brew** (submit) → **Taste** (react once). Pick owns the inner loop: one task, roast
+**Brew** (submit) → **Taste** (react once; invoked directly, it repeats bounded
+reactions until a terminal verdict and never tells you to run it later). Pick owns the inner loop: one task, roast
 it, next task. Roast never invokes Pick. The outer loop owns state persistence,
 retry, stop, and escalation. Taste waits in-process for review bots and for product
 CI (`gh` / `circleci` watch loop). Before any push it fetches latest `master` (merging it only when needed),

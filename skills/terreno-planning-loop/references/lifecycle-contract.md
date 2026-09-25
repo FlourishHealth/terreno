@@ -175,7 +175,9 @@ transport.
 - `BLOCKED`: no safe engineering action exists now. Classify `human`, `environment`,
   `access`, or `external`; include the exact action or decision required.
 - `PENDING`: changing external state is not terminal (primarily Taste). Include `wait`;
-  the **outer loop** waits and invokes again. Use `PENDING` for review-bot timeout,
+  the **outer loop** waits and invokes again. With no outer loop (a human invoked
+  Taste or Brew directly), Taste's standalone entry waits and reacts again itself.
+  `PENDING` is never the final answer to a human. Use `PENDING` for review-bot timeout,
   product-CI wait-loop timeout (jobs still pending on GitHub Actions, CircleCI,
   Buildkite, and similar), and after Taste's second post-fix push. Do not emit
   `PENDING` while Bugbot, CodeQL, or similar review bots are still queued or in

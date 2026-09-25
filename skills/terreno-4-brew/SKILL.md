@@ -86,7 +86,11 @@ must follow the [`GitHub attention contract`](references/github-attention-contra
     - required host untriggered after grace → `FAIL` with `next: brew`
     - otherwise `PASS` with the PR/head, bot outcomes, and `next: taste`
     Collapse per the lifecycle contract. Close the chat with PR deployment URLs when
-    the PR has them. Brew itself never executes Taste.
+    the PR has them. Brew itself never executes Taste inline.
+12. **Hand off.** When an outer loop invoked Brew, exit; the outer loop runs Taste.
+    When a human invoked Brew directly and the result is `PASS` or `PENDING` with
+    `next: taste`, start the Taste skill as the next stage in standalone entry. Do
+    not end the session by telling the human to run Taste later.
 
 ## Supporting skills
 

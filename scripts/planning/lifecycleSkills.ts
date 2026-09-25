@@ -325,6 +325,9 @@ export const validateStageContent = ({
     if (!content.includes("Brew itself never executes Taste")) {
       errors.push(`${prefix}: must explicitly terminate without executing Taste`);
     }
+    if (!content.includes("start the Taste skill as the next stage")) {
+      errors.push(`${prefix}: Brew must hand a direct human invocation on to Taste`);
+    }
     if (/execute(?:s| the)? \*\*?Taste|execute(?:s| the)? Taste procedure/i.test(content)) {
       errors.push(`${prefix}: Brew must not execute Taste in the same invocation`);
     }
@@ -356,6 +359,15 @@ export const validateStageContent = ({
     }
     if (!content.includes("one reactive iteration only")) {
       errors.push(`${prefix}: must be bounded to one reactive iteration`);
+    }
+    if (!content.includes("## Standalone entry")) {
+      errors.push(`${prefix}: Taste must define standalone entry for direct human invocation`);
+    }
+    if (!content.includes("Never hand a wait back to the human")) {
+      errors.push(`${prefix}: Taste must not return PENDING to a human`);
+    }
+    if (!content.includes("at most 3 fix pushes") || !content.includes("at most 3 hours")) {
+      errors.push(`${prefix}: Taste standalone entry must be bounded by pushes and wait time`);
     }
     if (!content.includes("If step 10 did not push")) {
       errors.push(`${prefix}: Taste must preserve an emit path when no fix was pushed`);

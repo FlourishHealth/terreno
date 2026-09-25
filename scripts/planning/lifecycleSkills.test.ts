@@ -119,6 +119,24 @@ describe("lifecycle skill architecture", (): void => {
     assert.isTrue(errors.some((error) => error.includes("unbounded waiting/loop")));
   });
 
+  it("rejects Taste that hands a wait back to a directly invoking human", (): void => {
+    const errors = validateStageContent({
+      content: readStage("terreno-5-taste")
+        .replaceAll("## Standalone entry", "## Exit")
+        .replaceAll("Never hand a wait back to the human", "Tell the human to run Taste later")
+        .replaceAll("at most 3 fix pushes", "any number of fix pushes"),
+      definition: {
+        directory: "terreno-5-taste",
+        nextMarkers: ["next: taste", "next: null"],
+        stage: "taste",
+      },
+    });
+
+    assert.isTrue(errors.some((error) => error.includes("standalone entry for direct human")));
+    assert.isTrue(errors.some((error) => error.includes("must not return PENDING to a human")));
+    assert.isTrue(errors.some((error) => error.includes("bounded by pushes and wait time")));
+  });
+
   it("rejects Taste without a no-push emit path", (): void => {
     const errors = validateStageContent({
       content: readStage("terreno-5-taste").replace(
