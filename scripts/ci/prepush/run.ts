@@ -19,7 +19,7 @@ import {DateTime} from "luxon";
 
 import {readMappings} from "../../check-circleci-parity/lib";
 import {changedFilesSince, resolveMergeBase} from "../e2eAffected/git";
-import {type PrepushStep, planPrepush} from "./plan";
+import {type PrepushPlan, type PrepushStep, planPrepush} from "./plan";
 
 const REPO_ROOT = join(import.meta.dir, "..", "..", "..");
 
@@ -59,6 +59,16 @@ const collectChangedFiles = ({baseSha}: {baseSha: string}): string[] => {
   const working = gitLines(["diff", "--name-only", "HEAD"]);
   const untracked = gitLines(["ls-files", "--others", "--exclude-standard"]);
   return [...new Set([...committed, ...working, ...untracked])].sort();
+};
+
+const printCiOnly = (ciOnly: PrepushPlan["ciOnly"]): void => {
+  if (ciOnly.length === 0) {
+    return;
+  }
+  console.info("\nCI-only jobs this change triggers (run by hand when the change touches them):");
+  for (const item of ciOnly) {
+    console.info(`  ${item.parameter}: ${item.hint}`);
+  }
 };
 
 const runStep = (step: PrepushStep): {isOk: boolean; seconds: number} => {
@@ -113,6 +123,7 @@ const main = (): void => {
   }
 
   if (options.isDryRun) {
+    printCiOnly(plan.ciOnly);
     return;
   }
 
@@ -125,12 +136,7 @@ const main = (): void => {
       `${result.isOk ? "PASS" : "FAIL"} ${String(result.seconds).padStart(4)}s  ${result.step.name}`
     );
   }
-  if (plan.ciOnly.length > 0) {
-    console.info("\nCI-only jobs this change triggers (run by hand when the change touches them):");
-    for (const item of plan.ciOnly) {
-      console.info(`  ${item.parameter}: ${item.hint}`);
-    }
-  }
+  printCiOnly(plan.ciOnly);
   if (failed.length > 0) {
     console.error(
       `\nprepush: ${failed.length} of ${results.length} steps failed. Fix all of them, then push once.`
