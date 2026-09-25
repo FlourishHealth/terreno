@@ -1,5 +1,6 @@
 import {describe, expect, it, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {assert} from "chai";
 import {Linking} from "react-native";
 
 import {DonutChart} from "./DonutChart";
@@ -11,6 +12,32 @@ const POINTS = [
 ];
 
 describe("DonutChart", () => {
+  it("renders center copy and default percent shares in the legend", () => {
+    const {getAllByText, getByText} = renderWithTheme(
+      <DonutChart centerTitle="Cost" centerValue="$1.15K" data={POINTS} testID="chart" />
+    );
+
+    assert.exists(getByText("$1.15K"));
+    assert.exists(getByText("Cost"));
+    assert.lengthOf(getAllByText("50%"), 2);
+  });
+
+  it("supports custom share formatting and a single 100% slice", () => {
+    const {getByTestId, getByText} = renderWithTheme(
+      <DonutChart
+        centerTitle="Conversions"
+        centerValue="7.00"
+        data={[{label: "Mobile phones", value: 7}]}
+        formatShare={(value, total): string => `${value} of ${total}`}
+        testID="chart"
+      />
+    );
+
+    assert.exists(getByTestId("chart.slice.0"));
+    assert.exists(getByText("7 of 7"));
+    assert.exists(getByText("7.00"));
+  });
+
   it("renders one mark testID per slice", () => {
     const {getByTestId, queryByTestId} = renderWithTheme(
       <DonutChart data={POINTS} testID="chart" />

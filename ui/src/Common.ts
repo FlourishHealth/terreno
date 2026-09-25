@@ -2712,7 +2712,14 @@ export interface ScorecardProps extends WithTestID {
 export interface AreaChartProps extends LineChartProps {}
 export interface BarChartProps extends LineChartProps {}
 
-export interface DonutChartProps extends LineChartProps {}
+export interface DonutChartProps extends LineChartProps {
+  /** Small copy below the center value. */
+  centerTitle?: string;
+  /** Primary copy inside the donut hole. */
+  centerValue?: string;
+  /** Formats each slice's legend share. Defaults to a rounded percentage. */
+  formatShare?: (value: number, total: number) => string;
+}
 
 export interface DashboardGridProps extends WithTestID {
   children?: React.ReactNode;

@@ -161,11 +161,16 @@ dotted line rather than a filled area.
 
 ### DonutChart
 
-One slice per `{label, value}` point. Per-slice `color` overrides the theme paint. Legend is one row per slice (`legendLabel` is ignored).
+One slice per `{label, value}` point. Per-slice `color` overrides the theme paint.
+Legend rows show label + percent by default; customize with `formatShare`.
+`centerValue` and `centerTitle` put an aggregate in the donut hole. `title` /
+`periodLabel` use `ChartCard` chrome (`legendLabel` remains ignored).
 
 ```tsx
 <DonutChart
   data={[{label: "Open", value: 3}, {color: "#112233", label: "Closed", value: 5}]}
+  centerValue="8"
+  centerTitle="Total"
   testID="status-donut"
 />
 ```
