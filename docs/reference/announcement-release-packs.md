@@ -79,6 +79,19 @@ The format has three separate versions:
 
 The announcement model's numeric `version` is server-managed content revision metadata. Do not put it in a pack. Editing the title or body of an already-published imported announcement increments it and re-shows required content where applicable.
 
+## Example pack
+
+`example-backend/announcements/releases/1.14.0/` is a complete pack with a required staff modal, a patient banner, and a changelog feed item. The example backend ships a loader that parses the pack, validates it with `announcementReleaseImportSchema`, and prints or uploads the JSON body:
+
+```bash
+cd example-backend
+bun run announcements:pack announcements/releases/1.14.0                  # print JSON
+bun run announcements:pack announcements/releases/1.14.0 --upload http://localhost:4000
+bun run announcements:pack announcements/releases/1.14.0 --publish --upload <api-url>
+```
+
+Uploads use `ANNOUNCEMENTS_UPLOAD_TOKEN`, falling back to the example default `terreno-example-announcement-upload`. Uploads are drafts unless `--publish` is passed.
+
 ## Import API
 
 Enable automation with a dedicated secret:
