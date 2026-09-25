@@ -33,4 +33,7 @@ easy-through-hard charts in the demo app and diffs those PNGs against goldens.
 Agents reviewing a fail should follow the `review-chart-visuals` skill and look at the
 PNGs, not only the code diff.
 
+Hard fixture `scorecard-sparkline-comparison` renders five KPI tiles with solid current
+and dotted previous-period sparklines.
+
 `CHART_VISUAL_BASE_URL` overrides the demo origin when the gallery is already hosted.

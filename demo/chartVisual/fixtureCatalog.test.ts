@@ -1,4 +1,5 @@
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 
 import {
   CHART_VISUAL_DIFFICULTIES,
@@ -23,5 +24,14 @@ describe("chart visual fixture catalog", () => {
 
   it("uses a stable test id prefix for Playwright", () => {
     expect(chartVisualFixtureTestId("line-three-points")).toBe("chart-visual-line-three-points");
+  });
+
+  it("registers the scorecard comparison fixture as a hard visual", () => {
+    const fixture = CHART_VISUAL_FIXTURES.find(
+      (entry) => entry.id === "scorecard-sparkline-comparison"
+    );
+
+    assert.exists(fixture);
+    assert.equal(fixture.difficulty, "hard");
   });
 });

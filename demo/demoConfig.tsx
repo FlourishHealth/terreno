@@ -14,6 +14,7 @@ import {BooleanFieldConfiguration} from "@story-config/BooleanField.config";
 import {BoxConfiguration} from "@story-config/Box.config";
 import {ButtonConfiguration} from "@story-config/Button.config";
 import {CardConfiguration} from "@story-config/Card.config";
+import {ChartCardConfiguration} from "@story-config/ChartCard.config";
 import {CheckBoxConfiguration} from "@story-config/CheckBox.config";
 import {ConflictSheetConfiguration} from "@story-config/ConflictSheet.config";
 import {ConsentFormScreenConfiguration} from "@story-config/ConsentFormScreen.config";
@@ -64,6 +65,7 @@ import {PhoneNumberConfiguration} from "@story-config/PhoneNumberField.config";
 import {PopoverConfiguration} from "@story-config/Popover.config";
 import {RadioConfiguration} from "@story-config/Radio.config";
 import {RadioFieldConfiguration} from "@story-config/RadioField.config";
+import {ScorecardConfiguration} from "@story-config/Scorecard.config";
 import {SectionDividerConfiguration} from "@story-config/SectionDivider.config";
 import {SegmentedControlConfiguration} from "@story-config/SegmentedControl.config";
 import {SelectBadgeConfiguration} from "@story-config/SelectBadge.config";
@@ -281,6 +283,7 @@ const Config: DemoConfigurationBase[] = [
   FilterConfiguration,
   ButtonConfiguration,
   CardConfiguration,
+  ChartCardConfiguration,
   // ChatBubbleConfiguration,
   CheckBoxConfiguration,
   ConflictSheetConfiguration,
@@ -334,6 +337,7 @@ const Config: DemoConfigurationBase[] = [
   PhoneNumberConfiguration,
   RadioConfiguration,
   RadioFieldConfiguration,
+  ScorecardConfiguration,
   SectionDividerConfiguration,
   SegmentedControlConfiguration,
   SelectBadgeConfiguration,

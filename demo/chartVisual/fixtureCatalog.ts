@@ -19,6 +19,11 @@ export const CHART_VISUAL_FIXTURES = [
   {difficulty: "medium", id: "donut-hex-override", title: "Donut, hex slice color"},
   {difficulty: "medium", id: "line-dense-labels", title: "Line, dense truncated labels"},
   {difficulty: "medium", id: "line-fixed-slot-140", title: "Line in a 140px slot"},
+  {
+    difficulty: "hard",
+    id: "scorecard-sparkline-comparison",
+    title: "Scorecards with comparison sparklines",
+  },
   {difficulty: "hard", id: "dashboard-mixed-cards", title: "Dashboard grid of mixed charts"},
   {
     difficulty: "hard",

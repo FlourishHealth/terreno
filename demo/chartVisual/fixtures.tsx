@@ -7,6 +7,7 @@ import {
   DonutChart,
   Heading,
   LineChart,
+  Scorecard,
   Text,
 } from "@terreno/ui";
 import type {FC, ReactElement} from "react";
@@ -30,6 +31,14 @@ const SIGNUP_POINTS = [
   {label: "Wed", value: 9},
   {label: "Thu", value: 22},
   {label: "Fri", value: 15},
+];
+
+const PREVIOUS_POINTS = [
+  {label: "Mon", value: 10},
+  {label: "Tue", value: 11},
+  {label: "Wed", value: 14},
+  {label: "Thu", value: 13},
+  {label: "Fri", value: 16},
 ];
 
 const SIGNUP_WITH_GAPS = [
@@ -64,6 +73,14 @@ const DENSE_POINTS = [
 
 const formatUsd = (value: number): string => {
   return `$${value}`;
+};
+
+const formatFixed = (value: number): string => {
+  return value.toFixed(2);
+};
+
+const formatPercent = (value: number): string => {
+  return `${value.toFixed(2)}%`;
 };
 
 const FixtureFrame: FC<{fixture: ChartVisualFixtureMeta; children: ReactElement}> = ({
@@ -160,6 +177,48 @@ const renderFixture = (fixture: (typeof CHART_VISUAL_FIXTURES)[number]): ReactEl
               testID={fixture.id}
             />
           </Box>
+        </FixtureFrame>
+      );
+    case "scorecard-sparkline-comparison":
+      return (
+        <FixtureFrame fixture={fixture}>
+          <DashboardGrid columns={{lg: 5, md: 2, sm: 1}} gap={2}>
+            <Scorecard
+              comparisonData={PREVIOUS_POINTS}
+              formatValue={formatUsd}
+              sparklineData={SIGNUP_POINTS}
+              title="Cost"
+              value={569}
+            />
+            <Scorecard
+              comparisonData={PREVIOUS_POINTS}
+              formatValue={formatFixed}
+              sparklineData={SIGNUP_POINTS}
+              title="Conversions"
+              value={7}
+            />
+            <Scorecard
+              comparisonData={PREVIOUS_POINTS}
+              formatValue={formatUsd}
+              sparklineData={SIGNUP_POINTS}
+              title="Cost / conv."
+              value={81.32}
+            />
+            <Scorecard
+              comparisonData={PREVIOUS_POINTS}
+              formatValue={formatPercent}
+              sparklineData={SIGNUP_POINTS}
+              title="Conv. rate"
+              value={4.35}
+            />
+            <Scorecard
+              comparisonData={PREVIOUS_POINTS}
+              formatValue={formatPercent}
+              sparklineData={SIGNUP_POINTS}
+              title="Search lost IS (rank)"
+              value={57.75}
+            />
+          </DashboardGrid>
         </FixtureFrame>
       );
     case "dashboard-mixed-cards":
