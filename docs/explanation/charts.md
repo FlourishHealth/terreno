@@ -36,8 +36,6 @@ Chart paint is proven with **rendered PNG goldens**, not React test-renderer JSO
 pixel-diffs against `demo/rendered-snapshots/`. Agents use the `review-chart-visuals`
 skill to read golden / actual / diff images when a compare fails.
 
-Follow-up design for KPI scorecards, comparison sparklines, multi-series facades,
-donut hole labels, spanning grids, and Looker-like table chrome:
-[dashboard-chart-parity.md](../implementationPlans/dashboard-chart-parity.md).
-That slice keeps `{label, value}[]` facades additive. It does not require the Chart
-children grammar.
+The example app admin home (`/admin`) mounts `AdminCharts` so scorecards, a multi-series line,
+bars, an area, and a donut with a center label render together. See
+[Compose charts in a dashboard grid](../how-to/charts-and-dashboards.md).

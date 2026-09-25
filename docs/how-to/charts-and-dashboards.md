@@ -36,7 +36,7 @@ Charts have no width prop: each one fills the container you put it in and redraw
 
 Prove paint with `bun run ui:charts:compare` against `demo/rendered-snapshots/`, not with JSON snapshots. See [Compare rendered chart snapshots](compare-chart-rendered-snapshots.md).
 
-Scorecards, comparison sparklines, multi-series lines, donut hole labels, spanning
-grid items, and table chrome for an ops dashboard like “How’s it going?” are designed
-in [dashboard-chart-parity](../implementationPlans/dashboard-chart-parity.md) (not
-shipped until that IP is built).
+The example app admin home (`example-frontend/components/AdminCharts.tsx`, mounted
+below the admin dashboard at `/admin`) shows the same pieces together: scorecards with comparison
+sparklines, a multi-series line, a donut with a center label, a bar chart, and an
+area chart inside a spanning `DashboardGrid`.
