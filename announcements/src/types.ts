@@ -21,6 +21,7 @@ export interface AnnouncementRelease {
 
 export interface AnnouncementDocument {
   _id: Types.ObjectId;
+  deleted: boolean;
   title: string;
   body: string;
   status: AnnouncementStatus;

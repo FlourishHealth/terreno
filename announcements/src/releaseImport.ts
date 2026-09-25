@@ -185,6 +185,7 @@ const snapshotImportedValues = (announcement: AnnouncementDocument): string =>
     audience: announcement.audience,
     audienceType: announcement.audienceType,
     body: announcement.body,
+    deleted: announcement.deleted,
     displayMode: announcement.displayMode,
     expiresAt: announcement.expiresAt,
     minBuildNumber: announcement.minBuildNumber,
@@ -219,6 +220,7 @@ export const importAnnouncementRelease = async ({
 
   for (const item of input.announcements) {
     const existing = await findOneOrNoneFor(Announcement, {
+      deleted: {$in: [true, false]},
       "release.channel": input.release.channel,
       "release.product": input.release.product,
       "release.version": input.release.version,
@@ -239,6 +241,7 @@ export const importAnnouncementRelease = async ({
     const wasCreated = announcement.isNew;
     const previousValues = snapshotImportedValues(announcement);
 
+    announcement.deleted = false;
     applyImportedValues({
       announcement,
       defaults: input.defaults,

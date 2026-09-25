@@ -185,6 +185,33 @@ describe("AnnouncementsApp", () => {
     assert.equal(announcement.release?.channel, "production");
   });
 
+  it("restores a soft-deleted announcement when its release pack is re-imported", async () => {
+    const uploadApp = buildApp({uploadToken: "release-upload-secret"});
+    const pack = {
+      announcements: [{body: "Updated details", slug: "changelog", title: "Version 1.14.0"}],
+      release: {product: "example", version: "1.14.0"},
+    };
+    await supertest(uploadApp)
+      .post("/announcements/import-release")
+      .set("Authorization", "Bearer release-upload-secret")
+      .send(pack)
+      .expect(200);
+    const original = await Announcement.findExactlyOne({releaseSlug: "changelog"});
+    original.deleted = true;
+    await original.save();
+
+    const response = await supertest(uploadApp)
+      .post("/announcements/import-release")
+      .set("Authorization", "Bearer release-upload-secret")
+      .send(pack)
+      .expect(200);
+
+    assert.equal(response.body.data.updated, 1);
+    const restored = await Announcement.findExactlyOne({releaseSlug: "changelog"});
+    assert.equal(restored.deleted, false);
+    assert.equal(await Announcement.countDocuments({}), 1);
+  });
+
   it("rejects release imports with an invalid upload token", async () => {
     const uploadApp = buildApp({uploadToken: "release-upload-secret"});
     await supertest(uploadApp)
