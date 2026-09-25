@@ -24,7 +24,7 @@ IP: [dashboard-chart-parity.md](../implementationPlans/dashboard-chart-parity.md
   - Docs: stub both on `docs/reference/ui.md`
   - Acceptance: bun tests — value + title render; sparkline mounts when `sparklineData` set; badge press fires; period badge has no press handler when `onPeriodPress` omitted
 
-- [ ] **Task 1.3**: Scorecard demo + first golden
+- [x] **Task 1.3**: Scorecard demo + first golden
   - Delivers: demo story; gallery fixture `scorecard-sparkline-comparison` (five KPI tiles, static data); PNG golden
   - Files: `demo/stories/Scorecard.stories.tsx`, `demo/stories/ChartCard.stories.tsx`, `demo/demoConfig.tsx`, `demo/chartVisual/fixtureCatalog.ts`, `demo/chartVisual/fixtures.tsx`, `demo/rendered-snapshots/scorecard-sparkline-comparison.png`
   - Blocked by: 1.2
