@@ -184,8 +184,10 @@ Backend previews prune not-Ready tagged revisions from traffic
 preview always describes the Infra Manager preview (state, `errorCode`,
 `errorLogs`) before delete, including when `previews create` fails. Fork PRs
 still present `repository: TerrenoLabs/terreno` on the OIDC token, so WIF
-would accept them if those jobs ran. Preview jobs halt on fork PRs, where
-CircleCI withholds contexts.
+would accept them if those jobs ran. Preview jobs halt on fork PRs, where CircleCI withholds contexts.
+GitHub App builds do not set `CIRCLE_PR_USERNAME` / `CIRCLE_PR_REPONAME`;
+`skip_if_fork_deploy` asks the pulls API and halts before
+`require_*_context` would fail on those withheld secrets.
 
 ### GitHub Deployment records
 
@@ -375,7 +377,9 @@ optional variable `CIRCLECI_PROJECT_SLUG` if re-linking the project changes
 its slug. Path-filtered
 preview **deploys** run on open PRs from this repository; fork PRs are skipped.
 If `CIRCLE_PULL_REQUEST` is unset (GitHub App `push` pipelines), the job looks
-up the open PR for `CIRCLE_BRANCH` via the GitHub API.
+up the open PR for `CIRCLE_BRANCH` via the GitHub API on `TerrenoLabs/terreno`
+(`GITHUB_REPOSITORY` when set). It does not use `CIRCLE_PROJECT_USERNAME`,
+which can still be the pre-transfer `FlourishHealth` project link.
 
 `mcp-server-docker` is push-only, matching GitHub Actions. It uses
 `resolve-preview-pr.sh` for that lookup and skips when a PR exists. Its

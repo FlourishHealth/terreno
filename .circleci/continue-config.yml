@@ -503,6 +503,37 @@ commands:
               echo "Fork PR detected; skipping deploy (contexts are not passed to forks)"
               circleci step halt
             fi
+            # GitHub App pipelines leave CIRCLE_PR_* unset. Classify the PR
+            # before require_*_context fails on secrets CircleCI withholds from forks.
+            # Keep this classifier in sync with scripts/ci/pull-request-fork.sh.
+            pr=""
+            if [[ "${CIRCLE_PULL_REQUEST:-}" =~ /pull/([0-9]+) ]]; then
+              pr="${BASH_REMATCH[1]}"
+            elif [[ "${CIRCLE_PR_NUMBER:-}" =~ ^[0-9]+$ ]]; then
+              pr="${CIRCLE_PR_NUMBER}"
+            fi
+            if [ -z "$pr" ]; then
+              exit 0
+            fi
+            repository="${GITHUB_REPOSITORY:-TerrenoLabs/terreno}"
+            body="$(curl -fsS --max-time 10 -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${repository}/pulls/${pr}" || true)"
+            kind="$(node -e '
+            const fs = require("fs");
+            const raw = fs.readFileSync(0, "utf8").trim();
+            const write = (value) => process.stdout.write(value);
+            if (!raw) { write("unknown"); process.exit(0); }
+            let data;
+            try { data = JSON.parse(raw); } catch { write("unknown"); process.exit(0); }
+            const head = data && data.head && data.head.repo && data.head.repo.full_name;
+            const base = data && data.base && data.base.repo && data.base.repo.full_name;
+            if (!head || !base) { write("unknown"); process.exit(0); }
+            write(head === base ? "same" : "fork");
+            ' <<<"$body")"
+            if [ "$kind" = "fork" ]; then
+              echo "Fork PR detected via GitHub API; skipping deploy"
+              circleci step halt
+            fi
 
   require_netlify_context:
     description: Fail before checkout/install when terreno-netlify is missing the token or site id
