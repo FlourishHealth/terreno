@@ -2660,6 +2660,17 @@ export interface LineChartProps extends WithTestID {
   loading?: boolean;
 }
 
+export interface SparklineChartProps extends WithTestID {
+  /** Summary announced for the whole sparkline. */
+  accessibilityLabel?: string;
+  /** Optional previous-period values drawn as a dotted line. */
+  comparisonData?: Array<{label: string; value: number}>;
+  /** Current labeled numeric values. */
+  data: Array<{label: string; value: number}>;
+  /** Whole sparkline height in pixels. */
+  height?: number;
+}
+
 export interface AreaChartProps extends LineChartProps {}
 export interface BarChartProps extends LineChartProps {}
 

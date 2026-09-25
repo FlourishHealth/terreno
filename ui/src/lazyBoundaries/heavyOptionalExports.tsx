@@ -15,6 +15,7 @@ import type {GPTMemoryModal as GPTMemoryModalComponent} from "../GPTMemoryModal"
 import type {LineChart as LineChartComponent} from "../LineChart";
 import type {MarkdownEditor as MarkdownEditorComponent} from "../MarkdownEditor";
 import type {MarkdownEditorField as MarkdownEditorFieldComponent} from "../MarkdownEditorField";
+import type {SparklineChart as SparklineChartComponent} from "../SparklineChart";
 import type {UpgradeRequiredScreen as UpgradeRequiredScreenComponent} from "../UpgradeRequiredScreen";
 import {createLazyComponentExport, createLazyNamedExport} from "./createLazyComponentExport";
 
@@ -35,6 +36,7 @@ export const heavyOptionalModuleFactories = {
   LineChart: () => import("../LineChart"),
   MarkdownEditor: () => import("../MarkdownEditor"),
   MarkdownEditorField: () => import("../MarkdownEditorField"),
+  SparklineChart: () => import("../SparklineChart"),
   UpgradeRequiredScreen: () => import("../UpgradeRequiredScreen"),
 } as const;
 
@@ -127,6 +129,11 @@ export const MarkdownEditorField = createLazyNamedExport(
   heavyOptionalModuleFactories.MarkdownEditorField,
   "MarkdownEditorField"
 ) as unknown as typeof MarkdownEditorFieldComponent;
+
+export const SparklineChart = createLazyNamedExport(
+  heavyOptionalModuleFactories.SparklineChart,
+  "SparklineChart"
+) as unknown as typeof SparklineChartComponent;
 
 export const UpgradeRequiredScreen = createLazyNamedExport(
   heavyOptionalModuleFactories.UpgradeRequiredScreen,

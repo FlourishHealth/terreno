@@ -6,7 +6,7 @@ React Native UI component library (a large component library). Layout (Box, Page
 
 - Layout: `Box`, `Page`, `SplitPage`, `Card`, `DashboardGrid`
 - Forms: `TextField`, `SelectField`, `DateTimeField`, `CheckBox`
-- Display: `Text`, `Heading`, `Badge`, `DataTable`, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`
+- Display: `Text`, `Heading`, `Badge`, `DataTable`, `SparklineChart`, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`
 - Actions: `Button`, `IconButton`, `Link`
 - Feedback: `Spinner`, `Modal`, `Toast`
 - Notifications: `NotificationBell`, `NotificationInbox`, `NotificationPreferences`
@@ -32,11 +32,11 @@ supported and is convenient when startup cost is not material:
 import {Box, DataTable, Icon} from "@terreno/ui";
 ```
 
-Heavy optional widgets (`GPTChat`, `EmojiSelector`, `MarkdownEditor`, consent flows, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`, and related admin tools) are
+Heavy optional widgets (`GPTChat`, `EmojiSelector`, `MarkdownEditor`, consent flows, `SparklineChart`, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`, and related admin tools) are
 re-exported from the root entry through lazy boundaries. Importing them from `@terreno/ui` stays type-compatible, but
 their implementation modules load on first render instead of during the initial root import. `DashboardGrid` stays eager.
-their implementation modules load on first render instead of during the initial root import. `MarkdownView` and
-`DataTable` header info defer `react-native-markdown-display`; `EmojiSelector` defers `emoji-datasource` until open.
+`MarkdownView` and `DataTable` header info defer `react-native-markdown-display`;
+`EmojiSelector` defers `emoji-datasource` until open.
 
 For the smallest cold-start graph, keep using subpaths for screens that only need a few primitives (for example
 `import {Button} from "@terreno/ui/Button"`).
@@ -70,6 +70,19 @@ Eager layout-only wrapping grid. Default columns `{sm: 1, md: 2, lg: 3}`. Childr
     <LineChart data={points} legendLabel="Signups" />
   </Card>
 </DashboardGrid>
+```
+
+### SparklineChart
+
+Plot-only line chart for compact metrics. `data` draws the current solid line;
+`comparisonData` draws a dotted previous-period line on the same scale. It has no axes,
+grid, legend, tooltip row, or empty-state copy.
+
+```tsx
+<SparklineChart
+  data={[{label: "Mon", value: 3}, {label: "Tue", value: 5}]}
+  comparisonData={[{label: "Mon", value: 4}, {label: "Tue", value: 4}]}
+/>
 ```
 
 ### LineChart

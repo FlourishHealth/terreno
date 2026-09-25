@@ -1,6 +1,6 @@
 # Implementation Plan: Dashboard chart parity
 
-**Status:** Proposed — awaiting approval  
+**Status:** Approved — 2026-09-25  
 **Branch:** `cursor/dashboard-chart-parity-8a50`  
 **Owner:** —  
 **Created:** 2026-09-24  

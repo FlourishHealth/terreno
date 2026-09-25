@@ -83,6 +83,7 @@ export {
   LineChart,
   MarkdownEditor,
   MarkdownEditorField,
+  SparklineChart,
   UpgradeRequiredScreen,
 } from "./lazyBoundaries/heavyOptionalExports";
 export * from "./login/LoginScreen";
@@ -123,6 +124,7 @@ export * from "./SignatureCaptureField";
 export * from "./SignatureField";
 export * from "./Slider";
 export * from "./SocialLoginButton";
+export type * from "./SparklineChart";
 export * from "./Spinner";
 export * from "./SplitPage";
 export * from "./SyncStatusBanner";
