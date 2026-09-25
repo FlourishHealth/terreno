@@ -60,7 +60,7 @@ IP: [dashboard-chart-parity.md](../implementationPlans/dashboard-chart-parity.md
 
 ## Phase 3 — Donut center and share legend
 
-- [ ] **Task 3.1**: Donut hole + percent legend
+- [x] **Task 3.1**: Donut hole + percent legend
   - Delivers: `centerTitle`, `centerValue`; legend `swatch + label + formatShare` (default percent of total); 100% single-slice still draws a ring + center
   - Files: `ui/src/DonutChart.tsx`, `ui/src/DonutChart.test.tsx`
   - Blocked by: 1.2
