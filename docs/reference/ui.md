@@ -4,7 +4,7 @@ React Native UI component library (a large component library). Layout (Box, Page
 
 ## Key exports
 
-- Layout: `Box`, `Page`, `SplitPage`, `Card`, `ChartCard`, `DashboardGrid`
+- Layout: `Box`, `Page`, `SplitPage`, `Card`, `ChartCard`, `DashboardGrid`, `DashboardGridItem`
 - Forms: `TextField`, `SelectField`, `DateTimeField`, `CheckBox`
 - Display: `Text`, `Heading`, `Badge`, `DataTable`, `Scorecard`, `SparklineChart`, `LineChart`, `BarChart`, `AreaChart`, `DonutChart`
 - Actions: `Button`, `IconButton`, `Link`

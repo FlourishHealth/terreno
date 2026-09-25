@@ -81,6 +81,47 @@ describe("getDashboardCellBoxStyle", () => {
     );
   });
 
+  it("clamps measured spans to the available columns", () => {
+    const fullSpan = getDashboardSpanCellBoxStyle({
+      columnCount: 4,
+      gapPx: 16,
+      rowWidth: 332,
+      span: 8,
+    });
+    assert.equal(fullSpan.width, 328);
+
+    const minimumSpan = getDashboardSpanCellBoxStyle({
+      columnCount: 4,
+      gapPx: 16,
+      rowWidth: 332,
+      span: 0,
+    });
+    assert.equal(minimumSpan.width, 70);
+  });
+
+  it("uses responsive web calc widths before measurement", () => {
+    Platform.OS = "web";
+
+    assert.equal(
+      getDashboardSpanCellBoxStyle({
+        columnCount: 4,
+        gapPx: 16,
+        rowWidth: 0,
+        span: 2,
+      }).width,
+      "calc(((100% - 48px) / 4) * 2 + 16px)"
+    );
+    assert.equal(
+      getDashboardSpanCellBoxStyle({
+        columnCount: 4,
+        gapPx: 16,
+        rowWidth: 0,
+        span: 4,
+      }).width,
+      "100%"
+    );
+  });
+
   it("falls back to a full-width cell on native, which has no calc", () => {
     Platform.OS = "ios";
 

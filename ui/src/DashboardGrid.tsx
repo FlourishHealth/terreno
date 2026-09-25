@@ -10,6 +10,10 @@ import {resolveTestID} from "./testing/resolveTestId";
 
 const DEFAULT_COLUMNS = {lg: 3, md: 2, sm: 1};
 
+type MarkedDashboardGridItem = FC<DashboardGridItemProps> & {
+  isDashboardGridItem?: boolean;
+};
+
 const resolveColumnCount = ({
   breakpoint,
   columns,
@@ -45,12 +49,23 @@ const resolveItemSpan = ({
   return span.sm ?? 1;
 };
 
-export const DashboardGridItem: FC<DashboardGridItemProps> = ({children, testID}) => {
+export const DashboardGridItem: MarkedDashboardGridItem = ({children, testID}) => {
   return (
     <Box minWidth={0} testID={testID} width="100%">
       {children}
     </Box>
   );
+};
+DashboardGridItem.isDashboardGridItem = true;
+
+const isDashboardGridItemType = (type: unknown): boolean => {
+  if (typeof type === "function") {
+    return (type as MarkedDashboardGridItem).isDashboardGridItem === true;
+  }
+  if (type && typeof type === "object" && "type" in type) {
+    return isDashboardGridItemType(type.type);
+  }
+  return false;
 };
 
 export const DashboardGrid: FC<DashboardGridProps> = ({
@@ -76,7 +91,7 @@ export const DashboardGrid: FC<DashboardGridProps> = ({
     <Box direction="row" gap={gap} onLayout={handleLayout} testID={testID} width="100%" wrap>
       {renderedChildren.map((child: ReactNode, index: number) => {
         const itemSpan =
-          isValidElement<DashboardGridItemProps>(child) && child.type === DashboardGridItem
+          isValidElement<DashboardGridItemProps>(child) && isDashboardGridItemType(child.type)
             ? child.props.span
             : undefined;
         const span = resolveItemSpan({breakpoint, span: itemSpan});
