@@ -37,6 +37,11 @@ export const CHART_VISUAL_FIXTURES = [
     title: "Scorecards with comparison sparklines",
   },
   {difficulty: "hard", id: "line-three-series", title: "Three-series time line"},
+  {
+    difficulty: "hard",
+    id: "hows-it-going-dashboard",
+    title: "How's it going ops dashboard",
+  },
   {difficulty: "hard", id: "dashboard-mixed-cards", title: "Dashboard grid of mixed charts"},
   {
     difficulty: "hard",

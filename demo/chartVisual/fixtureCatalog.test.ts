@@ -64,4 +64,14 @@ describe("chart visual fixture catalog", () => {
       assert.isTrue(existsSync(join(import.meta.dir, `../rendered-snapshots/${id}.png`)));
     }
   });
+
+  it("registers the How's it going dashboard fixture and golden", () => {
+    const fixture = CHART_VISUAL_FIXTURES.find((entry) => entry.id === "hows-it-going-dashboard");
+
+    assert.exists(fixture);
+    assert.equal(fixture.difficulty, "hard");
+    assert.isTrue(
+      existsSync(join(import.meta.dir, "../rendered-snapshots/hows-it-going-dashboard.png"))
+    );
+  });
 });

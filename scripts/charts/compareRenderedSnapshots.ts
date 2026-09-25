@@ -2,7 +2,7 @@
 import {spawn} from "node:child_process";
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from "node:fs";
 import {join, resolve} from "node:path";
-import {chromium, type Page} from "@playwright/test";
+import {chromium, type Locator, type Page} from "@playwright/test";
 import {DateTime} from "luxon";
 
 import {
@@ -117,6 +117,20 @@ const startDemoIfNeeded = async (baseUrl: string): Promise<StartedDemo | undefin
   }
 };
 
+const waitForFixtureChartsReady = async (locator: Locator): Promise<void> => {
+  await locator.scrollIntoViewIfNeeded();
+  await Promise.race([
+    locator.locator("svg").first().waitFor({state: "visible", timeout: 30_000}),
+    locator.getByText("No signups yet").waitFor({state: "visible", timeout: 30_000}),
+  ]);
+  const svgLocator = locator.locator("svg");
+  const svgCount = await svgLocator.count();
+  for (let index = 0; index < svgCount; index += 1) {
+    await svgLocator.nth(index).waitFor({state: "visible", timeout: 30_000});
+  }
+  await Bun.sleep(300);
+};
+
 const hideFixedAndStickyElements = async (page: Page): Promise<void> => {
   await page.evaluate(() => {
     const nodes = document.querySelectorAll("body *");
@@ -176,11 +190,7 @@ export const compareChartRenderedSnapshots = async ({
 
     for (const fixture of selectedFixtures(only)) {
       const locator = page.getByTestId(chartVisualFixtureTestId(fixture.id));
-      await locator.scrollIntoViewIfNeeded();
-      await Promise.race([
-        locator.locator("svg").first().waitFor({state: "visible", timeout: 30_000}),
-        locator.getByText("No signups yet").waitFor({state: "visible", timeout: 30_000}),
-      ]);
+      await waitForFixtureChartsReady(locator);
       // Expo dev overlays can mount after lazy chart modules resolve, so suppress fixed UI again.
       await hideFixedAndStickyElements(page);
       const actual = await locator.screenshot({animations: "disabled", type: "png"});

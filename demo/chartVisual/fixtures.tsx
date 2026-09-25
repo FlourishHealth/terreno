@@ -3,7 +3,9 @@ import {
   BarChart,
   Box,
   Card,
+  ChartCard,
   DashboardGrid,
+  DashboardGridItem,
   DonutChart,
   Heading,
   LineChart,
@@ -152,6 +154,22 @@ const FixtureFrame: FC<{fixture: ChartVisualFixtureMeta; children: ReactElement}
       </Box>
       {children}
     </Box>
+  );
+};
+
+const DashboardTablePlaceholder: FC<{
+  height: number;
+  periodLabel: string;
+  title: string;
+}> = ({height, periodLabel, title}) => {
+  return (
+    <ChartCard periodLabel={periodLabel} title={title}>
+      <Box alignItems="center" height={height} justifyContent="center">
+        <Text color="secondaryDark" size="sm">
+          DataTable lands in Task 5.2
+        </Text>
+      </Box>
+    </ChartCard>
   );
 };
 
@@ -349,6 +367,123 @@ const renderFixture = (fixture: (typeof CHART_VISUAL_FIXTURES)[number]): ReactEl
             testID={fixture.id}
             title="Imp. share over time"
           />
+        </FixtureFrame>
+      );
+    case "hows-it-going-dashboard":
+      return (
+        <FixtureFrame fixture={fixture}>
+          <DashboardGrid columns={{lg: 6, md: 2, sm: 1}} gap={3} testID="hows-it-going-dashboard">
+            <DashboardGridItem span={{lg: 6, md: 2, sm: 1}} testID="hows-it-going-dashboard.kpis">
+              <DashboardGrid columns={{lg: 5, md: 2, sm: 1}} gap={2}>
+                <Scorecard
+                  comparisonData={PREVIOUS_POINTS}
+                  formatValue={formatUsd}
+                  sparklineData={SIGNUP_POINTS}
+                  title="Cost"
+                  value={569}
+                />
+                <Scorecard
+                  comparisonData={PREVIOUS_POINTS}
+                  formatValue={formatFixed}
+                  sparklineData={SIGNUP_POINTS}
+                  title="Conversions"
+                  value={7}
+                />
+                <Scorecard
+                  comparisonData={PREVIOUS_POINTS}
+                  formatValue={formatUsd}
+                  sparklineData={SIGNUP_POINTS}
+                  title="Cost / conv."
+                  value={81.32}
+                />
+                <Scorecard
+                  comparisonData={PREVIOUS_POINTS}
+                  formatValue={formatPercent}
+                  sparklineData={SIGNUP_POINTS}
+                  title="Conv. rate"
+                  value={4.35}
+                />
+                <Scorecard
+                  comparisonData={PREVIOUS_POINTS}
+                  formatValue={formatPercent}
+                  sparklineData={SIGNUP_POINTS}
+                  title="Search lost IS (rank)"
+                  value={57.75}
+                />
+              </DashboardGrid>
+            </DashboardGridItem>
+            <DashboardGridItem
+              span={{lg: 3, md: 2, sm: 1}}
+              testID="hows-it-going-dashboard.table-placeholder"
+            >
+              <DashboardTablePlaceholder
+                height={590}
+                periodLabel="Last 14 days"
+                title="Top search terms by cost"
+              />
+            </DashboardGridItem>
+            <DashboardGridItem
+              span={{lg: 3, md: 2, sm: 1}}
+              testID="hows-it-going-dashboard.time-charts"
+            >
+              <Box gap={3}>
+                <BarChart
+                  data={DATE_POINTS}
+                  formatValue={formatUsd}
+                  height={300}
+                  legendLabel="Cost / conv."
+                  periodLabel="Last 14 days"
+                  title="Cost / conv. over time"
+                />
+                <LineChart
+                  data={[]}
+                  formatValue={(value): string => value.toFixed(1)}
+                  height={320}
+                  periodLabel="Jun 25, 2026 – Sep 23, 2026"
+                  series={SHARE_SERIES}
+                  title="Imp. share over time"
+                />
+              </Box>
+            </DashboardGridItem>
+            <DashboardGridItem
+              span={{lg: 3, md: 2, sm: 1}}
+              testID="hows-it-going-dashboard.bottom-table-placeholder"
+            >
+              <DashboardTablePlaceholder
+                height={250}
+                periodLabel="Last 14 days"
+                title="Ad Group Check-in"
+              />
+            </DashboardGridItem>
+            <DashboardGridItem span={{lg: 1, md: 1, sm: 1}}>
+              <BarChart
+                data={DAY_OF_WEEK_POINTS}
+                height={280}
+                periodLabel="Jun 25 – Sep 23"
+                title="Conv. by day"
+              />
+            </DashboardGridItem>
+            <DashboardGridItem span={{lg: 1, md: 1, sm: 1}}>
+              <DonutChart
+                centerTitle="Cost"
+                centerValue="$1.15K"
+                data={DEVICE_COST_POINTS}
+                height={280}
+                periodLabel="Last 30 days"
+                title="Cost by Device"
+              />
+            </DashboardGridItem>
+            <DashboardGridItem span={{lg: 1, md: 1, sm: 1}}>
+              <DonutChart
+                centerTitle="Conversions"
+                centerValue="7.00"
+                data={DEVICE_CONVERSION_POINTS}
+                height={280}
+                periodLabel="Last 14 days"
+                title="Conversions by Device"
+              />
+            </DashboardGridItem>
+          </DashboardGrid>
         </FixtureFrame>
       );
     case "dashboard-mixed-cards":

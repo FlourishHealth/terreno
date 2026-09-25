@@ -96,4 +96,17 @@ describe("chart visual fixtures", () => {
       "Conversions"
     );
   });
+
+  it("composes the How's it going dashboard from spanning grid regions", async (): Promise<void> => {
+    const dashboard = renderWithTheme(<Host id="hows-it-going-dashboard" />);
+
+    assert.exists(await dashboard.findByTestId("hows-it-going-dashboard.kpis"));
+    assert.exists(await dashboard.findByTestId("hows-it-going-dashboard.table-placeholder"));
+    assert.exists(await dashboard.findByTestId("hows-it-going-dashboard.time-charts"));
+    assert.exists(await dashboard.findByTestId("hows-it-going-dashboard.bottom-table-placeholder"));
+    assert.lengthOf(await dashboard.findAllByText("DataTable lands in Task 5.2"), 2);
+    assert.exists(await dashboard.findByText("Cost / conv. over time"));
+    assert.exists(await dashboard.findByText("Imp. share over time"));
+    assert.exists(await dashboard.findByText("Conversions by Device"));
+  });
 });

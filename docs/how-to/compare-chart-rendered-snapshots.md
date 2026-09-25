@@ -38,5 +38,7 @@ and dotted previous-period sparklines.
 Cartesian parity fixtures are `bar-time-rotated-ticks`, `bar-day-of-week`, and
 `line-three-series`.
 Donut parity fixtures are `donut-center-and-share` and `donut-single-slice`.
+Hard fixture `hows-it-going-dashboard` composes KPI scorecards, time-series charts, donuts,
+and table placeholders in a spanning `DashboardGrid`.
 
 `CHART_VISUAL_BASE_URL` overrides the demo origin when the gallery is already hosted.
