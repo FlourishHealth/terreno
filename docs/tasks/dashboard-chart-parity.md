@@ -8,7 +8,7 @@ IP: [dashboard-chart-parity.md](../implementationPlans/dashboard-chart-parity.md
 
 ## Phase 1 — Tracer (scorecard)
 
-- [ ] **Task 1.1**: `SparklineChart` + dotted `comparisonData`
+- [x] **Task 1.1**: `SparklineChart` + dotted `comparisonData`
   - Delivers: public plot-only sparkline; solid current series; dotted comparison aligned on `label`; no axes/grid/legend/tooltip row; empty input does not throw
   - Files: `ui/src/SparklineChart.tsx`, `ui/src/SparklineChart.test.tsx`, `ui/src/charts/paths.ts` (reuse line path), `ui/src/Common.ts` (TypeDoc props), `ui/src/index.tsx` / `heavyOptionalExports.tsx`
   - Blocked by: none
