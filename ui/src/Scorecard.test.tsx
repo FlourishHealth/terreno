@@ -1,5 +1,6 @@
 import {describe, it} from "bun:test";
 import {assert} from "chai";
+import {Scorecard as RootScorecard} from "./index";
 import {Scorecard} from "./Scorecard";
 import {renderWithTheme} from "./test-utils";
 
@@ -36,10 +37,29 @@ describe("Scorecard", () => {
 
   it("renders a string metric without requiring sparkline data", () => {
     const {getByText, queryByTestId} = renderWithTheme(
-      <Scorecard testID="status-scorecard" title="Status" value="Healthy" />
+      <Scorecard sparklineData={[]} testID="status-scorecard" title="Status" value="Healthy" />
     );
 
     assert.exists(getByText("Healthy"));
     assert.notExists(queryByTestId("status-scorecard.sparkline"));
+  });
+
+  it("uses default numeric formatting and omits comparison when it is not provided", () => {
+    const {getByText, getByTestId, queryByTestId} = renderWithTheme(
+      <Scorecard
+        sparklineData={CURRENT}
+        testID="conversion-scorecard"
+        title="Conversions"
+        value={7}
+      />
+    );
+
+    assert.exists(getByText("7"));
+    assert.exists(getByTestId("conversion-scorecard.sparkline.current"));
+    assert.notExists(queryByTestId("conversion-scorecard.sparkline.comparison"));
+  });
+
+  it("is available from the package root lazy boundary", () => {
+    assert.isFunction(RootScorecard);
   });
 });

@@ -52,9 +52,11 @@ export const ChartCard: FC<ChartCardProps> = ({
   return (
     <Card gap={3} padding={4} testID={testID}>
       <Box alignItems="start" direction="row" gap={2} justifyContent="between" width="100%">
-        <Heading size="sm" testID={resolveTestID(testID, "title")}>
-          {title}
-        </Heading>
+        <Box flex="grow" minWidth={0}>
+          <Heading size="sm" testID={resolveTestID(testID, "title")}>
+            {title}
+          </Heading>
+        </Box>
         {periodLabel ? (
           <PeriodBadge
             label={periodLabel}

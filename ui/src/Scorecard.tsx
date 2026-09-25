@@ -30,7 +30,7 @@ export const Scorecard: FC<ScorecardProps> = ({
         <Heading size="xl" testID={resolveTestID(testID, "value")}>
           {displayValue}
         </Heading>
-        {sparklineData ? (
+        {sparklineData && sparklineData.length > 0 ? (
           <SparklineChart
             comparisonData={comparisonData}
             data={sparklineData}
