@@ -2661,8 +2661,16 @@ export interface LineChartProps extends WithTestID {
   legendLabel?: string;
   /** When true, shows a spinner instead of the plot. */
   loading?: boolean;
+  /** Makes `periodLabel` pressable when provided. */
+  onPeriodPress?: () => void;
+  /** Relative or absolute reporting period shown with `title`. */
+  periodLabel?: string;
   /** Named series. When non-empty, these replace the single `data` series. */
   series?: ChartSeries[];
+  /** Optional chart-card title shortcut. */
+  title?: string;
+  /** X-label collision policy. `auto` rotates when more than seven labels are present. */
+  xTickPolicy?: "auto" | "rotate" | "truncate";
 }
 
 export interface SparklineChartProps extends WithTestID {

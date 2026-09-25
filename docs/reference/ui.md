@@ -117,6 +117,8 @@ Line chart drawn with `react-native-svg`. Keep the simple `data` + `legendLabel`
 one series, or pass named `series` for multiple lines and legend items.
 `comparisonData` adds a dotted previous-period overlay on the shared scale. Empty data
 shows `emptyText` (default `"No data"`). `loading` shows a `Spinner`.
+Set `xTickPolicy` to `auto` (default), `rotate`, or `truncate`. `title`,
+`periodLabel`, and `onPeriodPress` use the same header chrome as `ChartCard`.
 
 ```tsx
 <LineChart
@@ -130,7 +132,10 @@ Hit targets use `Box` `onClick`, so testIDs are `{testID}.point.{index}-clickabl
 
 ### BarChart
 
-Single-series bar chart on the same owned-SVG contract as `LineChart` (empty, loading, legend, tooltip).
+Bar chart on the same owned-SVG contract as `LineChart` (empty, loading, legend,
+tooltip, tick policy, and header shortcuts). `comparisonData` paints lighter bars behind
+the current period. When `series` is passed in this facade, its first entry supplies the
+bars and legend; grouped bars remain future work.
 
 ```tsx
 <BarChart

@@ -20,6 +20,11 @@ Height works the same way: `height` is the whole chart, and the tick row, toolti
 row come out of that budget. A chart therefore fits a fixed-height slot, and reserving the tooltip
 row even when no tooltip is showing keeps hovering from reflowing the page.
 
+Cartesian facades use `xTickPolicy="auto"` by default: up to seven categorical labels
+stay horizontal, while denser sets rotate 45 degrees and reserve a taller axis row.
+Callers may force `"truncate"` or `"rotate"`. `title` and `periodLabel` are convenience
+props backed by the same `ChartCard` used for explicit chart/table composition.
+
 `DashboardGrid` is layout only, so it stays on the eager root export. Chart implementations sit behind the same lazy root boundary as `GPTChat`. Cell width subtracts flex `gap` so `md`/`lg` column counts actually fit.
 
 Chart paint is proven with **rendered PNG goldens**, not React test-renderer JSON.

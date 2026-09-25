@@ -4,14 +4,17 @@ import {Circle, Path, Svg, Line as SvgLine} from "react-native-svg";
 
 import {Box} from "./Box";
 import type {LayoutChangeEvent, LineChartProps} from "./Common";
+import {ChartFacadeContainer} from "./charts/ChartFacadeContainer";
 import {ChartFrame} from "./charts/ChartFrame";
 import {
+  CHART_ROTATED_X_AXIS_HEIGHT,
   CHART_X_AXIS_HEIGHT,
   getChartAxisWidth,
   getChartPlot,
   getPlotHeight,
   getXTickStyle,
   getYTickStyle,
+  shouldRotateChartXTicks,
 } from "./charts/layout";
 import {getLinePath} from "./charts/paths";
 import {createCartesianScales, getYTickValues} from "./charts/scales";
@@ -53,8 +56,12 @@ export const LineChart: FC<LineChartProps> = ({
   height = DEFAULT_HEIGHT,
   legendLabel,
   loading = false,
+  onPeriodPress,
+  periodLabel,
   series,
   testID,
+  title,
+  xTickPolicy = "auto",
 }) => {
   const {theme} = useTheme();
   const paint = getChartPaint(theme);
@@ -84,9 +91,15 @@ export const LineChart: FC<LineChartProps> = ({
     series && series.length > 0
       ? coloredSeries.map((entry) => ({color: entry.color, label: entry.label}))
       : undefined;
+  const isXTickRotated = shouldRotateChartXTicks({
+    labelCount: axisPoints.length,
+    policy: xTickPolicy,
+  });
+  const xAxisHeight = isXTickRotated ? CHART_ROTATED_X_AXIS_HEIGHT : CHART_X_AXIS_HEIGHT;
   const plotHeight = getPlotHeight({
     hasLegend: Boolean(legendLabel) || Boolean(legendItems?.length),
     height,
+    xAxisHeight,
   });
   const plot = getChartPlot({chartWidth, height: plotHeight});
   const plotWidth = chartWidth - axisWidth;
@@ -109,7 +122,7 @@ export const LineChart: FC<LineChartProps> = ({
   const summaryLabel =
     accessibilityLabel ?? (legendLabel ? `${legendLabel} line chart` : "Line chart");
 
-  return (
+  const chart = (
     <ChartFrame
       accessibilityLabel={summaryLabel}
       emptyText={emptyText}
@@ -226,25 +239,26 @@ export const LineChart: FC<LineChartProps> = ({
         </Box>
         <Box direction="row">
           <Box width={axisWidth} />
-          <Box
-            flex="grow"
-            height={CHART_X_AXIS_HEIGHT}
-            minWidth={0}
-            overflow="hidden"
-            position="relative"
-          >
+          <Box flex="grow" height={xAxisHeight} minWidth={0} overflow="hidden" position="relative">
             {axisPoints.map((point, index) => (
               <Box
                 dangerouslySetInlineStyle={{
                   __style: getXTickStyle({
                     bandwidth: scales.bandwidth,
+                    isRotated: isXTickRotated,
                     xCenter: scales.xCenter(point.label),
                   }),
                 }}
                 key={`xtick-${point.label}`}
                 testID={resolveTestID(testID, `xtick.${index}`)}
               >
-                <Text align="center" color="secondaryDark" size="sm" skipLinking truncate>
+                <Text
+                  align="center"
+                  color="secondaryDark"
+                  size="sm"
+                  skipLinking
+                  truncate={!isXTickRotated}
+                >
                   {point.label}
                 </Text>
               </Box>
@@ -253,6 +267,17 @@ export const LineChart: FC<LineChartProps> = ({
         </Box>
       </Box>
     </ChartFrame>
+  );
+
+  return (
+    <ChartFacadeContainer
+      onPeriodPress={onPeriodPress}
+      periodLabel={periodLabel}
+      testID={testID}
+      title={title}
+    >
+      {chart}
+    </ChartFacadeContainer>
   );
 };
 
