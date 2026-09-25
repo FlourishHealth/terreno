@@ -46,8 +46,8 @@ export const ScorecardConfiguration: DemoConfiguration = {
         defaultValue: "Cost",
       },
       value: {
-        type: "text",
-        defaultValue: "569",
+        type: "number",
+        defaultValue: 569,
       },
     },
   },

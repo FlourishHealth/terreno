@@ -187,6 +187,7 @@ const renderFixture = (fixture: (typeof CHART_VISUAL_FIXTURES)[number]): ReactEl
               comparisonData={PREVIOUS_POINTS}
               formatValue={formatUsd}
               sparklineData={SIGNUP_POINTS}
+              testID="scorecard-fixture.0"
               title="Cost"
               value={569}
             />
@@ -194,6 +195,7 @@ const renderFixture = (fixture: (typeof CHART_VISUAL_FIXTURES)[number]): ReactEl
               comparisonData={PREVIOUS_POINTS}
               formatValue={formatFixed}
               sparklineData={SIGNUP_POINTS}
+              testID="scorecard-fixture.1"
               title="Conversions"
               value={7}
             />
@@ -201,6 +203,7 @@ const renderFixture = (fixture: (typeof CHART_VISUAL_FIXTURES)[number]): ReactEl
               comparisonData={PREVIOUS_POINTS}
               formatValue={formatUsd}
               sparklineData={SIGNUP_POINTS}
+              testID="scorecard-fixture.2"
               title="Cost / conv."
               value={81.32}
             />
@@ -208,6 +211,7 @@ const renderFixture = (fixture: (typeof CHART_VISUAL_FIXTURES)[number]): ReactEl
               comparisonData={PREVIOUS_POINTS}
               formatValue={formatPercent}
               sparklineData={SIGNUP_POINTS}
+              testID="scorecard-fixture.3"
               title="Conv. rate"
               value={4.35}
             />
@@ -215,6 +219,7 @@ const renderFixture = (fixture: (typeof CHART_VISUAL_FIXTURES)[number]): ReactEl
               comparisonData={PREVIOUS_POINTS}
               formatValue={formatPercent}
               sparklineData={SIGNUP_POINTS}
+              testID="scorecard-fixture.4"
               title="Search lost IS (rank)"
               value={57.75}
             />

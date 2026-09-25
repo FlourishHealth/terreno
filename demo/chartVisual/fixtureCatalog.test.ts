@@ -1,4 +1,6 @@
 import {describe, expect, it} from "bun:test";
+import {existsSync} from "node:fs";
+import {join} from "node:path";
 import {assert} from "chai";
 
 import {
@@ -33,5 +35,12 @@ describe("chart visual fixture catalog", () => {
 
     assert.exists(fixture);
     assert.equal(fixture.difficulty, "hard");
+    assert.equal(
+      chartVisualFixtureTestId(fixture.id),
+      "chart-visual-scorecard-sparkline-comparison"
+    );
+    assert.isTrue(
+      existsSync(join(import.meta.dir, "../rendered-snapshots/scorecard-sparkline-comparison.png"))
+    );
   });
 });

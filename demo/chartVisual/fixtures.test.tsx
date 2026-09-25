@@ -1,4 +1,5 @@
 import {describe, expect, it} from "bun:test";
+import {assert} from "chai";
 import type React from "react";
 import {renderWithTheme} from "../../ui/src/test-utils";
 import ChartVisualGalleryPage from "../app/demo/chart-visual-gallery";
@@ -32,4 +33,13 @@ describe("chart visual fixtures", () => {
       }).not.toThrow();
     });
   }
+
+  it("renders five current/comparison scorecard pairs", async (): Promise<void> => {
+    const {findByTestId} = renderWithTheme(<Host id="scorecard-sparkline-comparison" />);
+
+    for (let index = 0; index < 5; index += 1) {
+      assert.exists(await findByTestId(`scorecard-fixture.${index}.sparkline.current`));
+      assert.exists(await findByTestId(`scorecard-fixture.${index}.sparkline.comparison`));
+    }
+  });
 });
