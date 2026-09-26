@@ -287,6 +287,33 @@ export interface BoardItemSnapshot {
   issueNumber: number | null;
 }
 
+/**
+ * Finds the issue for seed entries whose title no longer matches one: the
+ * board's IP field still names the plan. Without this, renaming a tracking issue
+ * on GitHub would make `--create-missing-ip-issues` open a duplicate. Issue
+ * numbers flow roadmap → issue only; nothing is written back into IP headers.
+ */
+export const attachIssuesByIp = ({
+  boardItems,
+  items,
+}: {
+  boardItems: BoardItemSnapshot[];
+  items: Pick<ResolvedItem, "ip" | "issueNumber">[];
+}): void => {
+  const issueByIp = new Map<string, number>();
+  for (const boardItem of boardItems) {
+    const ip = boardItem.fields[IP_FIELD_NAME] ?? "";
+    if (ip !== "" && boardItem.issueNumber !== null) {
+      issueByIp.set(ip, boardItem.issueNumber);
+    }
+  }
+  for (const item of items) {
+    if (item.issueNumber === null && item.ip !== "") {
+      item.issueNumber = issueByIp.get(item.ip) ?? null;
+    }
+  }
+};
+
 export interface ItemFieldWrite {
   field: string;
   itemIssue: number;
@@ -860,6 +887,7 @@ export const main = async (): Promise<void> => {
 
   // --- items ----------------------------------------------------------------
   const boardItems = await fetchBoardItems({projectId: project.id, token});
+  attachIssuesByIp({boardItems, items});
   const boardByIssue = new Map(
     boardItems
       .filter((item) => item.issueNumber !== null)

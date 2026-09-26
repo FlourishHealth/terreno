@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {parseFieldOptions, parseLabelNames} from "./checkRoadmapItem.ts";
 import {parseBackfillTable, parseProjectFields, parseSeedIssues} from "./seedIssues.ts";
 import {
+  attachIssuesByIp,
   buildDesiredFields,
   COMMUNITY_FIELD_NAME,
   collectPagedNodes,
@@ -482,5 +483,25 @@ describe("resolveSeedItems with includeWithoutIp", () => {
     });
     assert.ok(items.some((item) => item.slug === "no-ip-yet"));
     assert.deepEqual(skipped, []);
+  });
+});
+
+describe("attachIssuesByIp", () => {
+  it("finds a renamed issue through the board's IP field", () => {
+    const items = [
+      {ip: "renamed-plan", issueNumber: null as number | null},
+      {ip: "", issueNumber: null as number | null},
+      {ip: "matched-plan", issueNumber: 7 as number | null},
+    ];
+    attachIssuesByIp({
+      boardItems: [
+        {fields: {IP: "renamed-plan"}, id: "a", issueNumber: 42},
+        {fields: {IP: "matched-plan"}, id: "b", issueNumber: 99},
+      ],
+      items,
+    });
+    assert.equal(items[0]?.issueNumber, 42);
+    assert.equal(items[1]?.issueNumber, null);
+    assert.equal(items[2]?.issueNumber, 7);
   });
 });
