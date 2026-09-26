@@ -17,6 +17,7 @@
  *   bun run roadmap:sync --check      # exit 1 if the board has drifted (CI)
  *   bun run roadmap:sync              # apply
  *   bun run roadmap:sync --create-missing-issues   # also open absent tracking issues
+ *   bun run roadmap:sync --create-missing-ip-issues   # open them only for entries with an IP (CI)
  *
  * Requires a token with `project` scope: `gh auth refresh -s project`.
  */
@@ -677,6 +678,7 @@ export const main = async (): Promise<void> => {
   const {values} = parseArgs({
     options: {
       check: {default: false, type: "boolean"},
+      "create-missing-ip-issues": {default: false, type: "boolean"},
       "create-missing-issues": {default: false, type: "boolean"},
       "dry-run": {default: false, type: "boolean"},
       owner: {default: "TerrenoLabs", type: "string"},
@@ -695,6 +697,9 @@ export const main = async (): Promise<void> => {
   }
 
   const readOnly = values.check || values["dry-run"];
+  // The IP-only mode is what post-merge CI uses: a merged plan earns a public
+  // tracking issue, while seed entries with no plan behind them stay skipped.
+  const createIssues = values["create-missing-issues"] || values["create-missing-ip-issues"];
   const knownLabels = parseLabelNames(await Bun.file(LABELS_PATH).text());
   const options = parseFieldOptions({
     fieldsContents: await Bun.file(FIELDS_PATH).text(),
@@ -863,7 +868,7 @@ export const main = async (): Promise<void> => {
 
   const itemPlan = planItemSync({
     boardItems,
-    createMissingIssues: values["create-missing-issues"],
+    createMissingIssues: createIssues,
     items,
   });
   actions.push(...itemPlan.actions);
@@ -964,7 +969,7 @@ export const main = async (): Promise<void> => {
     [...boardByIssue.entries()].map(([number, item]) => [number, item.id])
   );
 
-  if (values["create-missing-issues"]) {
+  if (createIssues) {
     for (const item of items) {
       if (item.issueNumber !== null || item.body === null) {
         continue;
