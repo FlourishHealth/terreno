@@ -442,17 +442,23 @@ const planTitle = ({contents, slug}: {contents: string; slug: string}): string =
   return heading.replace(/^implementation plan:\s*/i, "").trim() || slug;
 };
 
-/** First paragraph under `## Goal`, reflowed onto one line. */
+/**
+ * First paragraph under `## Goal`, reflowed onto one line. A paragraph that
+ * introduces a list (ends with `:`) keeps that list, so the summary does not
+ * stop mid-sentence.
+ */
 const planSummary = (contents: string): string => {
-  const goal = contents.split(/^## Goal\s*$/m)[1];
+  const goal = contents.split(/^## Goal\s*$/m)[1]?.split(/^## /m)[0];
   if (goal === undefined) {
     return "";
   }
-  const paragraph = goal
-    .trim()
-    .split(/\n\s*\n/)[0]
-    ?.split(/^## /m)[0];
-  return (paragraph ?? "").replace(/\s*\n\s*/g, " ").trim();
+  const [first = "", next = ""] = goal.trim().split(/\n\s*\n/);
+  const paragraph = first.replace(/\s*\n\s*/g, " ").trim();
+  const isListNext = /^\s*(?:[-*]|\d+\.)\s/.test(next);
+  if (!paragraph.endsWith(":") || !isListNext) {
+    return paragraph;
+  }
+  return `${paragraph}\n\n${next.trimEnd()}`;
 };
 
 /**
@@ -472,7 +478,9 @@ export const buildSeedSection = ({
 }): string => {
   const declared = parseProjectFields(headerValue({contents, key: "Roadmap"}) ?? "");
   const area = declared.Area || inferArea(contents);
-  const target = declared.Target || inferTarget({contents, status});
+  // Shipped work always lands under Released, whatever the header declared.
+  const target =
+    status === "Shipped" ? "Released" : declared.Target || inferTarget({contents, status});
   const impact = declared.Impact || inferImpact(contents);
   const typeLabel = IMPACT_TYPE_LABELS[impact] ?? "type:feature";
   const summary = planSummary(contents);

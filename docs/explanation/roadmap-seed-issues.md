@@ -1149,20 +1149,6 @@ Ship **Langfuse-like** prompt versioning, nested traces (user / session / cost),
 
 ---
 
-## support-agent
-
-**Title:** `Support answering agent (@terreno/support)`
-
-**Labels:** `area:ai`, `type:feature`  
-**Project fields:** Area=`ai`, Target=`Future`, Impact=`Feature`, IP=`support-agent`, Status=`Shaping`
-
-Ship `@terreno/support`, a `TerrenoPlugin` that:
-
-- **Implementation plan:** [support-agent.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/implementationPlans/support-agent.md)
-- **Tasks:** [support-agent.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/tasks/support-agent.md)
-
----
-
 ## better-auth-strict-oauth-provider
 
 **Title:** `Better Auth sync omits unset oauthProvider`
@@ -1191,20 +1177,6 @@ Authenticated users mint **personal MCP service tokens** that act as that user o
 
 ---
 
-## ai-agents-and-failover
-
-**Title:** `AI agents and provider failover`
-
-**Labels:** `area:ai`, `type:feature`  
-**Project fields:** Area=`ai`, Target=`Future`, Impact=`Feature`, IP=`ai-agents-and-failover`, Status=`Shaping`
-
-Add two additive library seams to `@terreno/ai` so app code can:
-
-- **Implementation plan:** [ai-agents-and-failover.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/implementationPlans/ai-agents-and-failover.md)
-- **Tasks:** [ai-agents-and-failover.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/tasks/ai-agents-and-failover.md)
-
----
-
 ## compile-pipeline-dedup
 
 **Title:** `Compile pipeline dedup (remove redundant recompiles)`
@@ -1216,6 +1188,51 @@ Make each `@terreno/*` package compile **exactly once** per cold `bun run compil
 
 - **Implementation plan:** [compile-pipeline-dedup.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/implementationPlans/compile-pipeline-dedup.md)
 - **Tasks:** [compile-pipeline-dedup.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/tasks/compile-pipeline-dedup.md)
+
+---
+
+## support-agent
+
+**Title:** `Support answering agent (@terreno/support)`
+
+**Labels:** `area:ai`, `type:feature`  
+**Project fields:** Area=`ai`, Target=`Future`, Impact=`Feature`, IP=`support-agent`, Status=`Shaping`
+
+Ship `@terreno/support`, a `TerrenoPlugin` that:
+
+1. **Ingests knowledge** from pluggable `KnowledgeSource` adapters into a Mongo-backed,
+   chunked, searchable index. Built in: announcements, markdown docs folder, and a generic
+   Mongoose-model adapter.
+2. **Answers support questions** with `@terreno/ai`'s `AIService`, grounded only in
+   retrieved chunks, returning `answer`, `sources`, `confidence`, and `shouldEscalate`.
+3. **Exposes the agent as MCP tools** on the app's existing `/mcp` server
+   (`support_ask`, `support_search`, `support_get_document`, `support_list_sources`) and
+   as REST `modelRouter` actions, so ChatGPT, Claude, Cursor, an in-app widget, or a
+   human-support tool can all call the same agent.
+4. **Closes the loop for AI authors**: a `support/kb/` docs convention, a
+   `write-support-docs` skill, a `terreno-support check` validator, and a
+   "knowledge gaps" report (low-confidence / thumbs-down questions) that tells agents which
+   doc to write next.
+
+- **Implementation plan:** [support-agent.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/implementationPlans/support-agent.md)
+- **Tasks:** [support-agent.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/tasks/support-agent.md)
+
+---
+
+## ai-agents-and-failover
+
+**Title:** `AI agents and provider failover`
+
+**Labels:** `area:ai`, `type:feature`  
+**Project fields:** Area=`ai`, Target=`Future`, Impact=`Feature`, IP=`ai-agents-and-failover`, Status=`Shaping`
+
+Add two additive library seams to `@terreno/ai` so app code can:
+
+1. Define a reusable **Agent** (`name`, `instructions`, `tools`, optional `schema`, optional `middleware`) that runs through existing `AIService` logging.
+2. Wrap one or more Vercel AI SDK `LanguageModel`s in **`createFailoverModel`** so 429/502/503/overloaded failures try the next model. Every `AIService` method inherits failover without per-method changes.
+
+- **Implementation plan:** [ai-agents-and-failover.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/implementationPlans/ai-agents-and-failover.md)
+- **Tasks:** [ai-agents-and-failover.md](https://github.com/TerrenoLabs/terreno/blob/master/docs/tasks/ai-agents-and-failover.md)
 
 ---
 

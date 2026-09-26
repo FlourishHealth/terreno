@@ -395,6 +395,32 @@ describe("buildSeedSection", () => {
     assert.equal(seed?.impact, "Breaking");
   });
 
+  it("puts shipped work under Released even when the header declares a target", () => {
+    const declared = plan.replace(
+      "**Primary packages:**",
+      "**Roadmap:** Area=`api`, Target=`Next`, Impact=`Feature`  \n**Primary packages:**"
+    );
+    assert.match(
+      buildSeedSection({contents: declared, hasTasks: false, slug: "w", status: "Shipped"}),
+      /Target=`Released`/
+    );
+  });
+
+  it("keeps the list a goal paragraph introduces", () => {
+    const listPlan = plan.replace(
+      "Let apps export widgets\nas CSV.\n\nMore detail.",
+      "Apps can:\n\n- export widgets\n- import widgets\n\nMore detail."
+    );
+    const section = buildSeedSection({
+      contents: listPlan,
+      hasTasks: false,
+      slug: "w",
+      status: "Planned",
+    });
+    assert.match(section, /Apps can:\n\n- export widgets\n- import widgets\n/);
+    assert.doesNotMatch(section, /More detail/);
+  });
+
   it("targets Released for shipped work and Future for drafts", () => {
     assert.match(
       buildSeedSection({contents: plan, hasTasks: false, slug: "w", status: "Shipped"}),
