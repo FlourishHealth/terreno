@@ -7,6 +7,7 @@ import {
   Pressable,
   type StyleProp,
   TextInput,
+  type TextInputInstance,
   View,
 } from "react-native";
 
@@ -111,7 +112,7 @@ export const TextField: FC<TextFieldProps> = ({
   const [focused, setFocused] = useState(false);
   const [height, setHeight] = useState(rows * 40);
   const [isValueRevealed, setIsValueRevealed] = useState(false);
-  const textInputRef = useRef<TextInput | null>(null);
+  const textInputRef = useRef<TextInputInstance | null>(null);
 
   const isPasswordField = type === "password";
   const hasVisibilityToggle = isPasswordField && showVisibilityToggle;

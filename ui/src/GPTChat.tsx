@@ -2,8 +2,8 @@ import React, {useCallback, useEffect, useRef, useState} from "react";
 import {
   Platform,
   Image as RNImage,
-  type ScrollView as RNScrollView,
-  type TextInput as RNTextInput,
+  type ScrollViewInstance,
+  type TextInputInstance,
 } from "react-native";
 
 import {AttachmentPreview} from "./AttachmentPreview";
@@ -888,7 +888,7 @@ export const GPTChat = ({
   const [inputValue, setInputValue] = useState("");
   const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
-  const scrollViewRef = useRef<RNScrollView>(null);
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
   const [isScrolledUp, setIsScrolledUp] = useState(false);
   const contentHeightRef = useRef(0);
   const scrollOffsetRef = useRef(0);
@@ -916,7 +916,7 @@ export const GPTChat = ({
   const [inputElement, setInputElement] = useState<HTMLElement | null>(null);
 
   // On React Native Web the TextInput ref is the underlying DOM element.
-  const handleInputRef = useCallback((ref: RNTextInput | null) => {
+  const handleInputRef = useCallback((ref: TextInputInstance | null) => {
     setInputElement(ref as unknown as HTMLElement | null);
   }, []);
 
