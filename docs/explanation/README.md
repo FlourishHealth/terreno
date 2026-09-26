@@ -15,6 +15,7 @@ Understanding-oriented documentation: concepts, architecture, and context.
 - [Loop engineering](loop-engineering.md) — Fresh-invocation lifecycle, state, evidence, and orchestration boundaries
 - [GitHub issue lifecycle](../how-to/github-issue-lifecycle.md) — Pick-ready issues and plan comments for Pick/Roast
 - [Install agent skills](../how-to/install-agent-skills.md) — `npx skills add TerrenoLabs/terreno`
+- [AI observability](ai-observability.md) — Two planes (telemetry vs control), plugins vs LangfuseApp, SOP loop
 - [AI-powered workflows](ai-workflows.md) — Autonomous documentation, testing, and maintenance workflows
 - [Authentication architecture](authentication.md) — Better Auth, JWT, and optional MCP service tokens
 - [Organization tenancy](organizations.md) — Optional Membership-backed tenancy, context, and isolation boundaries

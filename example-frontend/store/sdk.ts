@@ -3,6 +3,7 @@
 
 import {generateTags, realtimeDocument, realtimeList} from "@terreno/rtk";
 
+import {getAiSessionId} from "@/lib/aiSession";
 import {addTagTypes, openapi} from "./openApiSdk";
 
 /** Tag types used by generateTags — todos are excluded; their cache is websocket-only. */
@@ -153,6 +154,10 @@ export interface GetGptHistoriesArgs {
   limit?: number;
   page?: number;
   sort?: string;
+}
+
+export interface SummarizeExampleTextResponse {
+  output: string;
 }
 
 export const terrenoApi = openapi
@@ -306,6 +311,23 @@ export const terrenoApi = openapi
           url: `/users/${id}/password`,
         }),
       }),
+      // Runs the seeded `example-summarize` production prompt. Hand-maintained so the call
+      // carries `x-ai-session-id` (and the locally saved key), which the generated SDK
+      // mutation cannot send.
+      summarizeExampleText: builder.mutation<
+        SummarizeExampleTextResponse,
+        {apiKey?: string; text: string}
+      >({
+        query: ({apiKey, text}) => ({
+          body: {text},
+          headers: {
+            "x-ai-session-id": getAiSessionId(),
+            ...(apiKey ? {"x-ai-api-key": apiKey} : {}),
+          },
+          method: "POST",
+          url: "/ai/example-summarize",
+        }),
+      }),
     }),
     overrideExisting: true,
   })
@@ -341,5 +363,6 @@ export const {
   usePostNotificationsDevNotifyMutation,
   useGetAiModelsQuery,
   useSetAdminUserPasswordMutation,
+  useSummarizeExampleTextMutation,
 } = terrenoApi;
 export * from "./openApiSdk";

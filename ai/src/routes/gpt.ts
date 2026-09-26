@@ -1,3 +1,4 @@
+import {randomUUID} from "node:crypto";
 import {
   APIError,
   asyncHandler,
@@ -12,9 +13,9 @@ import {DateTime} from "luxon";
 import type mongoose from "mongoose";
 import {createTelemetryConfig, preparePromptForAI} from "../langfuseVercelAi";
 
-import {AIRequest} from "../models/aiRequest";
 import {GptHistory} from "../models/gptHistory";
 import {Project} from "../models/project";
+import type {SpanRecord} from "../observability/types";
 import {AIService} from "../service/aiService";
 import {TITLE_GENERATION_PROMPT} from "../service/prompts";
 import type {
@@ -40,6 +41,66 @@ const isGeneratedImageFile = (value: unknown): value is GeneratedImageFile =>
 
 const DEMO_RESPONSE =
   "This is demo mode. To use AI features, paste your Gemini API key in Settings.";
+
+const readSessionId = (req: express.Request): string | undefined => {
+  const fromBody = req.body?.sessionId;
+  if (typeof fromBody === "string" && fromBody.length > 0) {
+    return fromBody;
+  }
+  const header = req.headers["x-ai-session-id"];
+  if (typeof header === "string" && header.length > 0) {
+    return header;
+  }
+  if (Array.isArray(header) && typeof header[0] === "string" && header[0].length > 0) {
+    return header[0];
+  }
+  return undefined;
+};
+
+const readSensitiveOverride = (value: unknown): boolean | undefined => {
+  if (value === true) {
+    return true;
+  }
+  return undefined;
+};
+
+const readOptionalString = (value: unknown): string | undefined => {
+  if (typeof value === "string" && value.length > 0) {
+    return value;
+  }
+  return undefined;
+};
+
+const toIsoUtc = (millis: number): string => {
+  return DateTime.fromMillis(millis, {zone: "utc"}).toISO() ?? "";
+};
+
+interface PendingToolCall {
+  args: unknown;
+  spanId: string;
+  startedAt: number;
+  toolName: string;
+}
+
+const readAdminPromptReference = ({
+  promptLabel,
+  promptName,
+  user,
+}: {
+  promptLabel: unknown;
+  promptName: unknown;
+  user?: {admin?: boolean};
+}): {promptLabel?: string; promptName?: string} => {
+  const name = readOptionalString(promptName);
+  const label = readOptionalString(promptLabel);
+  if (!name && !label) {
+    return {};
+  }
+  if (!user?.admin) {
+    throw new APIError({status: 403, title: "Prompt registry selection requires admin access"});
+  }
+  return {promptLabel: label, promptName: name};
+};
 
 /** Send a canned SSE demo response when no AI service is available. */
 const sendDemoResponse = (res: express.Response, historyId?: string): void => {
@@ -101,6 +162,7 @@ const generateTitle = async (
     const conversationSnippet = `User: ${prompt}\nAssistant: ${response.substring(0, 500)}`;
     const title = await titleService.generateText({
       prompt: conversationSnippet,
+      skipTrace: true,
       systemPrompt: TITLE_GENERATION_PROMPT,
       temperature: 0.3,
     });
@@ -137,6 +199,10 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
           model: {type: "string"},
           projectId: {type: "string"},
           prompt: {type: "string"},
+          promptLabel: {type: "string"},
+          promptName: {type: "string"},
+          sensitive: {type: "boolean"},
+          sessionId: {type: "string"},
           systemPrompt: {type: "string"},
         })
         .withResponse(200, {data: {type: "string"}})
@@ -154,8 +220,19 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
           attachments,
           model: requestModel,
           projectId,
+          promptLabel,
+          promptName,
+          sensitive,
+          sessionId: bodySessionId,
         } = req.body;
         const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
+        const sessionId = readOptionalString(bodySessionId) ?? readSessionId(req);
+        const sensitiveOverride = readSensitiveOverride(sensitive);
+        const promptReference = readAdminPromptReference({
+          promptLabel,
+          promptName,
+          user: req.user as {admin?: boolean} | undefined,
+        });
 
         if (!prompt || typeof prompt !== "string") {
           throw new APIError({status: 400, title: "prompt is required"});
@@ -243,6 +320,14 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
           }
         }
 
+        const observability = await aiService.resolveGenerateObservability({
+          ...promptReference,
+          sensitive: sensitiveOverride,
+          sessionId,
+          systemPrompt: effectiveSystemPrompt,
+        });
+        effectiveSystemPrompt = observability.systemPrompt;
+
         // Build content parts from attachments
         const contentParts: MessageContentPart[] = [{text: prompt, type: "text"}];
         if (attachments && Array.isArray(attachments)) {
@@ -317,6 +402,8 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
         let fullResponse = "";
         const generatedImages: Array<{mimeType: string; url: string}> = [];
         const startTime = DateTime.now().toMillis();
+        const pendingToolCalls = new Map<string, PendingToolCall>();
+        const toolSpans: SpanRecord[] = [];
         try {
           logger.debug("Starting streamText", {model: modelId, supportsTools});
           const telemetry = createTelemetryConfig({
@@ -418,24 +505,35 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
               }
             } else if (part.type === "tool-call") {
               stepHasToolCall = true;
+              const toolCallId = part.toolCallId as string;
+              const toolName = part.toolName as string;
+              const toolStartedAt = DateTime.now().toMillis();
+              pendingToolCalls.set(toolCallId, {
+                args: part.input,
+                spanId: randomUUID(),
+                startedAt: toolStartedAt,
+                toolName,
+              });
               res.write(
                 `data: ${JSON.stringify({
                   toolCall: {
                     args: part.input,
-                    toolCallId: part.toolCallId,
-                    toolName: part.toolName,
+                    toolCallId,
+                    toolName,
                   },
                 })}\n\n`
               );
               // Persist tool call in history
               history.prompts.push({
                 args: part.input as Record<string, unknown>,
-                text: `Tool call: ${part.toolName as string}`,
-                toolCallId: part.toolCallId as string,
-                toolName: part.toolName as string,
+                text: `Tool call: ${toolName}`,
+                toolCallId,
+                toolName,
                 type: "tool-call",
               });
             } else if (part.type === "tool-result") {
+              const toolCallId = part.toolCallId as string;
+              const toolName = part.toolName as string;
               const toolResult = part.output as Record<string, unknown> | undefined;
 
               // If the tool result contains file data, send it as a separate file SSE event
@@ -457,22 +555,39 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
 
               // Strip fileData from result before sending/storing to avoid bloating the SSE and DB
               const {fileData: _fileData, ...cleanResult} = toolResult ?? {};
+              const pending = pendingToolCalls.get(toolCallId);
+              const toolEndedAt = DateTime.now().toMillis();
+              if (pending) {
+                toolSpans.push({
+                  durationMs: toolEndedAt - pending.startedAt,
+                  endedAt: toIsoUtc(toolEndedAt),
+                  id: pending.spanId,
+                  input: pending.args,
+                  kind: "TOOL",
+                  name: pending.toolName,
+                  output: cleanResult,
+                  startedAt: toIsoUtc(pending.startedAt),
+                  startOffsetMs: pending.startedAt - startTime,
+                  status: "ok",
+                });
+                pendingToolCalls.delete(toolCallId);
+              }
 
               res.write(
                 `data: ${JSON.stringify({
                   toolResult: {
                     result: cleanResult,
-                    toolCallId: part.toolCallId,
-                    toolName: part.toolName,
+                    toolCallId,
+                    toolName,
                   },
                 })}\n\n`
               );
               // Persist tool result in history (without the large file data)
               history.prompts.push({
                 result: cleanResult as unknown,
-                text: `Tool result: ${part.toolName as string}`,
-                toolCallId: part.toolCallId as string,
-                toolName: part.toolName as string,
+                text: `Tool result: ${toolName}`,
+                toolCallId,
+                toolName,
                 type: "tool-result",
               });
             }
@@ -530,12 +645,14 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
           await history.save();
 
           try {
-            await AIRequest.logRequest({
-              aiModel: modelId ?? "unknown",
+            await aiService.recordGenerate({
+              childSpans: toolSpans.length > 0 ? toolSpans : undefined,
+              observability,
               prompt,
               requestType: "general",
               response: fullResponse,
               responseTime: DateTime.now().toMillis() - startTime,
+              startTime,
               userId: userId ?? undefined,
             });
           } catch (logErr) {
@@ -578,12 +695,15 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
           });
 
           try {
-            await AIRequest.logRequest({
-              aiModel: modelId ?? "unknown",
+            await aiService.recordGenerate({
+              childSpans: toolSpans.length > 0 ? toolSpans : undefined,
               error: error instanceof Error ? error.message : String(error),
+              observability,
               prompt,
               requestType: "general",
+              response: fullResponse || undefined,
               responseTime: DateTime.now().toMillis() - startTime,
+              startTime,
               userId: userId ?? undefined,
             });
           } catch (logErr) {
@@ -678,14 +798,24 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
         .withTags(["gpt"])
         .withSummary("Remix text")
         .withRequestBody({
+          promptLabel: {type: "string"},
+          promptName: {type: "string"},
+          sensitive: {type: "boolean"},
+          sessionId: {type: "string"},
           text: {type: "string"},
         })
         .withResponse(200, {data: {type: "string"}})
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const {text} = req.body;
+      const {text, promptLabel, promptName, sensitive} = req.body;
       const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
+      const sessionId = readSessionId(req);
+      const promptReference = readAdminPromptReference({
+        promptLabel,
+        promptName,
+        user: req.user as {admin?: boolean} | undefined,
+      });
 
       if (!text || typeof text !== "string") {
         throw new APIError({status: 400, title: "text is required"});
@@ -696,7 +826,13 @@ export const addGptRoutes = (router: express.Router, options: GptRouteOptions): 
         return res.json({data: DEMO_RESPONSE});
       }
 
-      const result = await aiService.generateRemix({text, userId});
+      const result = await aiService.generateRemix({
+        ...promptReference,
+        sensitive: readSensitiveOverride(sensitive),
+        sessionId,
+        text,
+        userId,
+      });
       return res.json({data: result});
     })
   );

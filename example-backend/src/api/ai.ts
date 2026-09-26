@@ -13,11 +13,20 @@ import {
   MCPService,
   normalizeVertexModelId,
   preparePromptForAI,
+  TemperaturePresets,
   type TerrenoVertexProvider,
   verifyVertexModelsEnabled,
 } from "@terreno/ai";
 import type {ModelRouterOptions, User} from "@terreno/api";
-import {APIError, logger, modelRouter, Permissions} from "@terreno/api";
+import {
+  APIError,
+  asyncHandler,
+  authenticateMiddleware,
+  createOpenApiBuilder,
+  logger,
+  modelRouter,
+  Permissions,
+} from "@terreno/api";
 import type {ImageModel, LanguageModel, Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
@@ -254,7 +263,7 @@ export const aiModelsRouter = modelRouter("/ai", GptHistory, {
   permissions: disabledCrud,
 });
 
-const getAiService = (): AIService | undefined => {
+export const getAiService = (): AIService | undefined => {
   if (aiServiceInstance) {
     return aiServiceInstance;
   }
@@ -287,7 +296,7 @@ const getAiService = (): AIService | undefined => {
 };
 
 /** Create a LanguageModel on the server side (Vertex AI / Gemini Enterprise Agent Platform or Gemini API key). Returns undefined if no provider is configured (falls through to demo mode). Throws if the requested model is not in the configured allow-list. */
-const createServerModel = (modelId?: string) => {
+export const createServerModel = (modelId?: string): LanguageModel | undefined => {
   const vertexProvider = getVertexProvider();
   if (vertexProvider) {
     return vertexProvider.languageModel(modelId ?? resolveDefaultVertexModel(vertexProvider));
@@ -304,7 +313,7 @@ const createServerModel = (modelId?: string) => {
 };
 
 /** Create a LanguageModel from a per-request API key (always uses Gemini API). */
-const createModelFromKey = (apiKey: string, modelId?: string) => {
+export const createModelFromKey = (apiKey: string, modelId?: string) => {
   const google = getGoogleModule();
   if (!google) {
     throw new APIError({status: 500, title: "Missing @ai-sdk/google dependency."});
@@ -633,6 +642,7 @@ const pdfTool = tool({
 
 const JOKE_FALLBACK_SYSTEM_PROMPT =
   "You are a witty comedian. Tell a short, clever joke in 1-3 sentences. Be funny and concise.";
+const EXAMPLE_SUMMARIZE_PROMPT_NAME = "example-summarize";
 
 const jokeGeneratorTool = tool({
   description:
@@ -724,6 +734,53 @@ export const addAiRoutes = (
   if (vertexProvider) {
     void verifyAllowedVertexModels(vertexProvider);
   }
+
+  router.post("/ai/example-summarize", [
+    authenticateMiddleware(),
+    createOpenApiBuilder(options ?? {})
+      .withTags(["ai", "observability"])
+      .withSummary("Run the seeded observability summarization prompt")
+      .withRequestBody({
+        text: {type: "string"},
+      })
+      .withResponse(200, {
+        data: {
+          properties: {
+            output: {type: "string"},
+          },
+          type: "object",
+        },
+      })
+      .build(),
+    asyncHandler(async (req, res) => {
+      // Prefer the server-wide service; fall back to the caller's own key so the example app
+      // still traces real runs when the backend has no provider credentials.
+      const requestApiKey = req.header("x-ai-api-key");
+      const effectiveAiService =
+        aiService ??
+        (requestApiKey ? new AIService({model: createModelFromKey(requestApiKey)}) : undefined);
+      if (!effectiveAiService) {
+        throw new APIError({
+          status: 503,
+          title:
+            "Configure GOOGLE_VERTEX_PROJECT or GEMINI_API_KEY, or save a Gemini API key in Profile",
+        });
+      }
+      const text = (req.body as {text?: string}).text?.trim();
+      if (!text) {
+        throw new APIError({status: 400, title: "text is required"});
+      }
+      const output = await effectiveAiService.generateText({
+        prompt: text,
+        promptLabel: "production",
+        promptName: EXAMPLE_SUMMARIZE_PROMPT_NAME,
+        sessionId: req.header("x-ai-session-id"),
+        temperature: TemperaturePresets.LOW,
+        userId: req.user?._id,
+      });
+      return res.json({data: {output}});
+    }),
+  ]);
 
   addGptHistoryRoutes(router, options);
   addGptRoutes(router, {
