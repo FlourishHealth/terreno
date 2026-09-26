@@ -153,3 +153,25 @@ describe("Cloud Run preview readiness", (): void => {
     );
   });
 });
+
+describe("netlify-deploy.sh monorepo filter", () => {
+  it("filters each target to a real workspace package so netlify-cli does not prompt", () => {
+    const targets = {
+      demo: "demo",
+      docs: "website",
+      frontend: "example-frontend",
+    };
+    for (const [target, packageDir] of Object.entries(targets)) {
+      const packageName = JSON.parse(
+        readFileSync(join(repoRoot, packageDir, "package.json"), "utf8")
+      ).name;
+      const block = netlifyScript.slice(netlifyScript.indexOf(`  ${target})\n    site_id=`));
+      assert.include(
+        block.slice(0, block.indexOf(";;")),
+        `netlify_filter="${packageName}"`,
+        target
+      );
+    }
+    assert.include(netlifyScript, 'args=(deploy --filter "$netlify_filter"');
+  });
+});
