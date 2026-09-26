@@ -16,16 +16,19 @@ case "$target" in
   demo)
     site_id="${NETLIFY_DEMO_SITE_ID:-}"
     site_name="terreno-demo"
+    netlify_filter="terreno-demo"
     deployment_env="demo"
     ;;
   frontend)
     site_id="${NETLIFY_FRONTEND_EXAMPLE_SITE_ID:-}"
     site_name="terreno-frontend"
+    netlify_filter="@terreno/example-frontend"
     deployment_env="example-frontend"
     ;;
   docs)
     site_id="${NETLIFY_DOCS_SITE_ID:-}"
     site_name="terreno-docs"
+    netlify_filter="@terreno/website"
     deployment_env="docs"
     ;;
   *)
@@ -90,7 +93,9 @@ if [ -n "${NETLIFY_WAIT_FOR_HEALTH_URL:-}" ]; then
   scripts/ci/wait-cloud-run-health.sh "$NETLIFY_WAIT_FOR_HEALTH_URL" 1200
 fi
 
-args=(deploy --dir "$publish_dir" --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN")
+# netlify-cli sees the Bun workspace as a monorepo and refuses to guess a package in CI.
+# Absolute --dir keeps the publish path independent of the filtered package's base dir.
+args=(deploy --filter "$netlify_filter" --dir "$repo_root/$publish_dir" --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN")
 if [ "$mode" = "production" ]; then
   args+=(--prod)
   deployment_url="https://${site_name}.netlify.app"
