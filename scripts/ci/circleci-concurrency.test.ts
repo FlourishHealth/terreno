@@ -227,3 +227,22 @@ describe("CircleCI concurrency", () => {
     }
   });
 });
+
+describe("CircleCI config parameter syntax", () => {
+  it("has no unescaped << outside pipeline/parameters references", () => {
+    // CircleCI 2.1 treats every `<<` as a parameter tag; a shell here-string fails compile
+    // for every continuation pipeline, not just the job that uses it.
+    for (const [name, config] of [
+      ["config.yml", setupConfig],
+      ["continue-config.yml", continueConfig],
+    ]) {
+      const stray = config
+        .split("\n")
+        .map((line, index) => ({line, number: index + 1}))
+        .filter(({line}) =>
+          /(^|[^\\])<</.test(line.replace(/<< *(pipeline|parameters)\.[^>]*>>/g, ""))
+        );
+      assert.deepEqual(stray, [], `${name} has unescaped <<`);
+    }
+  });
+});

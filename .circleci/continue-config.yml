@@ -518,7 +518,7 @@ commands:
             repository="${GITHUB_REPOSITORY:-TerrenoLabs/terreno}"
             body="$(curl -fsS --max-time 10 -H "Accept: application/vnd.github+json" \
               "https://api.github.com/repos/${repository}/pulls/${pr}" || true)"
-            kind="$(node -e '
+            kind="$(printf '%s' "$body" | node -e '
             const fs = require("fs");
             const raw = fs.readFileSync(0, "utf8").trim();
             const write = (value) => process.stdout.write(value);
@@ -529,7 +529,7 @@ commands:
             const base = data && data.base && data.base.repo && data.base.repo.full_name;
             if (!head || !base) { write("unknown"); process.exit(0); }
             write(head === base ? "same" : "fork");
-            ' <<<"$body")"
+            ')"
             if [ "$kind" = "fork" ]; then
               echo "Fork PR detected via GitHub API; skipping deploy"
               circleci step halt
